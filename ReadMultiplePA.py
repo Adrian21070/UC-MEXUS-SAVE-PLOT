@@ -76,10 +76,12 @@ ax.xaxis.set_tick_params(rotation=30, labelsize=8)
 ax.xaxis.set_major_locator(dates.MinuteLocator(interval=time_interval))
 plt.show()
 
-x_axis=list(range(0,len(P1_ATM_IND)))*len(P10_ATM_MULT)
+x_axis=(list(range(0,len(P1_ATM_IND)))*len(P10_ATM_MULT))
+x_axis = [element * 6 for element in x_axis]
 #print(x_axis)
-columns = np.arange(len(P10_ATM_MULT))
+columns = np.arange(0,len(P10_ATM_MULT)*6,6)
 y_axis = np.concatenate([([t]*result_num) for t in columns], axis=0)
+#print(y_axis)
 P1_ATM_INDS = list(chain(*P1_ATM_MULT))
 ax2 = plt.axes(projection='3d')
 #ax2.scatter3D(x_axis, y_axis, P1_ATM_INDS, c=P1_ATM_INDS, cmap='Greens');
