@@ -23,6 +23,7 @@ from itertools import chain
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib.offsetbox import AnchoredText
 
 #creating lists
 P1_ATM_MULT_VECTOR = []
@@ -56,7 +57,10 @@ y_axis = np.concatenate([([t]*rows) for t in column_with_interval], axis=0)
 
 #defining plot
 fig, ax = plt.subplots()
-ax1 = plt.axes(projection='3d') 
+ax1 = plt.axes(projection='3d')
+
+def avg(lst):
+    return round(sum(lst) / len(lst),2)
 
 def animate(i):
     '''
@@ -73,10 +77,20 @@ def animate(i):
     if animation_counter==result_num:
         animation_counter=0
     
+    minimum = min(z_axis)
+    maximum = max(z_axis)
+    average = avg(z_axis)
+    textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3  Promedio: "+str(average)+" ug/m3"
+
     ax1.clear()
+    ax1.annotate(textstr,
+            xy=(0.5, 0), xytext=(0, 10),
+            xycoords=('axes fraction', 'figure fraction'),
+            textcoords='offset points',
+            size=10, ha='center', va='bottom')
     #ax2.scatter3D(x_axis, y_axis, P1_ATM_INDS, c=P1_ATM_INDS, cmap='Greens');
     #ax2.plot3D(x_axis, y_axis, P1_ATM_INDS, 'green');
-    ax1.plot_trisurf(x_axis, y_axis, z_axis, cmap='viridis', edgecolor='none');
+    ax1.plot_trisurf(x_axis, y_axis, z_axis, cmap='viridis', edgecolor='none')
     plt.title(str(shown_time))	
 
 #loop to retrieve the measurements from sensors	
