@@ -11,8 +11,8 @@ import time as tm
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.offsetbox import AnchoredText
 
-r_key = 'HZEGJA0LWH5HYCBW'
-channel_id = 141675
+r_key = '3DHCZRPJ1M6YIFV7'
+channel_id = 1369647
 
 '''
     Change Retrieved_Data accordingly:
@@ -36,7 +36,7 @@ to_zone = tz.tzlocal()
 MX = pytz.timezone('America/Monterrey')
 formatter = dates.DateFormatter('%m/%d %H:%M ',tz=MX)
 time_interval = 5
-result_num = 100
+result_num = 3
 
 font = {'family': 'Arial',
         'color':  'black',
