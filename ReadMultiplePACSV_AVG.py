@@ -25,8 +25,9 @@ font = {'family': 'Arial',
         'weight': 'bold',
         'size': 14,
         }
-
-path = "D:\Instituto Tecnologico y de Estudios Superiores de Monterrey\Moisés Alejandro Leyva Sanjuan - UCMEXUS\Mediciones prueba\\20211028\S"
+#20211028
+#20210909
+path = "D:\Instituto Tecnologico y de Estudios Superiores de Monterrey\Moisés Alejandro Leyva Sanjuan - UCMEXUS\Mediciones prueba\\20210909\S"
 
 def avg(lst):
     return round(sum(lst) / len(lst),2)
