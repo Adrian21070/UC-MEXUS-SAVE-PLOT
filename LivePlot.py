@@ -11,11 +11,12 @@ import time as tm
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.offsetbox import AnchoredText
 
+# informacion del canal a monitorear
 r_key = 'IDFY2IKBD5YYQ3IC'
 channel_id = 1336976
 
 '''
-    Change Retrieved_Data accordingly:
+    Change retrieved_data accordingly:
         Primary Channel:
         PM1.0 (CF=1) ug/m3: "field1"
         PM2.5 (CF=1) ug/m3: "field2"
@@ -28,16 +29,21 @@ channel_id = 1336976
 '''
 Retrieved_Data = "field8"
 
+#listas de tiempos en hora local y utc
 time = []
 time_utc = []
+#lista donde se guardan las mediciones
 P1_ATM = []
+#zonas horarias
 from_zone = tz.tzutc()
 to_zone = tz.tzlocal()
 MX = pytz.timezone('America/Monterrey')
+#formato de hora
 formatter = dates.DateFormatter('%m/%d %H:%M ',tz=MX)
-time_interval = 5
+#numero de datos que inicialmente se grafican
 result_num = 15
 
+#fuentes a utilizar por la grafica
 font = {'family': 'Arial',
         'color':  'black',
         'weight': 'bold',
@@ -48,9 +54,23 @@ font = {'family': 'Arial',
 fig, ax = plt.subplots()
 
 def avg(lst):
+    '''
+        @name: avg
+        @brief: Funcion para promediar una lista de numeros
+        @param: lst: lista de numeros a promediar
+        @return: promedio
+    '''
     return round(sum(lst) / len(lst),2)
 
 def animate(i):
+    '''
+        @name: animate
+        @brief: Funcion para generar una animacion a partir de las mediciones de PM en una cantidad definidad 
+                de tiempo utilizando datos de PurpleAir
+        @param: 
+            - i: Duracion de la animacion
+        @return: Nada, unicamente genera una animación
+    '''
     global utcstr
     ob_inc = Thingspeak(read_api_key=r_key, channel_id=channel_id)
     data_inc,channel_inc = ob_inc.read_one_sensor(result=1)

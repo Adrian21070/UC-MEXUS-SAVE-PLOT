@@ -1,7 +1,21 @@
+'''
+----------------------------------------------------------
+    @file: AvgFunctions.py
+    @date: Nov 2021
+    @date_modif: Dec 22, 2021
+    @author: Raul Dominguez
+    @e-mail: a01065986@itesm.mx
+    @brief: Functions to graph the data obtained from measurements of an arrangement of PurpleAir sensors
+    Open source
+----------------------------------------------------------
+'''
+
+# Librerias requeridas
 from datetime import datetime
 from dateutil import tz
 import matplotlib.dates as dates
 import  matplotlib.pyplot as plt
+# la funcion de abajo jala las funciones del script TSclasses.py para obtener los datos de los canales de thingspeak
 from TSclasses import *
 import pytz
 import numpy as np
@@ -14,24 +28,24 @@ from matplotlib import cm
 from scipy import interpolate
 import os
 
-'''columns = 5
-rows = 4
-lateral_length = 8
-depth_length = 10
-hora_de_estudio = 14
-tiempo = 30
-Sensor_num = 20'''
-
+# Fuente utilizada en los graficos
 font = {'family': 'Arial',
         'color':  'black',
         'weight': 'bold',
         'size': 14,
         }
 
-#20211028
-#20210909
+# Default path: SE TIENE QUE MODIFICAR DE ACUERDO A DONDE SE ENCUENTREN ARCHVOS CSV DE SENSORES
 path = "D:\Instituto Tecnologico y de Estudios Superiores de Monterrey\Moisés Alejandro Leyva Sanjuan - UCMEXUS\Mediciones prueba\\20211028F"
+'''
+Nombre de Folders de campañas de monitoreo:
+- 20211028
+- 20210909
+- 20211028F
+- 20210909F
+'''
 
+#IDs y Llaves del canal prinicpal del sensor A los dispositivos  PurpleAir 
 keys = ['TMTVNTYUXGGT7MK3', 'T5VPQSVT9BAE5ZI1',"F2K1DV64M1Z75VU4", "O94LWPUDGE645M0W","3DHCZRPJ1M6YIFV7",
         "LMP9I4DYO31RLQCM", "4YNO8GQDC5V4D8AH", "YR676V09QO1KX1Q7", "YTLP8VLPWKIJ9G4K", "ODM4VO7RDXCYWL2O",
         "0S1GMA57I3VO7TN8","W8HHP4TYIQSX5KTC", "4MGD149UTH64IKO1","D1EPGDRFWRLFDRWL", "3GOKID03X1ZQI7UO",
@@ -41,11 +55,32 @@ channel_ids =[1367948, 1367997, 1336916, 1367985, 1369647,
               1379214, 1367958, 1367952, 1336974, 1368009, 
               1453911, 1452796, 1451589, 1453911, 1452796]
 
-
 def avg(lst):
+    '''
+        @name: avg
+        @brief: Funcion para promediar una lista de numeros
+        @param: lst: lista de numeros a promediar
+        @return: promedio
+    '''
     return round(sum(lst) / len(lst),2)
 
 def GraphAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tiempo, SenNum,pth,PMType):
+    '''
+        @name: GraphAvg
+        @brief: Funcion para generar la grafica de promedios a traves de una cantidad definida de tiempo 
+                utilizando archivos CSV
+        @param: 
+            - columns: numero de columnas en el arreglos de sensores
+            - rows: numero de filas en el arreglo de sensores
+            - lateral_length: longitud entre columnas
+            - depth_length: longitud entre filas
+            - hora_de estudio: hora inicial de recoleccion de datos
+            - tiempo: tiempo que duro el estudio
+            - SenNum: numero de sensores
+            - pth: ruta donde al folder donde se encuentran los archivos CSV
+            - PMType: tipo de material particulado
+        @return: Nada, unicamente hace una grafica y genera un archivo de texto con información general
+    '''
     path=pth
     P1_ATM = []
     Data_Length =[]
@@ -72,14 +107,6 @@ def GraphAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tiemp
                         mxtime.append(mx_time)
                         time = time -1
                     elif (mx_time == lower_time_limit) or (mx_time==upper_time_limit):
-                        '''
-                        PM 1.0 CF: pm1_0_cf_1	
-                        PM 2.5 CF: pm2_5_cf_1	
-                        PM 10.0 CF: pm10_0_cf_1	
-                        PM 1.0 ATM: pm1_0_atm	
-                        PM 2.5 ATM: pm2_5_atm	
-                        PM 10 ATM: pm10_0_atm
-                        '''
                         P1_ATM_IND.append(float(row.get(PMType)))
                         time = time -1
             Data_Length.append(len(P1_ATM_IND))
@@ -88,17 +115,6 @@ def GraphAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tiemp
             Data_Length.append(0)           
         #print(P1_ATM_IND)
         P1_ATM.append(avg(P1_ATM_IND))
-        #Borrar cuando se añadan mas sensores
-        #if i == 6 or i == 8:
-        #    P1_ATM.append(0)
-        '''
-        if i == 7:
-            P1_ATM.append(avg(P1_ATM_IND))
-            P1_ATM.append(avg(P1_ATM_IND))
-        if i == 8:
-            P1_ATM.append(avg(P1_ATM_IND))
-            P1_ATM.append(avg(P1_ATM_IND))'''
-        #print(P1_ATM)
  
     fils = open("CSV.txt", "w")
     fils.write(str(Data_Length) + os.linesep)
@@ -156,6 +172,22 @@ def GraphAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tiemp
     #return fig
 
 def LateralAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tiempo, SenNum,pth,PMType):
+    '''
+        @name: LateralAvg
+        @brief: Funcion que hace un promedio de cada sensor para un tiempo definido y despues hace un promedio
+                de cada fila, resultando en una grafica lateral. Esta funcion usa archivos CSV
+        @param: 
+            - columns: numero de columnas en el arreglos de sensores
+            - rows: numero de filas en el arreglo de sensores
+            - lateral_length: longitud entre columnas
+            - depth_length: longitud entre filas
+            - hora_de estudio: hora inicial de recoleccion de datos
+            - tiempo: tiempo que duro el estudio
+            - SenNum: numero de sensores
+            - pth: ruta donde al folder donde se encuentran los archivos CSV
+            - PMType: tipo de material particulado
+        @return: Nada, unicamente hace una grafica
+    '''
     path=pth
     P1_ATM = []
     Lateral = []
@@ -216,8 +248,19 @@ def LateralAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tie
 def animate(i, measurements, x_axis, y_axis,ax1,columns,rows,lateral_length,depth_length):
     '''
         @name: animate
-        @brief: function to retrieve the PM of the sensors at a certain time and plot it
-        @return: --
+        @brief: Funcion para generar una animacion a partir de las mediciones de PM en una cantidad definidad 
+                de tiempo.
+        @param: 
+            - i: Duracion de la animacion
+            - measurements: medificiones de material particulado
+            - x_axis: distribucion de datos en el eje x (lateral)
+            - y_axis: distribucion de datos en el eje y (profundidad)
+            - ax1: figura que se graficara
+            - columns: numero de columnas en el arreglos de sensores
+            - rows: numero de filas en el arreglo de sensores
+            - lateral_length: longitud entre columnas
+            - depth_length: longitud entre filas
+        @return: Nada, unicamente genera una animación
     '''
     result_num = len(measurements[0])
     z_axis = []
@@ -262,6 +305,23 @@ def animate(i, measurements, x_axis, y_axis,ax1,columns,rows,lateral_length,dept
     plt.title(str(i))	
 
 def AnimationCSV(columns, rows, lateral_length, depth_length, hora_de_estudio, tiempo, SenNum, AniTime,PMType,pth):
+    '''
+        @name: AnimationCSV
+        @brief: Funcion para generar proveer los componentes necesarios a animate() para generar la animación.
+                Esta funcion utiliza archivos CSV
+        @param: 
+            - columns: numero de columnas en el arreglos de sensores
+            - rows: numero de filas en el arreglo de sensores
+            - lateral_length: longitud entre columnas
+            - depth_length: longitud entre filas
+            - hora_de estudio: hora inicial de recoleccion de datos
+            - tiempo: tiempo que duro el estudio
+            - SenNum: numero de sensores
+            - AniTime: duracion de la animacion
+            - PMType: tipo de material particulado
+            - pth: ruta donde al folder donde se encuentran los archivos CSV
+        @return: Nada, unicamente llama a la funcion animate
+    '''
     path=pth
     P1_ATM = []
     Lateral = []
@@ -287,14 +347,6 @@ def AnimationCSV(columns, rows, lateral_length, depth_length, hora_de_estudio, t
                         P1_ATM_IND.append(float(row.get(PMType)))
                         time = time -1
                     elif (mx_time == lower_time_limit) or (mx_time==upper_time_limit):
-                        '''
-                        PM 1.0 CF: pm1_0_cf_1	
-                        PM 2.5 CF: pm2_5_cf_1	
-                        PM 10.0 CF: pm10_0_cf_1	
-                        PM 1.0 ATM: pm1_0_atm	
-                        PM 2.5 ATM: pm2_5_atm	
-                        PM 10 ATM: pm10_0_atm
-                        '''
                         P1_ATM_IND.append(float(row.get(PMType)))
                         time = time -1
         except:
@@ -314,6 +366,21 @@ def AnimationCSV(columns, rows, lateral_length, depth_length, hora_de_estudio, t
     plt.show()
 
 def AnimationPA(columns, rows, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType):
+    '''
+        @name: AnimationPA
+        @brief: Funcion para generar proveer los componentes necesarios a animate() para generar la animación.
+                Esta funcion utiliza datos obtenidos de los canales de thingspeak
+        @param: 
+            - columns: numero de columnas en el arreglos de sensores
+            - rows: numero de filas en el arreglo de sensores
+            - lateral_length: longitud entre columnas
+            - depth_length: longitud entre filas
+            - NumDatos: numero de datos recolectados de cada sensor (empezando por ultima medición)
+            - SenNum: numero de sensores
+            - AniTime: duracion de la animacion
+            - PMType: tipo de material particulado
+        @return: Nada, unicamente llama a la funcion animate
+    '''
     fig, ax = plt.subplots()
     ax1 = plt.axes(projection='3d')
     from_zone = tz.tzutc()
@@ -346,6 +413,20 @@ def AnimationPA(columns, rows, lateral_length, depth_length, NumDatos, SenNum, A
     plt.show()
 
 def GraphAvgPA(columns, rows, lateral_length, depth_length, NumDatos, SenNum,PMType):
+    '''
+        @name: GraphAvgPA
+        @brief: Funcion para generar la grafica de promedios a traves de una cantidad definida de tiempo 
+                utilizando datos de canales de thingspeak
+        @param: 
+            - columns: numero de columnas en el arreglos de sensores
+            - rows: numero de filas en el arreglo de sensores
+            - lateral_length: longitud entre columnas
+            - depth_length: longitud entre filas
+            - NumDatos: numero de datos recolectados de cada sensor (empezando por ultima medición)
+            - SenNum: numero de sensores
+            - PMType: tipo de material particulado
+        @return: Nada, unicamente hace una grafica y genera un archivo de texto con información general
+    '''
     P1_ATM_MULT = []
     fig, ax = plt.subplots()
     from_zone = tz.tzutc()

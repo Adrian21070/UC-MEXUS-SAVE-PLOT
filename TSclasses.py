@@ -1,3 +1,16 @@
+'''
+----------------------------------------------------------
+    @file: TSclasses.py
+    @date: Sept 2021
+    @date_modif: Dec 22, 2021
+    @author: Soumil shah
+    @e-mail:soushah@my.bridgeport.edu 
+    @modified by: Raul Dominguez
+    @e-mail: a01065986@itesm.mx
+    @brief: Modified version of the script masterclass.py from Soumil shah. This version only retrieves the
+            information from a thingspeak channel
+----------------------------------------------------------
+'''
 import requests
 class Thingspeak(object):                       # define a class called Thingspeak
 
@@ -20,8 +33,8 @@ class Thingspeak(object):                       # define a class called Thingspe
     def read_one_sensor(self, result=2):
         try:
             """
-            :param result: how many data you want to fetch accept interger
-            :return: Two List which contains Sensor data
+            @param result: how many data you want to fetch accept interger
+            @return: Two List which contains Sensor data
             """
 
             URL_R = self.__read_url
