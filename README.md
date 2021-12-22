@@ -4,3 +4,11 @@ El presente repositorio contiene multiples scripts que se crearon con el objetiv
 - **LivePlot.py:**  Script que permite graficar en tiempo real los datos recibidos de un Sensor PurpleAir (utilizando las funciones de TSclasses.py)
 - **AvgFunctions.py:** Script con las funciones necesarias para hacer distintos tipos de graficas y animaciones a partir de datos recibidos de canales de thingspeak (utilizando funciones de *TSclasses.py*) o archivos CSV
 - **GUI.py:** Script para generar una interfaz de usuario que permita de manera facil y rapida realizar el graficado de datos a partir de las funciones de *AvgFunctions.py*
+## Estructura del repositorio
+## Scripts de Respaldo
+## Scripts Principales
+#### TSClasses.py
+#### LivePlot.py
+#### AvgFunctions.py
+#### GUI.py
+## TO DO:
