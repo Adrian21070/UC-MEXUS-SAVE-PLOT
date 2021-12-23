@@ -47,13 +47,35 @@ encontramos los siguientes IDs y llaves:
     - "THINGSPEAK_SECONDARY_ID_READ_KEY":"S26M6JT22KN1VIDK"
 
 #### LivePlot.py
-Con el objetivo de poder monitorear un sensor en tiempo real y validar que sus mediciones sean correctas se creo este código. Este script utiliza el API de thingspeak para acceder a un canal, obtener una cantidad definida de datos de ese canal graficar dichas concentraciones de PM contra el tiempo y cada 2.1 minutos verificar si se han recibido nuevos datos para actualizar el grafico. Esta validación de nuevos datos se hace a traves de una funcion llamada animate() donde se obtiene la ultima medición añadida a un canal de thingspeak, para posteriormente checar si el tiempo en el que se obtuvo dicha medición coincide con una que ya se tenia. En caso de ser así pues este no es un dato nuevo. Caso contrario, es una nueva medición y se guardan en listas la estampa de tiempo y el la medición. Estas listas son las que se utiliza para hacer el grafico que se actualiza periodicamente. Finalmente, para modificar el ID, llave y numero de resultados se deben modificar las lineas 15, 16 y 44 del script respectivamente.
+Con el objetivo de poder monitorear un sensor en tiempo real y validar que sus mediciones sean correctas se creo este código. Este script utiliza el API de thingspeak para acceder a un canal, obtener una cantidad definida de datos de ese canal graficar dichas concentraciones de PM contra el tiempo y cada 2.1 minutos verificar si se han recibido nuevos datos para actualizar el grafico. Esta validación de nuevos datos se hace a traves de una funcion llamada animate() donde se obtiene la ultima medición añadida a un canal de thingspeak, para posteriormente checar si el tiempo en el que se obtuvo dicha medición coincide con una que ya se tenia. En caso de ser así pues este no es un dato nuevo. Caso contrario, es una nueva medición y se guardan en listas la estampa de tiempo y el la medición. Estas listas son las que se utiliza para hacer el grafico que se actualiza periodicamente. Finalmente, para modificar el ID, llave y numero de resultados se deben modificar las lineas 15, 16 y 44 del script respectivamente.MODIFICAR PM
 #### AvgFunctions.py
-
+Para evitar tener en un mismo script la interfaz de usuario y las funciones a ejecutar al presionar botones especificos de la interfaz de usuario, se optó por separar estos dos. Este código contiene las funciones a ejecutar por el GUI. De manera mas especifica este script contiene 6 funciones las cuales se describiran a continuación:
+- **avg():** esta función permite sacar un promedio de los elementos de una lista. Por lo que unicamente es necesario proveerle un lista y esta función regresara el promedio obtenido.
+- **GraphAvg():** función que intenta acceder a una cantidad definida de archivos csv 
 #### GUI.py
 
 ## TO DO:
-- [ ] Definir hora de inicio (en PurpleAir no se pone hora, busca de la ultima medición a cierta cantidad de valores en el pasado)
-- [x] #739
-- [ ] https://github.com/octo-org/octo-repo/issues/740
-- [ ] Add delight to the experience when all tasks are complete :tada:
+- [x] la GUI debe permitir definir hora de inicio para el graficado de datos (en PurpleAir no se pone hora, busca de la ultima medición a cierta cantidad de valores en el pasado).
+- [x] la GUI debe permitir definir la duración de tiempo para hacer el promedio.
+- [X] Generar un grafico 3D del promedio de mediciones en un espacio y tiempo definido.
+- [X] El grafico 3D debe permitir visualizar los datos "desde arriba" generando un mapa de calor 2D, que muestre ejes X y Y.
+- [ ] Promediar valores a lo largo del eje Y (una fila) para generar un segundo gráfico en 2D, que muestra la concentración promedio de PM a medida que nos alejamos de la vía, mostrando ejes X y Z (**Pendiente para datos de obtenidos de thingspeak**).
+- [x] la GUI debe permitir definir duración de tiempo total para la animación.
+- [x] la GUI debe permitir definir duración real de la animación. Es decir, tenemos datos de "x" horas, pero ¿en cuánto tiempo se despliega la animación?
+- [ ] Permitir animaciones parciales, es decir que se puedan hacer animaciones con promedios de "x" cantidad de minutos y no unicamente con los datos de cada 2 minutos.
+- [ ] Hacer una animación de un proemdio de valores a lo largo del eje Y (una fila) para generar un segundo gráfico en 2D, que muestra la concentración promedio de PM a medida que nos alejamos de la vía, mostrando ejes X y Z.
+- [x] la GUI debe permitir definir la cantidad de sensores en eje Y y en eje X.
+- [x] la GUI debe permitir definir la distancia entre sensores en eje Y y en eje X.
+- [x] la GUI debe permitr declarar de dónde se sacará la información (Internet o MicroSD).
+- [x] las gráficas se deben presentar como una gráfica de calor (esto no lo define el usuario, pero nos servirá para identificar concentraciones mayores a los límites permitidos/norma de calidad del aire).
+- [x] Despues de ejecutar los scripts de promedio a lo largo del tiempo y espacio se debe generar un archivo de texto que incluya hora de inicio y fin de mediciones y Cantidad de datos tomados por cada sensor, esto para identificar algún error y poder hacer las correcciones necesarias.
+- [ ] STDV: sería bueno tomar la desviación estándar (stdv) de cada fila, pues en teoría todos los sensores dentro de una misma fila en Y deberían reportar valores similares.
+- [ ] ¿Qué pasa si perdemos datos intermedios en algún sensor?, por ejemplo S1 y S3 tienen 30 datos, pero S2 (en medio de S1 y S3) solo reporta 15. En ese caso, para el sensor S2, podemos tomar un promedio considerando solo los 15 datos o podríamos ajustar los datos faltantes como un promedio entre los valores entregados por S1 y S3.
+- [x] la GUI debe permitir definir el tamaño de particula a utilizar.
+- [x] la GUI debe permitir definir la ruta a seguir para obtener los datos de la MicroSD
+- [ ] Checar si PA conectado a la Micro SD genera un archivo por día, es decir si lo conectamos una vez, y dura 3 días ¿genera 3 archivos?
+- [ ] Guardar todos los ids de los 30  sensores para que el programa tenga la info local, y solo te pida el número del sensor que quieres usar.
+- [ ] Utilizar los dos canales de cada sensor.
+- [ ] Poder ver el # del sensor al pasar el cursor sobre la gráfica.
+- [ ] Asignar colores de acuerdo al AQI de la EPA.
+- [ ] Agregar a la interfaz la opción de checar lo que monitoreó un sensor en específico (Crear una función basada en *LivePlot.py* que pueda ser integrada a *AvgFunctions.py*).

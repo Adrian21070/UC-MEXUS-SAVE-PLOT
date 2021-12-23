@@ -1,4 +1,4 @@
-#importing libraries
+#importacion de librerias
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from datetime import datetime
