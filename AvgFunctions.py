@@ -211,14 +211,6 @@ def LateralAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tie
                         P1_ATM_IND.append(float(row.get(PMType)))
                         time = time -1
                     elif (mx_time == lower_time_limit) or (mx_time==upper_time_limit):
-                        '''
-                        PM 1.0 CF: pm1_0_cf_1	
-                        PM 2.5 CF: pm2_5_cf_1	
-                        PM 10.0 CF: pm10_0_cf_1	
-                        PM 1.0 ATM: pm1_0_atm	
-                        PM 2.5 ATM: pm2_5_atm	
-                        PM 10 ATM: pm10_0_atm
-                        '''
                         P1_ATM_IND.append(float(row.get('pm2_5_atm')))
                         time = time -1
         except:
@@ -251,8 +243,8 @@ def animate(i, measurements, x_axis, y_axis,ax1,columns,rows,lateral_length,dept
         @brief: Funcion para generar una animacion a partir de las mediciones de PM en una cantidad definidad 
                 de tiempo.
         @param: 
-            - i: Duracion de la animacion
-            - measurements: medificiones de material particulado
+            - i: iteracion actual
+            - measurements: medificiones de material particulado de cada sensor en un periodo de tiempo
             - x_axis: distribucion de datos en el eje x (lateral)
             - y_axis: distribucion de datos en el eje y (profundidad)
             - ax1: figura que se graficara
