@@ -13,13 +13,13 @@ El repositorio esta conformado por los scripts previamente mencionados, los cual
 Como se mencionó en la sección anterior, varios scripts fueron de prueba. Al volverse obsoletos estos se transfierieron la carpeta **Backup**. A traves de esta sección se describira en que consistieron dichos scripts. Sin embargo, es importante mencionar que la mayoria de estos scripts no fueron comentados.
 - **CSV_read.py:** Script que abre un archivo CSV (correspondiente a un sensor), lee su contenido y grafica la concentración de PM a traves del tiempo. De manera mas especifca, grafica las concentraciones de PM1.0, PM2.5 y PM10.0.
 - **PlotAnimation.py:** Script para graficar las mediciones de sensores PurpleAir distribuidos en cierto lugar durante una cantidaad de tiempo. Los datos se obtienen de canales de thingspeak. 
-- **PurpleAirReadTest.py:** 
-- **ReadMultiplePA.py:**
-- **ReadMultiplePACSV.py:**
-- **ReadMultiplePACSV_AVG.py:**
-- **ReadMultiplePACSV_AVG_10_MIN.py:**
-- **Test.csv:**
-- **testtime.py:**
+- **PurpleAirReadTest.py:** Este script usa las funciones del script TSClasses para abrir obtener los datos de un canal de thingspeak y posteriormente graficar la concentracion de PM1.0, PM2.5 y PM10.0 contra el tiempo.
+- **ReadMultiplePA.py:** Script capaz de obtener los datos de 3 sensores PurpleAir, a partir de su canales de thingspeak, para despues graficar la información de PM1.0, PM2.5 y PM10.0 con respecto al tiempo. 
+- **ReadMultiplePACSV.py:** Script diseñado para graficar los datos de la primera campaña de monitoreo (llevada a cabo en el Parque de Investigación e Innovación Tecnológica). De manera mas especifica, este script usa 6 archivos csv con datos de mediciones. Despues se guardan en listas los datos de concentraciones PM1.0 para cada sensor, se hace un promedio de las mediciones de cada sensor y se grafican los datos en un espacio tridimensional. Donde el eje Y y X describen la ubicación de los sensores y el eje Z describe la concentracion de PM en un rango de tiempo.
+- **ReadMultiplePACSV_AVG.py:** Script muy similar al anterior. Sin embargo, se le realizaron algunas modificaciones para graficar los datos obtenidos de un segunda campaña de monitoreo (en el Tec de Monterrey) donde se utilizo una mayor cantidad de sensores.
+- **ReadMultiplePACSV_AVG_10_MIN.py:** Script similar a *ReadMultiplePACSV.py*. Sin embargo, en vez de hacer un promedio de todos los datos en cada archivo csv, este script (a partir de un hora de inicio) hace una grafica de un promedio de 10 minutos.
+- **Test.csv:** Archivo de prueba para validar el graficado de datos a partir de un archivo csv
+- **testtime.py:** Script para comprender como generar formatos de fecha en python.
 ## Scripts Principales
 #### TSClasses.py
 #### LivePlot.py
