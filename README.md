@@ -21,7 +21,7 @@ Como se mencionó en la sección anterior, varios scripts fueron de prueba. Al v
 - **Test.csv:** Archivo de prueba para validar el graficado de datos a partir de un archivo csv
 - **testtime.py:** Script para comprender como generar formatos de fecha en python.
 ## Scripts Principales
-#### TSClasses.py
+#### TSClasses.py: Los sensores PurpleAir suben información a la nube, la cual puede ser accesada usando el API de PurpleAir o el API de Thingspeak. Debido a que en un inicio se desconocia como obtener las llaves para utilizar el API de PurpleAir se opto por usar el API de Thingspeak. En este aspecto, esta API genera 4 canales por cada sensor PurpleAir, esto debido a que cada uno de estos dispositivos de PurpleAir a su vez cuentan con dos sensores (sensor A y B) los cuales reportan la misma información y unicamente permiten validar que ambos sensores funcionen de manera correcta. Los datos de cada uno de estos sensores dentro del dispositivo se entrega en 2 partes (un canal primario y uno secundario) resultando así en los 4 canales por dispositivo PurpleAir. Para acceder a los datos de los sensores se tenia que acceder a los canales previamente mencionados. Por lo que se genero 
 #### LivePlot.py
 #### AvgFunctions.py
 #### GUI.py
