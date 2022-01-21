@@ -164,7 +164,7 @@ def GraphAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tiemp
     ax2.set_xlabel('Carretera (m)')
     ax2.set_ylabel('Profundidad (m)')
     ax2.set_zlabel('ug/m3')
-    plt.title("Promedio de "+ str((tiempo-1)*2) + " mins a partir de las "+ str(hora_de_estudio)+" hrs")
+    plt.title("Promedio de "+ str((tiempo-1)*2) + " mins a partir de las "+ str(hora_de_estudio)+" hrs "+"("+PMType+")")
     m = cm.ScalarMappable(cmap=cm.inferno)
     m.set_array(znew)	
     plt.colorbar(m, ax=ax2)
@@ -181,7 +181,7 @@ def LateralAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tie
             - rows: numero de filas en el arreglo de sensores
             - lateral_length: longitud entre columnas
             - depth_length: longitud entre filas
-            - hora_de estudio: hora inicial de recoleccion de datos
+            - hora_de_estudio: hora inicial de recoleccion de datos
             - tiempo: tiempo que duro el estudio
             - SenNum: numero de sensores
             - pth: ruta donde al folder donde se encuentran los archivos CSV
@@ -211,7 +211,7 @@ def LateralAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tie
                         P1_ATM_IND.append(float(row.get(PMType)))
                         time = time -1
                     elif (mx_time == lower_time_limit) or (mx_time==upper_time_limit):
-                        P1_ATM_IND.append(float(row.get('pm2_5_atm')))
+                        P1_ATM_IND.append(float(row.get(PMType)))
                         time = time -1
         except:
             P1_ATM_IND = [0]
@@ -232,8 +232,9 @@ def LateralAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tie
     plt.plot(y_axis, Lateral,color='black', alpha=0.5)
     sc=plt.scatter(y_axis, Lateral, s=size_scatter, c=Lateral,alpha=1,facecolors=fcolors, cmap='inferno')
     plt.colorbar(sc)
+    plt.title("Promedio de "+ str((tiempo)*2) + " mins a partir de las "+ str(hora_de_estudio)+" hrs "+ "("+PMType+")")
     plt.xlabel('Profundidad (m)')
-    plt.ylabel('ug/m')
+    plt.ylabel('ug/m3')
     plt.gca().invert_xaxis()
     plt.show()
 
@@ -489,7 +490,7 @@ def GraphAvgPA(columns, rows, lateral_length, depth_length, NumDatos, SenNum,PMT
     ax2.set_xlabel('Carretera (m)')
     ax2.set_ylabel('Profundidad (m)')
     ax2.set_zlabel('ug/m3')
-    plt.title("Promedio de "+ str((NumDatos)*2) + " mins a partir de las "+ str(time[0])+" hrs")
+    plt.title("Promedio de "+ str((NumDatos)*2) + " mins a partir de las "+ str(time[0])+" hrs "+"("+PMType+")")
     m = cm.ScalarMappable(cmap=cm.inferno)
     m.set_array(znew)	
     plt.colorbar(m, ax=ax2)
