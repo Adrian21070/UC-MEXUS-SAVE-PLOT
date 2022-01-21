@@ -8,7 +8,7 @@
 5. Pendientes
 
 ## Introducción
-El presente repositorio contiene múltiples scripts que se crearon con el objetivo de poder graficar información proveniente de mediciones de material particulado de arreglos de sensores PurpleAir a través de una superficies. En este aspecto el repositorio contiene 4 scripts clave, los cuales seran descritos de manera específica más adelantes. De forma general los scripts tienen las siguientes funciones:
+El presente repositorio contiene múltiples scripts que se crearon con el objetivo de poder graficar información proveniente de mediciones de material particulado de arreglos de sensores PurpleAir a través de una superficies. En este aspecto el repositorio contiene 4 scripts clave, los cuales seran descritos de manera específica más adelante. De forma general los scripts tienen las siguientes funciones:
 - **TSClasses.py:** Script que contiene las funciones necesarias para obtener los datos de un canal de Thingspeak
 - **LivePlot.py:**  Script que permite graficar en tiempo real los datos recibidos de un Sensor PurpleAir (utilizando las funciones de TSclasses.py)
 - **AvgFunctions.py:** Script con las funciones necesarias para hacer distintos tipos de gráficas y animaciones a partir de datos recibidos de canales de thingspeak (utilizando funciones de *TSclasses.py*) o archivos CSV
