@@ -289,11 +289,11 @@ def animate(i, measurements, x_axis, y_axis,ax1,columns,rows,lateral_length,dept
     fcolors = scamap.to_rgba(maximum)
     size_scatter = [100 for n in range(len(x_axis))]
     ax1.scatter3D(x_axis, y_axis, z_axis, s=size_scatter, c=z_axis, facecolors=fcolors, cmap='inferno')
-    x_axis = np.reshape(x_axis,(columns,rows))
-    y_axis = np.reshape(y_axis,(columns,rows))
-    z_axis = np.reshape(z_axis,(columns,rows))
-    x_final = int((rows-1)*lateral_length)
-    y_final = int((columns-1)*depth_length)
+    x_axis = np.reshape(x_axis,(rows,columns))
+    y_axis = np.reshape(y_axis,(rows,columns))
+    z_axis = np.reshape(z_axis,(rows,columns))
+    x_final = int((columns-1)*lateral_length)
+    y_final = int((rows-1)*depth_length)
     #el parametro j establece que tantos puntos se interpolaran entre el inicio y final -- añadir a parametro a escoger en el GUI
     xnew, ynew = np.mgrid[0:x_final:40j, 0:y_final:40j]
     #si son muy poquitos datos se tiene que agregar dentro del parentesis de "bisplrep" kx=2 y ky=1, se pueden cambiar sus valores para mejorar la interpolación
@@ -367,7 +367,7 @@ def AnimationCSV(columns, rows, lateral_length, depth_length, hora_de_estudio, t
     #ani.save("demo2.gif", writer='imagemagick')
     plt.show()
 
-def AnimationPA2(columns, rows, x_axis, y_axis, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType):
+def AnimationPA2(columns, rows, x_axis, y_axis, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType, indx):
     '''
         @name: AnimationPA
         @brief: Funcion para generar proveer los componentes necesarios a animate() para generar la animación.
@@ -388,11 +388,14 @@ def AnimationPA2(columns, rows, x_axis, y_axis, lateral_length, depth_length, Nu
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
     P1_ATM_MULT_VECTOR = []
+    z_axis = [[i*0 for i in range(0, rows)] for j in range(0, columns)]
     #x_axis=(list(range(0,rows))*columns)
     #x_axis = [element * lateral_length for element in x_axis]
     #column_with_interval = np.arange(0,columns*depth_length,depth_length)
     #y_axis = np.concatenate([([t]*rows) for t in column_with_interval], axis=0)
-    for j in range(SenNum):
+
+    #for j in range(SenNum):
+    for j in indx.values():
         sensor_id = sensors[f'Sensor {j}']
         TSobject = Thingspeak(read_api_key=sensor_id[0], channel_id=sensor_id[1])
         #TSobject = Thingspeak(read_api_key=keys[j], channel_id=channel_ids[j])
@@ -411,6 +414,7 @@ def AnimationPA2(columns, rows, x_axis, y_axis, lateral_length, depth_length, Nu
         P1_ATM_MULT_VECTOR.append(P1_ATM_IND)
         z_axis = P1_ATM_MULT_VECTOR
 
+    animate(1, z_axis, x_axis, y_axis,ax1,columns,rows,lateral_length,depth_length)
     #function to animate the plot and update it (using the animate function) every certain amount of milliseconds
     ani = animation.FuncAnimation(fig, animate, interval=(int(AniTime*6000/(len(z_axis[0])))),fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length),frames=len(z_axis[0]))
     #print plot
