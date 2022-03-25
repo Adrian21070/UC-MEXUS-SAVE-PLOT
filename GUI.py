@@ -188,7 +188,7 @@ while True:
 
     elif event == 'Next':
         # Se crea un nuevo layout a partir de los datos dados por el usuario.
-        layout8 = [[sg.Frame('Disposición', [[sg.Input(f'{row+col}', key=f'{row},{col}')
+        layout8 = [[sg.Frame('Disposición de los sensores', [[sg.Input('', key=f'{row},{col}', size=(5,1))
         for col in range(int(values['ColsAPA']))] for row in range(int(values['RowsAPA']))])],
             [sg.Button('Submit', font=('Times New Roman',12)),sg.Button('Exit', font=('Times New Roman',12))]]
 
@@ -200,26 +200,19 @@ while True:
         # Se crea la matriz de posiciones
         rows = int(init_values['RowsAPA'])
         columns = int(init_values['ColsAPA'])
-        lateral_length = int(init_values['LCAPA']) # ahora mismo esta tomando a x, como columnas, LRAPA seria como filas
-        depth_length = int(init_values['LRAPA'])
+        lateral_length = float(init_values['LCAPA']) # ahora mismo esta tomando a x, como columnas, LRAPA seria como filas
+        depth_length = float(init_values['LRAPA'])
 
         # Se crea el grid
         x=(list(range(0,columns))*rows)
         x = [element * lateral_length for element in x]
         column_with_interval = np.arange(0,rows*depth_length,depth_length)
         y = np.concatenate([([t]*columns) for t in column_with_interval], axis=0)
-        #x = [[i*lateral_length for i in range(0, columns)] for j in range(0, rows)]
-        #y = [[j*depth_length for i in range(0, columns)] for j in range(0, rows)]
 
         PMType=PA_Dict[init_values['DDMAPA']]
         AF.AnimationPA2(columns, rows, x, y, lateral_length, 
                     depth_length,int(int(init_values['MinsPasados'])/2),int(init_values['NumSenAPA']),
                     int(init_values['AniTimePA']),PMType, values)
-
-        #x_axis=(list(range(0,rows))*columns)
-        #x_axis = [element * lateral_length for element in x_axis]
-        #column_with_interval = np.arange(0,columns*depth_length,depth_length)
-        #y_axis = np.concatenate([([t]*rows) for t in column_with_interval], axis=0)
 
     # Eventos que causan que se llame una funcion del script AvgFunciontions.py
     elif event == 'Graficar Promedio CSV':

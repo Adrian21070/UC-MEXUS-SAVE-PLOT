@@ -62,7 +62,7 @@ channel_ids =[1367948, 1367997, 1336916, 1367985, 1369647,
 # Se crea un diccionario para los sensores
 sensors = {}
 for ii in range(0,len(keys)):
-    sensors[f'Sensor {ii}'] = [keys[ii],channel_ids[ii]]
+    sensors[f'Sensor {ii+1}'] = [keys[ii],channel_ids[ii]]
 
 def avg(lst):
     '''
@@ -301,8 +301,8 @@ def animate(i, measurements, x_axis, y_axis,ax1,columns,rows,lateral_length,dept
     znew = interpolate.bisplev(xnew[:,0], ynew[0,:], tck)
     ax1.plot_surface(xnew, ynew, znew,cmap=cm.inferno, linewidth=0, antialiased=False, rcount=500, ccount=500)
     #ax1.plot_trisurf(x_axis, y_axis, z_axis, edgecolor='none',facecolors=fcolors, cmap='inferno')
-    ax1.set_xlabel('Carretera (m)')
-    ax1.set_ylabel('Profundidad (m)')
+    ax1.set_xlabel('Carretera (m), (x)')
+    ax1.set_ylabel('Profundidad (m), (y)')
     ax1.set_zlabel('ug/m3')
     plt.title(str(i))	
 
@@ -414,9 +414,13 @@ def AnimationPA2(columns, rows, x_axis, y_axis, lateral_length, depth_length, Nu
         P1_ATM_MULT_VECTOR.append(P1_ATM_IND)
         z_axis = P1_ATM_MULT_VECTOR
 
-    animate(1, z_axis, x_axis, y_axis,ax1,columns,rows,lateral_length,depth_length)
+    for ii in range(0,5):
+        animate(ii, z_axis, x_axis, y_axis,ax1,columns,rows,lateral_length,depth_length)
+        plt.show()
     #function to animate the plot and update it (using the animate function) every certain amount of milliseconds
-    ani = animation.FuncAnimation(fig, animate, interval=(int(AniTime*6000/(len(z_axis[0])))),fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length),frames=len(z_axis[0]))
+    frame_rate = AniTime*60000/len(z_axis)
+    #ani = animation.FuncAnimation(fig, animate, interval= frame_rate,fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length),
+    #                                frames=len(z_axis), repeat=True)
     #print plot
     plt.show()
 
