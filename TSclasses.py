@@ -18,6 +18,8 @@ class Thingspeak(object):                       # define a class called Thingspe
     More Info: https://la.mathworks.com/help/thingspeak/rest-api.html
     """
     def __init__(self, read_api_key=None, channel_id=0):
+        # We need this format to extract data with a range of time.
+        #https://api.thingspeak.com/channels/1336916/feeds.csv?api_key=F2K1DV64M1Z75VU4&start=2022-03-11%2010:10:10&end=2022-03-14%2011:11:11
 
         self.channel_id = channel_id
         self.read_api_key = read_api_key
@@ -30,7 +32,7 @@ class Thingspeak(object):                       # define a class called Thingspe
         #self.feild1 = []
         #self.feild2 = []
 
-    def read_one_sensor(self, result=2):
+    def read_one_sensor(self, result=2):#, start, end):
         try:
             """
             @param result: how many data you want to fetch accept interger
@@ -39,6 +41,9 @@ class Thingspeak(object):                       # define a class called Thingspe
 
             URL_R = self.__read_url
             read_key = self.read_api_key
+            #timelapse = self.date
+            #header_t = '&start={}%20{}'.format(start)
+            #header_t2 = '&end={}%20{}'.format(end)
             header_r = '&results={}'.format(result)
 
             new_read_url = URL_R + read_key + header_r

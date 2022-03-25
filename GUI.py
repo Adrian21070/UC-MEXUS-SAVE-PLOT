@@ -96,6 +96,8 @@ layout6 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros e
             [sg.Text('Distancia entre Filas', size =(22, 1)), sg.InputText(key='LRAPA')],
             [sg.Text('Cuantos minutos en el pasado (pares)', size =(22, 1)), sg.InputText(key='MinsPasados')],
             [sg.Text('Tiempo Duración Animación (Min.)', size =(28, 1)), sg.InputText(key='AniTimePA')],
+            [sg.Text('Inicio de medición', size=(22,1)), sg.InputText(key='Start_data')],
+            [sg.Text('Fin de medición', size=(22,1)), sg.InputText(key='End_data')],
             [sg.Text('Concentración de Material Particulado')],
             [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMAPA')],
             [sg.Button("Graficar Animación PurpleAir"),sg.Button("Exit")]]
