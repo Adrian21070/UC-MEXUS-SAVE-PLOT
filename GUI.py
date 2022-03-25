@@ -202,10 +202,18 @@ while True:
         columns = int(init_values['ColsAPA'])
         lateral_length = int(init_values['LCAPA']) # ahora mismo esta tomando a x, como columnas, LRAPA seria como filas
         depth_length = int(init_values['LRAPA'])
-        x_axis=(list(range(0,rows))*columns)
-        x_axis = [element * lateral_length for element in x_axis]
-        column_with_interval = np.arange(0,columns*depth_length,depth_length)
-        y_axis = np.concatenate([([t]*rows) for t in column_with_interval], axis=0)
+        x = [[i*lateral_length for i in range(0, rows)] for j in range(0, columns)]
+        y = [[j*depth_length for i in range(0, rows)] for j in range(0, columns)]
+
+        PMType=PA_Dict[init_values['DDMAPA']]
+        AF.AnimationPA2(columns, rows, x, y, lateral_length, 
+                    depth_length,int(int(init_values['MinsPasados'])/2),int(init_values['NumSenAPA']),
+                    int(init_values['AniTimePA']),PMType)
+
+        #x_axis=(list(range(0,rows))*columns)
+        #x_axis = [element * lateral_length for element in x_axis]
+        #column_with_interval = np.arange(0,columns*depth_length,depth_length)
+        #y_axis = np.concatenate([([t]*rows) for t in column_with_interval], axis=0)
 
     # Eventos que causan que se llame una funcion del script AvgFunciontions.py
     elif event == 'Graficar Promedio CSV':

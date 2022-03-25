@@ -48,12 +48,21 @@ Nombre de Folders de campañas de monitoreo:
 #IDs y Llaves del canal prinicpal del sensor A los dispositivos  PurpleAir 
 keys = ['TMTVNTYUXGGT7MK3', 'T5VPQSVT9BAE5ZI1',"F2K1DV64M1Z75VU4", "O94LWPUDGE645M0W","3DHCZRPJ1M6YIFV7",
         "LMP9I4DYO31RLQCM", "4YNO8GQDC5V4D8AH", "YR676V09QO1KX1Q7", "YTLP8VLPWKIJ9G4K", "ODM4VO7RDXCYWL2O",
-        "0S1GMA57I3VO7TN8","W8HHP4TYIQSX5KTC", "4MGD149UTH64IKO1","D1EPGDRFWRLFDRWL", "3GOKID03X1ZQI7UO",
-        "IO35IQWN7OD7QZRI", "KYOJ88GAQ573QZOG","D6NQDA4PSE9FDW9N","IO35IQWN7OD7QZRI", "KYOJ88GAQ573QZOG"]
+        "0S1GMA57I3VO7TN8","IJ44H5T0VGAPOM1X", "4MGD149UTH64IKO1","D1EPGDRFWRLFDRWL", "3GOKID03X1ZQI7UO",
+        "IO35IQWN7OD7QZRI", "KYOJ88GAQ573QZOG","D6NQDA4PSE9FDW9N","KR2E9MGDRAR8U4FI", "TV45OPQDRKXEOYF3",
+        "WXQHTF7MVPTGUV3H", "HWHD61TYPRC08IJ0", "TEQLCBVA8W53X6MQ", "LYE31WD6M75Z3J8E", "CF8HVDROSC9N04O7",
+        "BCJV79PNCBA20CEI", "ITO12LYZ84AXMSB1", "LAU5S4Y8NY6F9FNK", "9WAVRBGJHR27Q9SB", "FP815UH9YRZ77MY1"]
 channel_ids =[1367948, 1367997, 1336916, 1367985, 1369647, 
               1369624, 1379154, 1368013, 1369640, 1367969,
-              1379214, 1367958, 1367952, 1336974, 1368009, 
-              1453911, 1452796, 1451589, 1453911, 1452796]
+              1379214, 1367956, 1367952, 1336974, 1368009, 
+              1453911, 1452796, 1451589, 1450382, 1452792,
+              1452813, 1450481, 1447356, 1452808, 1451577,
+              1451621, 1452812, 1452804, 1450358, 1450485]
+
+# Se crea un diccionario para los sensores
+sensors = {}
+for ii in range(0,len(keys)):
+    sensors[f'Sensor {ii}'] = [keys[ii],channel_ids[ii]]
 
 def avg(lst):
     '''
@@ -356,6 +365,55 @@ def AnimationCSV(columns, rows, lateral_length, depth_length, hora_de_estudio, t
     y_axis = np.concatenate([([t]*rows) for t in column_with_interval], axis=0)    
     ani = animation.FuncAnimation(fig, animate, interval=(int(AniTime*6000/(len(P1_ATM[0])))),fargs=(P1_ATM,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length),frames=len(P1_ATM[0]))
     #ani.save("demo2.gif", writer='imagemagick')
+    plt.show()
+
+def AnimationPA2(columns, rows, x_axis, y_axis, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType):
+    '''
+        @name: AnimationPA
+        @brief: Funcion para generar proveer los componentes necesarios a animate() para generar la animación.
+                Esta funcion utiliza datos obtenidos de los canales de thingspeak
+        @param: 
+            - columns: numero de columnas en el arreglos de sensores
+            - rows: numero de filas en el arreglo de sensores
+            - lateral_length: longitud entre columnas
+            - depth_length: longitud entre filas
+            - NumDatos: numero de datos recolectados de cada sensor (empezando por ultima medición)
+            - SenNum: numero de sensores
+            - AniTime: duracion de la animacion
+            - PMType: tipo de material particulado
+        @return: Nada, unicamente llama a la funcion animate
+    '''
+    fig, ax = plt.subplots()
+    ax1 = plt.axes(projection='3d')
+    from_zone = tz.tzutc()
+    to_zone = tz.tzlocal()
+    P1_ATM_MULT_VECTOR = []
+    #x_axis=(list(range(0,rows))*columns)
+    #x_axis = [element * lateral_length for element in x_axis]
+    #column_with_interval = np.arange(0,columns*depth_length,depth_length)
+    #y_axis = np.concatenate([([t]*rows) for t in column_with_interval], axis=0)
+    for j in range(SenNum):
+        sensor_id = sensors[f'Sensor {j}']
+        TSobject = Thingspeak(read_api_key=sensor_id[0], channel_id=sensor_id[1])
+        #TSobject = Thingspeak(read_api_key=keys[j], channel_id=channel_ids[j])
+        data,c= TSobject.read_one_sensor(result=NumDatos)
+        P1_ATM_IND = []
+        time = []
+        time_utc = []
+        #print(c)
+        for i in data:
+                P1_ATM_IND.append(float(i[PMType]))
+                utcstr = i['created_at'].strip('Z').replace('T', ' ')
+                time_utc.append(utcstr)
+                utc = datetime.strptime(utcstr, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
+                time.append(utc.astimezone(to_zone))
+        #print(utcstr)
+        P1_ATM_MULT_VECTOR.append(P1_ATM_IND)
+        z_axis = P1_ATM_MULT_VECTOR
+
+    #function to animate the plot and update it (using the animate function) every certain amount of milliseconds
+    ani = animation.FuncAnimation(fig, animate, interval=(int(AniTime*6000/(len(z_axis[0])))),fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length),frames=len(z_axis[0]))
+    #print plot
     plt.show()
 
 def AnimationPA(columns, rows, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType):
