@@ -15,6 +15,7 @@ import PySimpleGUI as sg
 import AvgFunctions as AF
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib
+import numpy as np
 
 '''
 Links interesantes sobre librerias utilizadas para hacer la GUI: 
@@ -45,6 +46,8 @@ PA_Dict={"PM 1.0 CF": "field1",
          "PM 2.5 CF": "field2",	
          "PM 10.0 CF": "field3",
          "PM 2.5 ATM": "field8"}
+
+# Interfaz incial, donde se solicitan datos 
 
 # Creacion de las diferentes paginas de la interfaz de usuario
 # Interfaz Inicial
@@ -113,11 +116,28 @@ layout7 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros e
             [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMPPA')],
             [sg.Button("Gráfica Promedio PurpleAir"),sg.Button("Gráfica Lateral"),sg.Button("Exit")]]
 
+layout6_exp = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros enteros!)')],
+            [sg.Text('Num. de Sensores', size =(22, 1)), sg.InputText(key='NumSenAPA')],
+            [sg.Text('Num. Columnas de Sensores', size =(22, 1)), sg.InputText(key='ColsAPA')],
+            [sg.Text('Num. Filas de Sensores', size =(22, 1)), sg.InputText(key='RowsAPA')],
+            [sg.Text('Distancia entre Columnas', size =(22, 1)), sg.InputText(key='LCAPA')],
+            [sg.Text('Distancia entre Filas', size =(22, 1)), sg.InputText(key='LRAPA')],
+            [sg.Text('Cuantos minutos en el pasado (pares)', size =(22, 1)), sg.InputText(key='MinsPasados')],
+            [sg.Text('Tiempo Duración Animación (Min.)', size =(28, 1)), sg.InputText(key='AniTimePA')],
+            [sg.Text('Inicio de medición', size=(22,1)), sg.InputText(key='Start_data')],
+            [sg.Text('Fin de medición', size=(22,1)), sg.InputText(key='End_data')],
+            [sg.Text('Concentración de Material Particulado')],
+            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMAPA')],
+            [sg.Button("Next"),sg.Button("Exit")]]
+
 #  Definicion de la GUI, estableciendo que pagina se mostrara y cuales estan desactivadas.
 layout = [[sg.Column(layout1, key='-COL1-'), sg.Column(layout2, visible=False, key='-COL2-'), 
            sg.Column(layout3, visible=False, key='-COL3-'),sg.Column(layout4, visible=False, key='-COL4-'),
-           sg.Column(layout5, visible=False, key='-COL5-'),sg.Column(layout6, visible=False, key='-COL6-'),
+           sg.Column(layout5, visible=False, key='-COL5-'),sg.Column(layout6_exp, visible=False, key='-COL6-'),
            sg.Column(layout7, visible=False, key='-COL7-')]]
+
+
+#second_layout = [[sg.Column(layout6_exp, key='-COL6-'), sg.Column(layout8, visible=False, key='-COL8-')]]
 
 # Creacion de la ventana que contendra la GUI
 window = sg.Window('Proyecto UCMEXUS', layout)
@@ -128,8 +148,9 @@ while True:
     # Lectura de los componentes de la ventana
     event, values = window.read()
     # Ejecucion de evento en caso de que se oprima un boton en la GUI
-    if event in (None, 'Exit','Exit0','Exit1','Exit2','Exit3','Exit4','Exit5','Exit6','Exit7','Exit8','Exit9'):
+    if event in (None, 'Exit'):
         break
+
     if event == 'Promedio':
         # Se desactiva la pagina activa
         window[f'-COL{layout}-'].update(visible=False)
@@ -138,46 +159,78 @@ while True:
         layout = 3
         # Se activa una nueva ventana
         window[f'-COL{layout}-'].update(visible=True)
+
     elif event == 'Promedio Online':
         window[f'-COL{layout}-'].update(visible=False)
         layout = 7
         window[f'-COL{layout}-'].update(visible=True)
+
     elif event == 'Animación':
         window[f'-COL{layout}-'].update(visible=False)
         layout = 4
         window[f'-COL{layout}-'].update(visible=True)
+
     elif event == 'Archivo CSV':
         window[f'-COL{layout}-'].update(visible=False)
         layout = 2
         window[f'-COL{layout}-'].update(visible=True)
+
     elif event == 'Online':
         window[f'-COL{layout}-'].update(visible=False)
         layout = 5
         window[f'-COL{layout}-'].update(visible=True)
+
     elif event == 'Animación Online':
         window[f'-COL{layout}-'].update(visible=False)
+        #window = sg.Window('Proyecto UCMEXUS', second_layout)
         layout = 6
         window[f'-COL{layout}-'].update(visible=True)
+
+    elif event == 'Next':
+        # Se crea un nuevo layout a partir de los datos dados por el usuario.
+        layout8 = [[sg.Frame('Disposición', [[sg.Input('Número del sensor', key=f'{row},{col}')
+        for col in range(int(values['ColsAPA']))] for row in range(int(values['RowsAPA']))])],
+            [sg.Button('Submit', font=('Times New Roman',12)),sg.Button('Exit', font=('Times New Roman',12))]]
+
+        # Se copian los valores anteriores, para no perderlos
+        init_values = values
+        window = sg.Window('Proyecto UCMEXUS', layout8)
+    
+    elif event == 'Submit':
+        # Se crea la matriz de posiciones
+        rows = int(init_values['RowsAPA'])
+        columns = int(init_values['ColsAPA'])
+        lateral_length = int(init_values['LCAPA']) # ahora mismo esta tomando a x, como columnas, LRAPA seria como filas
+        depth_length = int(init_values['LRAPA'])
+        x_axis=(list(range(0,rows))*columns)
+        x_axis = [element * lateral_length for element in x_axis]
+        column_with_interval = np.arange(0,columns*depth_length,depth_length)
+        y_axis = np.concatenate([([t]*rows) for t in column_with_interval], axis=0)
+
     # Eventos que causan que se llame una funcion del script AvgFunciontions.py
     elif event == 'Graficar Promedio CSV':
         PMType=PM_Dict[values['DDMPCSV']]
         AF.GraphAvg(int(values['Rows']),int(values['Cols']),int(values['LC']), 
                     int(values['LR']),int(values['Hora']),
                     int(int(values['Mins'])/2)+1,int(values['NumSen']),values['Folder'],PMType)
+
     elif event == 'Gráfica Lateral':
         PMType=PM_Dict[values['DDMPCSV']]
         AF.LateralAvg(int(values['Rows']),int(values['Cols']),int(values['LC']), 
                     int(values['LR']),int(values['Hora']),
                     int(int(values['Mins'])/2)+1,int(values['NumSen']),values['Folder'],PMType)
+
     elif event == 'Gráficar Animación CSV':
         PMType=PM_Dict[values['DDMACSV']]
         AF.AnimationCSV(int(values['RowsACSV']),int(values['ColsACSV']),int(values['LCACSV']), 
                     int(values['LRACSV']),int(values['HoraACSV']),
                     int(int(values['MinsACSV'])/2)+1,int(values['NumSenACSV']),int(values['AniTime']),PMType,values['Carpeta'])
+
     elif event == 'Graficar Animación PurpleAir':
         PMType=PA_Dict[values['DDMAPA']]
         AF.AnimationPA(int(values['RowsAPA']),int(values['ColsAPA']),int(values['LCAPA']), 
                     int(values['LRAPA']),int(int(values['MinsPasados'])/2),int(values['NumSenAPA']),int(values['AniTimePA']),PMType)
+
     elif event == 'Gráfica Promedio PurpleAir':
         PMType=PA_Dict[values['DDMPPA']]
         AF.GraphAvgPA(int(values['RowsPPA']),int(values['ColsPPA']),int(values['LCPPA']), 
