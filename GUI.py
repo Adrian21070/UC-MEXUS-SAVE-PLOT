@@ -116,28 +116,34 @@ layout7 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros e
             [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMPPA')],
             [sg.Button("Gráfica Promedio PurpleAir"),sg.Button("Gráfica Lateral"),sg.Button("Exit")]]
 
-layout6_exp = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros enteros!)')],
-            [sg.Text('Num. de Sensores', size =(22, 1)), sg.InputText(key='NumSenAPA')],
-            [sg.Text('Num. Columnas de Sensores', size =(22, 1)), sg.InputText(key='ColsAPA')],
-            [sg.Text('Num. Filas de Sensores', size =(22, 1)), sg.InputText(key='RowsAPA')],
-            [sg.Text('Distancia entre Columnas', size =(22, 1)), sg.InputText(key='LCAPA')],
-            [sg.Text('Distancia entre Filas', size =(22, 1)), sg.InputText(key='LRAPA')],
-            [sg.Text('Cuantos minutos en el pasado (pares)', size =(22, 1)), sg.InputText(key='MinsPasados')],
-            [sg.Text('Tiempo Duración Animación (Min.)', size =(28, 1)), sg.InputText(key='AniTimePA')],
-            [sg.Text('Inicio de medición', size=(22,1)), sg.InputText(key='Start_data')],
-            [sg.Text('Fin de medición', size=(22,1)), sg.InputText(key='End_data')],
+layout6_exp = [[sg.Text('Datos acerca del número de sensores y su disposición')],
+            [sg.Text('Num. de Sensores', size =(25, 1)), sg.InputText(key='NumSenAPA')],
+            [sg.Text('Num. Columnas de Sensores', size =(25, 1)), sg.InputText(key='ColsAPA')],
+            [sg.Text('Num. Filas de Sensores', size =(25, 1)), sg.InputText(key='RowsAPA')],
+            [sg.Text('Distancia entre Columnas', size =(25, 1)), sg.InputText(key='LCAPA')],
+            [sg.Text('Distancia entre Filas', size =(25, 1)), sg.InputText(key='LRAPA')],
+            [sg.Text('Cuantos minutos en el pasado (pares)', size =(25, 1)), sg.InputText(key='MinsPasados')],
+            [sg.Text('Tiempo Duración Animación (Min.)', size =(25, 1)), sg.InputText(key='AniTimePA')],
+            [sg.CalendarButton('Dia de inicio de la medición',target='-IN-', size=(24,1)), sg.Input(key='-IN-')],
+            [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_data')],
+            [sg.CalendarButton('Dia del fin de la medición',target='-IN2-', size=(24,1)), sg.Input(key='-IN2-')],
+            [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_data')],
             [sg.Text('Concentración de Material Particulado')],
             [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMAPA')],
             [sg.Button("Next"),sg.Button("Exit")]]
+
+layout9 = [[sg.Text('Selección de fecha y hora de las mediciones')],
+            [sg.CalendarButton('Dia de inicio de la medición',target='-IN-', size=(24,1)), sg.Input(key='-IN-')],
+            [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_data')],
+            [sg.CalendarButton('Dia del fin de la medición',target='-IN2-', size=(24,1)), sg.Input(key='-IN2-')],
+            [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_data')],
+            [sg.Button("Next"), sg.Button("Exit")]]
 
 #  Definicion de la GUI, estableciendo que pagina se mostrara y cuales estan desactivadas.
 layout = [[sg.Column(layout1, key='-COL1-'), sg.Column(layout2, visible=False, key='-COL2-'), 
            sg.Column(layout3, visible=False, key='-COL3-'),sg.Column(layout4, visible=False, key='-COL4-'),
            sg.Column(layout5, visible=False, key='-COL5-'),sg.Column(layout6_exp, visible=False, key='-COL6-'),
-           sg.Column(layout7, visible=False, key='-COL7-')]]
-
-
-#second_layout = [[sg.Column(layout6_exp, key='-COL6-'), sg.Column(layout8, visible=False, key='-COL8-')]]
+           sg.Column(layout7, visible=False, key='-COL7-'),sg.Column(layout9, visible=False, key='-COL9-')]]
 
 # Creacion de la ventana que contendra la GUI
 window = sg.Window('Proyecto UCMEXUS', layout)
@@ -148,7 +154,7 @@ while True:
     # Lectura de los componentes de la ventana
     event, values = window.read()
     # Ejecucion de evento en caso de que se oprima un boton en la GUI
-    if event in (None, 'Exit'):
+    if event in (None, "Exit"):
         break
 
     if event == 'Promedio':
@@ -192,8 +198,15 @@ while True:
         for col in range(int(values['ColsAPA']))] for row in range(int(values['RowsAPA']))])],
             [sg.Button('Submit', font=('Times New Roman',12)),sg.Button('Exit', font=('Times New Roman',12))]]
 
+        window[f'-COL{layout}-'].update(visible=False)
+        layout = 9
+        window[f'-COL{layout}-'].update(visible=True)
+
+        event, values = window.read()
         # Se copian los valores anteriores, para no perderlos
         init_values = values
+
+        # Se crea una nueva ventana con el layout8 creado a partir de la anterior
         window = sg.Window('Proyecto UCMEXUS', layout8)
     
     elif event == 'Submit':
