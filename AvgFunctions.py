@@ -388,8 +388,7 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
     ax1 = plt.axes(projection='3d')
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
-    P1_ATM_MULT_VECTOR = []
-    z_axis = [[i*0 for i in range(0, rows)] for j in range(0, columns)]
+    z_axis = []
     x_axis =(list(range(0,columns))*rows)
     x_axis = [element * lateral_length for element in x_axis]
     column_with_interval = np.arange(0,rows*depth_length,depth_length)
@@ -399,7 +398,6 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
     dict_of_dates_minimum = {}
     dict_of_dates_maximum = {}
     
-    #for j in range(SenNum):
     for j in indx.values():
         # Lectura de datos
         sensor_id = sensors[f'Sensor {j}']
@@ -416,12 +414,14 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
         dict_of_dates_minimum[f'Sensor {j}'] = data[0]['created_at']
         dict_of_dates_maximum[f'Sensor {j}'] = data[len(data)-1]['created_at']
 
-        P1_ATM_MULT_VECTOR.append(P1_ATM_IND)
-        z_axis = P1_ATM_MULT_VECTOR
+        z_axis.append(P1_ATM_IND)
 
     print(max(dict_of_dates_minimum.values()))
     print(min(dict_of_dates_maximum.values()))
-    
+
+    # Continua aqui, ahora haz que los vectores coincidan cuando un sensor tiene menos data que los otros.
+    z_axis = Matrix_adjustment(dict_of_dates_minimum, dict_of_dates_maximum, z_axis)
+
     #function to animate the plot and update it (using the animate function) every certain amount of milliseconds
     frame_rate = AniTime*60000/len(z_axis)
     ani = animation.FuncAnimation(fig, animate, interval= frame_rate,fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length),
@@ -431,6 +431,17 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
     return 1
 
 def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
+    """
+        @name: Data processing
+        @brief: Funcion para tratar los datos de los sensores.
+                Esta funcion utiliza datos obtenidos de los canales de thingspeak
+        @param: 
+            - data: data recibida del API
+            - from_zone: zona a transformar el tiempo (UTC)
+            - to_zone: zona a convertir (actual)
+            - PMType: tipo de material particulado
+        @return: data procesado en tags de tiempo y un vector con los datos del material particulado
+    """
     P1_ATM_IND = []
     for ii in range(len(data)):
         P1_ATM_IND.append(data[ii][PMType])
@@ -440,6 +451,17 @@ def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
         start = datetime(early.year, early.month, early.day, early.hour, early.minute, 0)
         data[ii]['created_at'] = start
     return data, P1_ATM_IND
+
+def Matrix_adjustment(minimum, maximum, z):
+    # Primero obten cual sensor es que inicia su data mucho despues.
+    medicion_inicial_mas_reciente = max(minimum.values())
+    primera_medicion_final = min(maximum.values())
+
+    # Se obtiene cual sensor o fecha es el que delimitara nuestra matriz.
+    sensor_inicial_reciente = [key for key in minimum if minimum[key] == medicion_inicial_mas_reciente]
+    sensor_final_reciente = [key for key in maximum if maximum[key] == primera_medicion_final]
+    
+    return 0
 
 def AnimationPA(columns, rows, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType):
     '''
