@@ -15,6 +15,7 @@ from datetime import datetime
 from dateutil import tz
 import matplotlib.dates as dates
 import  matplotlib.pyplot as plt
+from pyparsing import dict_of
 # la funcion de abajo jala las funciones del script TSclasses.py para obtener los datos de los canales de thingspeak
 from TSclasses import *
 import pytz
@@ -367,7 +368,7 @@ def AnimationCSV(columns, rows, lateral_length, depth_length, hora_de_estudio, t
     #ani.save("demo2.gif", writer='imagemagick')
     plt.show()
 
-def AnimationPA2(columns, rows, x_axis, y_axis, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType, indx):
+def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType, indx, init_values, start, end):
     '''
         @name: AnimationPA
         @brief: Funcion para generar proveer los componentes necesarios a animate() para generar la animación.
@@ -389,40 +390,56 @@ def AnimationPA2(columns, rows, x_axis, y_axis, lateral_length, depth_length, Nu
     to_zone = tz.tzlocal()
     P1_ATM_MULT_VECTOR = []
     z_axis = [[i*0 for i in range(0, rows)] for j in range(0, columns)]
-    #x_axis=(list(range(0,rows))*columns)
-    #x_axis = [element * lateral_length for element in x_axis]
-    #column_with_interval = np.arange(0,columns*depth_length,depth_length)
-    #y_axis = np.concatenate([([t]*rows) for t in column_with_interval], axis=0)
+    x_axis =(list(range(0,columns))*rows)
+    x_axis = [element * lateral_length for element in x_axis]
+    column_with_interval = np.arange(0,rows*depth_length,depth_length)
+    y_axis = np.concatenate([([t]*columns) for t in column_with_interval], axis=0)
 
+    # This dictionaries, helps us to store the minimum and maximum date of each sensor.
+    dict_of_dates_minimum = {}
+    dict_of_dates_maximum = {}
+    
     #for j in range(SenNum):
     for j in indx.values():
+        # Lectura de datos
         sensor_id = sensors[f'Sensor {j}']
         TSobject = Thingspeak(read_api_key=sensor_id[0], channel_id=sensor_id[1])
-        #TSobject = Thingspeak(read_api_key=keys[j], channel_id=channel_ids[j])
-        data,c= TSobject.read_one_sensor(result=NumDatos)
-        P1_ATM_IND = []
-        time = []
-        time_utc = []
-        #print(c)
-        for i in data:
-                P1_ATM_IND.append(float(i[PMType]))
-                utcstr = i['created_at'].strip('Z').replace('T', ' ')
-                time_utc.append(utcstr)
-                utc = datetime.strptime(utcstr, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
-                time.append(utc.astimezone(to_zone))
-        #print(utcstr)
+
+        data,c= TSobject.read_one_sensor(result=NumDatos, start=start, end=end)
+        if len(data) == 0:
+            return [j, 0]
+
+        #Redondeo de tiempo y cambio a zona horaria actual, y se extrae el vector de datos PM
+        data, P1_ATM_IND = redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType)
+
+        # Se almacena el primer y ultimo valor de todos disponible del sensor
+        dict_of_dates_minimum[f'Sensor {j}'] = data[0]['created_at']
+        dict_of_dates_maximum[f'Sensor {j}'] = data[len(data)-1]['created_at']
+
         P1_ATM_MULT_VECTOR.append(P1_ATM_IND)
         z_axis = P1_ATM_MULT_VECTOR
 
-    for ii in range(0,5):
-        animate(ii, z_axis, x_axis, y_axis,ax1,columns,rows,lateral_length,depth_length)
-        plt.show()
+    print(max(dict_of_dates_minimum.values()))
+    print(min(dict_of_dates_maximum.values()))
+    
     #function to animate the plot and update it (using the animate function) every certain amount of milliseconds
     frame_rate = AniTime*60000/len(z_axis)
-    #ani = animation.FuncAnimation(fig, animate, interval= frame_rate,fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length),
-    #                                frames=len(z_axis), repeat=True)
+    ani = animation.FuncAnimation(fig, animate, interval= frame_rate,fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length),
+                                    frames=len(z_axis), repeat=True)
     #print plot
     plt.show()
+    return 1
+
+def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
+    P1_ATM_IND = []
+    for ii in range(len(data)):
+        P1_ATM_IND.append(data[ii][PMType])
+        earliest = data[ii]['created_at'].strip('Z').replace('T', ' ')
+        time_utc = datetime.strptime(earliest, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
+        early = time_utc.astimezone(to_zone)
+        start = datetime(early.year, early.month, early.day, early.hour, early.minute, 0)
+        data[ii]['created_at'] = start
+    return data, P1_ATM_IND
 
 def AnimationPA(columns, rows, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType):
     '''

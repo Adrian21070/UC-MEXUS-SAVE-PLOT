@@ -123,19 +123,15 @@ layout6_exp = [[sg.Text('Datos acerca del número de sensores y su disposición'
             [sg.Text('Distancia entre Columnas', size =(25, 1)), sg.InputText(key='LCAPA')],
             [sg.Text('Distancia entre Filas', size =(25, 1)), sg.InputText(key='LRAPA')],
             [sg.Text('Cuantos minutos en el pasado (pares)', size =(25, 1)), sg.InputText(key='MinsPasados')],
-            [sg.Text('Tiempo Duración Animación (Min.)', size =(25, 1)), sg.InputText(key='AniTimePA')],
-            [sg.CalendarButton('Dia de inicio de la medición',target='-IN-', size=(24,1)), sg.Input(key='-IN-')],
-            [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_data')],
-            [sg.CalendarButton('Dia del fin de la medición',target='-IN2-', size=(24,1)), sg.Input(key='-IN2-')],
-            [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_data')],
+            [sg.Text('Tiempo de duración animación (Min.)', size =(25, 1)), sg.InputText(key='AniTimePA')],
             [sg.Text('Concentración de Material Particulado')],
             [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMAPA')],
             [sg.Button("Next"),sg.Button("Exit")]]
 
 layout9 = [[sg.Text('Selección de fecha y hora de las mediciones')],
-            [sg.CalendarButton('Dia de inicio de la medición',target='-IN-', size=(24,1)), sg.Input(key='-IN-')],
+            [sg.CalendarButton('Dia de inicio de la medición',target='-IN-', size=(24,1), format='20%y-%m-%d'), sg.Input(key='-IN-')],
             [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_data')],
-            [sg.CalendarButton('Dia del fin de la medición',target='-IN2-', size=(24,1)), sg.Input(key='-IN2-')],
+            [sg.CalendarButton('Dia del fin de la medición',target='-IN2-', size=(24,1), format='20%y-%m-%d'), sg.Input(key='-IN2-')],
             [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_data')],
             [sg.Button("Next"), sg.Button("Exit")]]
 
@@ -206,26 +202,28 @@ while True:
         # Se copian los valores anteriores, para no perderlos
         init_values = values
 
+        if event in (None, "Exit"):
+            break
         # Se crea una nueva ventana con el layout8 creado a partir de la anterior
         window = sg.Window('Proyecto UCMEXUS', layout8)
     
     elif event == 'Submit':
-        # Se crea la matriz de posiciones
+        # Se dan los datos a la función que preparara los datos para graficar.
+        start = init_values['-IN-'] + '%20' + init_values['Start_data'] + ':00'
+        end = init_values['-IN2-'] + '%20' + init_values['End_data'] + ':00'
         rows = int(init_values['RowsAPA'])
         columns = int(init_values['ColsAPA'])
         lateral_length = float(init_values['LCAPA']) # ahora mismo esta tomando a x, como columnas, LRAPA seria como filas
         depth_length = float(init_values['LRAPA'])
 
-        # Se crea el grid
-        x=(list(range(0,columns))*rows)
-        x = [element * lateral_length for element in x]
-        column_with_interval = np.arange(0,rows*depth_length,depth_length)
-        y = np.concatenate([([t]*columns) for t in column_with_interval], axis=0)
-
         PMType=PA_Dict[init_values['DDMAPA']]
-        AF.AnimationPA2(columns, rows, x, y, lateral_length, 
+        key = AF.AnimationPA2(columns, rows, lateral_length, 
                     depth_length,int(int(init_values['MinsPasados'])/2),int(init_values['NumSenAPA']),
-                    int(init_values['AniTimePA']),PMType, values)
+                    int(init_values['AniTimePA']),PMType, values, init_values, start, end)
+        if len(key) > 1:
+            sg.Popup(f'No se encontraron datos en esta fecha del sensor {key[0]}', keep_on_top=True)
+            break
+
 
     # Eventos que causan que se llame una funcion del script AvgFunciontions.py
     elif event == 'Graficar Promedio CSV':
