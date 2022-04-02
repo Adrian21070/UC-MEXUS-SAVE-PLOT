@@ -388,7 +388,7 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
     ax1 = plt.axes(projection='3d')
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
-    z_axis = []
+    z_axis = {}
     x_axis =(list(range(0,columns))*rows)
     x_axis = [element * lateral_length for element in x_axis]
     column_with_interval = np.arange(0,rows*depth_length,depth_length)
@@ -414,13 +414,15 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
         dict_of_dates_minimum[f'Sensor {j}'] = data[0]['created_at']
         dict_of_dates_maximum[f'Sensor {j}'] = data[len(data)-1]['created_at']
 
-        z_axis.append(P1_ATM_IND)
+        #z_axis = {value:P1_ATM_IND[ii] for value in range()}
+        z_axis[f'Sensor {j}'] = P1_ATM_IND
+        #z_axis.append(P1_ATM_IND)
 
     print(max(dict_of_dates_minimum.values()))
     print(min(dict_of_dates_maximum.values()))
 
     # Continua aqui, ahora haz que los vectores coincidan cuando un sensor tiene menos data que los otros.
-    z_axis = Matrix_adjustment(dict_of_dates_minimum, dict_of_dates_maximum, z_axis)
+    z_axis = Matrix_adjustment(dict_of_dates_minimum, dict_of_dates_maximum, z_axis, indx)
 
     #function to animate the plot and update it (using the animate function) every certain amount of milliseconds
     frame_rate = AniTime*60000/len(z_axis)
@@ -442,25 +444,70 @@ def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
             - PMType: tipo de material particulado
         @return: data procesado en tags de tiempo y un vector con los datos del material particulado
     """
-    P1_ATM_IND = []
+    P1_ATM_IND = {}
     for ii in range(len(data)):
-        P1_ATM_IND.append(data[ii][PMType])
+        #ind = {data[ii]['created_at']:data[ii][PMType]}
+        #P1_ATM_IND.append(data[ii][PMType])
         earliest = data[ii]['created_at'].strip('Z').replace('T', ' ')
         time_utc = datetime.strptime(earliest, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
         early = time_utc.astimezone(to_zone)
         start = datetime(early.year, early.month, early.day, early.hour, early.minute, 0)
         data[ii]['created_at'] = start
+        P1_ATM_IND[start] = data[ii][PMType]
+        #ind = {start:data[ii][PMType]}
+
+        #P1_ATM_IND[f'Sensor {indx[ii]}'] = ind
     return data, P1_ATM_IND
 
-def Matrix_adjustment(minimum, maximum, z):
+def Matrix_adjustment(minimum, maximum, z, indx):
     # Primero obten cual sensor es que inicia su data mucho despues.
     medicion_inicial_mas_reciente = max(minimum.values())
     primera_medicion_final = min(maximum.values())
 
     # Se obtiene cual sensor o fecha es el que delimitara nuestra matriz.
-    sensor_inicial_reciente = [key for key in minimum if minimum[key] == medicion_inicial_mas_reciente]
-    sensor_final_reciente = [key for key in maximum if maximum[key] == primera_medicion_final]
+    sensor_inicial_reciente = [key for key in minimum if minimum[key] == medicion_inicial_mas_reciente][0]
+    sensor_final_reciente = [key for key in maximum if maximum[key] == primera_medicion_final][0]
     
+    # Toma la fecha del sensor con inicio más tardio, y identifica el dato justo de esa fecha del sensor con la fecha de finalización más corto.
+
+    #Sensor inicio tardio
+    S1 = z[sensor_inicial_reciente][medicion_inicial_mas_reciente]
+    #S1 = z[int(sensor_inicial_reciente.strip('Sensor '))][medicion_inicial_mas_reciente]
+
+    #Primer sensor en terminar
+    S2 = z[sensor_final_reciente][primera_medicion_final]
+    #S2 = z[int(sensor_final_reciente.strip('Sensor '))][primera_medicion_final]
+    for ii in indx.values():
+    #for ii in range(len(indx)):
+        for jj in z[f'Sensor {ii}'].keys():
+
+            if (medicion_inicial_mas_reciente.day == jj.day):
+                delta = medicion_inicial_mas_reciente - jj
+                delta2 = primera_medicion_final - jj
+                par_impar = medicion_inicial_mas_reciente.minute%2
+
+                if(delta.days>=0):
+                    if(delta.seconds>60):
+                        #Remove
+                        del z[f'Sensor {ii}'][jj]
+                    elif(delta.seconds<60): # Modificalo
+                        pass
+                        #Dont remove
+                
+                if(delta.days<0) and (delta2.days>=0):
+                    #Conserva todo lo de adentro
+                    pass
+                
+                if(delta2.days < 0):
+                    if(delta2.seconds>60): # Modifical, ahora day es -1 y seconds = 85000
+                        #Remove
+                        del z[f'Sensor {ii}'][jj]
+                    elif(delta2.seconds<60):
+                        pass
+                        #Dont remove
+            else:
+                pass
+            
     return 0
 
 def AnimationPA(columns, rows, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType):
