@@ -88,15 +88,31 @@ layout2 = [[sg.Input(key='Esc', size=(20,1))],
 layout3 = [[sg.Input(key='E23c', size=(20,1))],
         [sg.Button('Hola', key='HTM23'), sg.Exit()]]
 
+#chain = list(range(8,0,-1))
+chain = list(range(1,9))
+a = {}
+it = 0
+for i in range(2):
+    for j  in range(4):
+        a[f'{i},{j}'] = chain[it]
+        it += 1  
+
+#a = {f'{key},{key2}':chain for key in range()}
+
+layout8 = [[sg.Frame('Disposición de los sensores', [[sg.Input(a[f'{row},{col}'], key=f'{row},{col}', size=(5,1))
+            for col in range(4)] for row in range(2)])],
+            [sg.Button('Submit', font=('Times New Roman',12)),sg.Button('Exit', font=('Times New Roman',12))]]
+"""
 layout = [[sg.Text('Date Chooser Test Harness', key='-TXT-')],
       [sg.Input(key='-IN-', size=(20,1)), sg.CalendarButton('Cal US No Buttons Location (0,0)', close_when_date_chosen=True,  target='-IN-', location=(0,0), no_titlebar=False, )],
       [sg.Input(key='-IN3-', size=(20,1)), sg.CalendarButton('Cal Monday', title='Pick a date any date', no_titlebar=True, close_when_date_chosen=False,  target='-IN3-', begin_at_sunday_plus=1, month_names=('студзень', 'люты', 'сакавік', 'красавік', 'май', 'чэрвень', 'ліпень', 'жнівень', 'верасень', 'кастрычнік', 'лістапад', 'снежань'), day_abbreviations=('Дш', 'Шш', 'Шр', 'Бш', 'Жм', 'Иш', 'Жш'))],
       [sg.Input(key='-IN2-', size=(20,1)), sg.CalendarButton('Cal German Feb 2020',  target='-IN2-',  default_date_m_d_y=(2,None,2020), locale='de_DE', begin_at_sunday_plus=1 )],
       [sg.Input(key='-IN4-', size=(20,1)), sg.CalendarButton('Cal Format %m-%d Jan 2020',  target='-IN4-', format='20%y-%m-%d', default_date_m_d_y=(1,None,2020) )],
       [sg.Button('Read'), sg.Button('Date Popup'), sg.Exit()]]
-sg.CalendarButton
-layout4 = [[sg.Column(layout2, key='-COL1-'), sg.Column(layout3, visible=False, key='-COL2-')]]
-window = sg.Window('window', layout4)
+sg.CalendarButton"""
+
+#layout4 = [[sg.Column(layout2, key='-COL1-'), sg.Column(layout3, visible=False, key='-COL2-')]]
+window = sg.Window('window', layout8)
 
 while True:
     event, values = window.read()

@@ -47,19 +47,23 @@ PA_Dict={"PM 1.0 CF": "field1",
          "PM 10.0 CF": "field3",
          "PM 2.5 ATM": "field8"}
 
+font = ('Times New Roman', 16)
+font2 = ('Times New Roman', 12)
 # Interfaz incial, donde se solicitan datos 
 sg.theme('DarkAmber')
 # Creacion de las diferentes paginas de la interfaz de usuario
 # Interfaz Inicial
-layout1 = [[sg.Text('Seleccione de donde desea sacar los datos')],
-           [sg.Button('Online'),sg.Button("Archivo CSV"),sg.Button('Exit', key='Exit')]]
+layout1 = [[sg.Text('Seleccione de donde desea sacar los datos', font = font)],
+           [sg.Button('Online'),sg.Button('Archivo CSV'),
+            sg.Button('Exit',key='Exit')]]
 
 # Interfaz para seleccionar con los datos CSV
-layout2 = [[sg.Text('Seleccione que desea hacer con el archivo CSV')],
-           [sg.Button('Promedio'),sg.Button("Animación"),sg.Button('Exit', key='Exit')]]
+layout2 = [[sg.Text('Seleccione que desea hacer con el archivo CSV', font=font)],
+           [sg.Button('Promedio'),sg.Button("Animación"),
+            sg.Button('Exit',key='Exit')]]
 
 # Interfaz para hacer graficas promedio a partir de un archivo CSV
-layout3 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros enteros!)')],
+layout3 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros enteros!)',font=font)],
             [sg.Text('Num. de Sensores', size =(22, 1)), sg.InputText(key='NumSen')],
             [sg.Text('Num. Columnas de Sensores', size =(22, 1)), sg.InputText(key='Cols')],
             [sg.Text('Num. Filas de Sensores', size =(22, 1)), sg.InputText(key='Rows')],
@@ -69,10 +73,11 @@ layout3 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros e
             [sg.Text('Tiempo Monitoreo (Tiempo par en Min.)', size =(28, 1)), sg.InputText(key='Mins')],
             [sg.Text('Selecciona Folder con Datos'),sg.Input(), sg.FolderBrowse('Folder')],
             [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 1.0 ATM', 'PM 2.5 ATM', 'PM 10.0 ATM'], enable_events=True, key='DDMPCSV')],
-            [sg.Button("Graficar Promedio CSV"),sg.Button("Gráfica Lateral"),sg.Button('Exit', key='Exit')]]
+            [sg.Button("Graficar Promedio CSV"),sg.Button("Gráfica Lateral"),
+             sg.Button('Exit', key='Exit')]]
 
 # Interfaz para hacer animaciones a partir de un archivo CSV
-layout4 = [[sg.Text('Datos para la animación (Todos se deben llenar con numeros enteros!)')],
+layout4 = [[sg.Text('Datos para la animación (Todos se deben llenar con numeros enteros!)',font=font)],
             [sg.Text('Num. de Sensores', size =(22, 1)), sg.InputText(key='NumSenACSV')],
             [sg.Text('Num. Columnas de Sensores', size =(22, 1)), sg.InputText(key='ColsACSV')],
             [sg.Text('Num. Filas de Sensores', size =(22, 1)), sg.InputText(key='RowsACSV')],
@@ -84,10 +89,10 @@ layout4 = [[sg.Text('Datos para la animación (Todos se deben llenar con numeros
             [sg.Text('Concentración de Material Particulado')],
             [sg.Text('Selecciona Folder con Datos'),sg.Input(), sg.FolderBrowse('Carpeta')],
             [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 1.0 ATM', 'PM 2.5 ATM', 'PM 10.0 ATM'], enable_events=True, key='DDMACSV')],
-            [sg.Button("Gráficar Animación CSV"),sg.Button('Exit', key='Exit')]]
+            [sg.Button("Gráficar Animación CSV"),sg.Button('Exit', key='Exit',font=font2)]]
 
 # Interfaz para seleccionar que hacer con los datos de PurpleAir
-layout5 = [[sg.Text('Seleccione que desea hacer los datos de PurpleAir')],
+layout5 = [[sg.Text('Seleccione que desea hacer los datos de PurpleAir',font=font)],
            [sg.Button('Promedio Online'),sg.Button("Animación Online"),sg.Button('Exit', key='Exit')]]
 
 # Interfaz para hacer una animacion a partir de los datos de PurpleAir
@@ -106,7 +111,7 @@ layout6 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros e
             [sg.Button("Graficar Animación PurpleAir"),sg.Button('Exit', key='Exit')]]
 
 # Interfaz para hacer graficas promedio a partir de PurpleAir
-layout7 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros enteros!)')],
+layout7 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros enteros!)',font=font)],
             [sg.Text('Num. de Sensores', size =(22, 1)), sg.InputText(key='NumSenPPA')],
             [sg.Text('Num. Columnas de Sensores', size =(22, 1)), sg.InputText(key='ColsPPA')],
             [sg.Text('Num. Filas de Sensores', size =(22, 1)), sg.InputText(key='RowsPPA')],
@@ -116,7 +121,7 @@ layout7 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros e
             [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMPPA')],
             [sg.Button("Gráfica Promedio PurpleAir"),sg.Button("Gráfica Lateral"),sg.Button('Exit', key='Exit')]]
 
-layout6_exp = [[sg.Text('Datos acerca del número de sensores y su disposición')],
+layout6_exp = [[sg.Text('Datos acerca del número de sensores y su disposición',font=font)],
             [sg.Text('Num. de Sensores', size =(25, 1)), sg.InputText(key='NumSenAPA')],
             [sg.Text('Num. Columnas de Sensores', size =(25, 1)), sg.InputText(key='ColsAPA')],
             [sg.Text('Num. Filas de Sensores', size =(25, 1)), sg.InputText(key='RowsAPA')],
@@ -128,21 +133,21 @@ layout6_exp = [[sg.Text('Datos acerca del número de sensores y su disposición'
             [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMAPA')],
             [sg.Button("Next"), sg.Button('Exit', key='Exit')]]
 
-layout9 = [[sg.Text('Selección de fecha y hora de las mediciones')],
-            [sg.CalendarButton('Dia de inicio de la medición',target='-IN-', size=(24,1), format='20%y-%m-%d'), sg.Input(key='-IN-')],
+layout9 = [[sg.Text('Selección de fecha y hora de las mediciones',font=font)],
+            [sg.CalendarButton('Dia de inicio de la medición',target='-IN-', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='-IN-')],
             [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_data')],
-            [sg.CalendarButton('Dia del fin de la medición',target='-IN2-', size=(24,1), format='20%y-%m-%d'), sg.Input(key='-IN2-')],
+            [sg.CalendarButton('Dia del fin de la medición',target='-IN2-', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='-IN2-')],
             [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_data')],
             [sg.Button("Next"), sg.Button('Exit', key='Exit')]]
 
 # Definicion de la GUI, estableciendo que pagina se mostrara y cuales estan desactivadas.
-layout = [[sg.Column(layout1, key='-COL1-'), sg.Column(layout2, visible=False, key='-COL2-'), 
-           sg.Column(layout3, visible=False, key='-COL3-'),sg.Column(layout4, visible=False, key='-COL4-'),
-           sg.Column(layout5, visible=False, key='-COL5-'),sg.Column(layout6_exp, visible=False, key='-COL6-'),
-           sg.Column(layout7, visible=False, key='-COL7-'),sg.Column(layout9, visible=False, key='-COL9-')]]
+layout = [[sg.Column(layout1, key='-COL1-',justification='center'), sg.Column(layout2, visible=False, key='-COL2-',justification='center'), 
+           sg.Column(layout3, visible=False, key='-COL3-',justification='center'),sg.Column(layout4, visible=False, key='-COL4-',justification='center'),
+           sg.Column(layout5, visible=False, key='-COL5-',justification='center'),sg.Column(layout6_exp, visible=False, key='-COL6-',justification='center'),
+           sg.Column(layout7, visible=False, key='-COL7-',justification='center'),sg.Column(layout9, visible=False, key='-COL9-',justification='center')]]
 
 # Creacion de la ventana que contendra la GUI
-window = sg.Window('Proyecto UCMEXUS', layout)
+window = sg.Window('Proyecto UCMEXUS', layout, font = font2)
 
 """
 Notas para el futuro: 
@@ -216,9 +221,19 @@ while True:
 
     elif event == 'Next':
         # Se crea un nuevo layout a partir de los datos dados por el usuario.
-        layout8 = [[sg.Frame('Disposición de los sensores', [[sg.Input('', key=f'{row},{col}', size=(5,1))
-        for col in range(int(values['ColsAPA']))] for row in range(int(values['RowsAPA']))])],
-            [sg.Button('Submit', font=('Times New Roman',12)),sg.Button('Exit', font=('Times New Roman',12))]]
+        
+        chain = list(range(1,int(values['NumSenAPA'])+1))
+        coordenadas = {}
+        it = 0
+        for i in range(int(values['RowsAPA'])):
+            for j  in range(int(values['ColsAPA'])):
+                coordenadas[f'{i},{j}'] = chain[it]
+                it += 1  
+        layout8 = [[sg.Text('Carretera', font=('Times New Roman', 24), justification='center', expand_x=True)],
+                [sg.Frame('Disposición de los sensores', [[sg.Input(coordenadas[f'{row},{col}'],
+                key=f'{row},{col}', size=(5,1)) for col in range(int(values['ColsAPA']))]
+                for row in range(int(values['RowsAPA']))],font=font2)],
+                [sg.Button('Submit', font=('Times New Roman',12)),sg.Button('Exit', font=('Times New Roman',12))]]
 
         window[f'-COL{layout}-'].update(visible=False)
         layout = 9
@@ -233,7 +248,7 @@ while True:
         window.close()
         
         # Se crea una nueva ventana con el layout8 creado a partir de la anterior
-        window = sg.Window('Proyecto UCMEXUS', layout8)
+        window = sg.Window('Proyecto UCMEXUS', layout8, font=font2)
     
     elif event == 'Submit':
         ### Se puede mandar a una función en otro archivo para tener un main más limpio...
@@ -241,6 +256,9 @@ while True:
         ### Se puede mandar a una función en otro archivo para tener un main más limpio...
 
         # Se dan los datos a la función que preparara los datos para graficar.
+        # Checa que si los datos de hora dados en la interfaz, checa si
+        # unicamente te dan una hora, ej: 14, en lugar de 14:00, rellene esto :00
+        # para evitar problemas con el API
         start = init_values['-IN-'] + '%20' + init_values['Start_data'] + ':00'
         end = init_values['-IN2-'] + '%20' + init_values['End_data'] + ':00'
         rows = int(init_values['RowsAPA'])

@@ -25,7 +25,7 @@ class Thingspeak(object):                       # define a class called Thingspe
         self.read_api_key = read_api_key
 
         # Private Var cannot change
-        self.__url = 'http://api.thingspeak.com/update?api_key'
+        #self.__url = 'http://api.thingspeak.com/update?api_key'
         self.__read_url = 'https://api.thingspeak.com/channels/{}/feeds.json?api_key='.format(channel_id)
 
     def read_one_sensor(self, result=2, start='2022-03-10', end='2022-03-11'):
@@ -40,7 +40,7 @@ class Thingspeak(object):                       # define a class called Thingspe
             #timelapse = self.date
             header_t = '&start={}'.format(start)
             header_t2 = '&end={}'.format(end)
-            header_r = '&results={}'.format(result)
+            #header_r = '&results={}'.format(result)
 
             #new_read_url = URL_R + read_key + header_r
             new_read_url = URL_R + read_key + header_t + header_t2
