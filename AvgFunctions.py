@@ -16,7 +16,7 @@ from dateutil import tz
 import matplotlib.dates as dates
 import  matplotlib.pyplot as plt
 from pyparsing import dict_of
-# la funcion de abajo jala las funciones del script TSclasses.py para obtener los datos de los canales de thingspeak
+# la funcion de abajo importa las funciones del script TSclasses.py para obtener los datos de los canales de thingspeak
 from TSclasses import *
 import pytz
 import numpy as np
@@ -53,6 +53,7 @@ keys = ['TMTVNTYUXGGT7MK3', 'T5VPQSVT9BAE5ZI1',"F2K1DV64M1Z75VU4", "O94LWPUDGE64
         "IO35IQWN7OD7QZRI", "KYOJ88GAQ573QZOG","D6NQDA4PSE9FDW9N","KR2E9MGDRAR8U4FI", "TV45OPQDRKXEOYF3",
         "WXQHTF7MVPTGUV3H", "HWHD61TYPRC08IJ0", "TEQLCBVA8W53X6MQ", "LYE31WD6M75Z3J8E", "CF8HVDROSC9N04O7",
         "BCJV79PNCBA20CEI", "ITO12LYZ84AXMSB1", "LAU5S4Y8NY6F9FNK", "9WAVRBGJHR27Q9SB", "FP815UH9YRZ77MY1"]
+        
 channel_ids =[1367948, 1367997, 1336916, 1367985, 1369647, 
               1369624, 1379154, 1368013, 1369640, 1367969,
               1379214, 1367956, 1367952, 1336974, 1368009, 

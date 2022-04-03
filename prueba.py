@@ -83,6 +83,11 @@ import PySimpleGUI as sg
     Simple test harness to demonstate how to use the CalendarButton and the get date popup
 """
 # sg.theme('Dark Red')
+layout2 = [[sg.Input(key='Esc', size=(20,1))],
+        [sg.Button('Read', key='HTML'), sg.Exit()]]
+layout3 = [[sg.Input(key='E23c', size=(20,1))],
+        [sg.Button('Hola', key='HTM23'), sg.Exit()]]
+
 layout = [[sg.Text('Date Chooser Test Harness', key='-TXT-')],
       [sg.Input(key='-IN-', size=(20,1)), sg.CalendarButton('Cal US No Buttons Location (0,0)', close_when_date_chosen=True,  target='-IN-', location=(0,0), no_titlebar=False, )],
       [sg.Input(key='-IN3-', size=(20,1)), sg.CalendarButton('Cal Monday', title='Pick a date any date', no_titlebar=True, close_when_date_chosen=False,  target='-IN3-', begin_at_sunday_plus=1, month_names=('студзень', 'люты', 'сакавік', 'красавік', 'май', 'чэрвень', 'ліпень', 'жнівень', 'верасень', 'кастрычнік', 'лістапад', 'снежань'), day_abbreviations=('Дш', 'Шш', 'Шр', 'Бш', 'Жм', 'Иш', 'Жш'))],
@@ -90,13 +95,18 @@ layout = [[sg.Text('Date Chooser Test Harness', key='-TXT-')],
       [sg.Input(key='-IN4-', size=(20,1)), sg.CalendarButton('Cal Format %m-%d Jan 2020',  target='-IN4-', format='20%y-%m-%d', default_date_m_d_y=(1,None,2020) )],
       [sg.Button('Read'), sg.Button('Date Popup'), sg.Exit()]]
 sg.CalendarButton
-window = sg.Window('window', layout)
+layout4 = [[sg.Column(layout2, key='-COL1-'), sg.Column(layout3, visible=False, key='-COL2-')]]
+window = sg.Window('window', layout4)
 
 while True:
     event, values = window.read()
     print(event, values)
     if event in (sg.WIN_CLOSED, 'Exit'):
         break
-    elif event == 'Date Popup':
+    elif event == 'HTML':
+        layout = 1
+        window[f'-COL{layout}-'].update(visible=False)
+        layout = 2
+        window[f'-COL{layout}-'].update(visible=True)
         sg.popup('You chose:', sg.popup_get_date())
 window.close()
