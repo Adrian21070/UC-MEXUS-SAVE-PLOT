@@ -307,6 +307,67 @@ def animate(i, measurements, x_axis, y_axis,ax1,columns,rows,lateral_length,dept
     ax1.set_zlabel('ug/m3')
     plt.title(str(i))	
 
+def animate2(i, measurements, x_axis, y_axis,ax1,columns,rows,lateral_length,depth_length,indx):
+    '''
+        @name: animate
+        @brief: Funcion para generar una animacion a partir de las mediciones de PM en una cantidad definidad 
+                de tiempo.
+        @param: 
+            - i: iteracion actual
+            - measurements: medificiones de material particulado de cada sensor en un periodo de tiempo
+            - x_axis: distribucion de datos en el eje x (lateral)
+            - y_axis: distribucion de datos en el eje y (profundidad)
+            - ax1: figura que se graficara
+            - columns: numero de columnas en el arreglos de sensores
+            - rows: numero de filas en el arreglo de sensores
+            - lateral_length: longitud entre columnas
+            - depth_length: longitud entre filas
+        @return: Nada, unicamente genera una animación
+    '''
+    z_axis = []
+    indx = list(indx.values())
+    # Se obtiene la lista de las fechas de cada medición
+    time = list(measurements[f'Sensor {indx[0]}'].keys())
+    for k in range(len(measurements)):
+        jj = indx[k] #Numero del sensor actual.
+        #Accede al dato del sensor jj, en el tiempo i.
+        dato = measurements[f'Sensor {jj}'][time[i]]
+        z_axis.append(float(dato))
+    
+    minimum = min(z_axis)
+    maximum = max(z_axis)
+    average = avg(z_axis)
+    textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3  Promedio: "+str(average)+" ug/m3"
+
+    ax1.clear()
+    ax1.annotate(textstr,
+            xy=(0.5, 0), xytext=(0, 10),
+            xycoords=('axes fraction', 'figure fraction'),
+            textcoords='offset points',
+            size=10, ha='center', va='bottom')
+    #ax2.scatter3D(x_axis, y_axis, P1_ATM_INDS, c=P1_ATM_INDS, cmap='Greens');
+    #ax2.plot3D(x_axis, y_axis, P1_ATM_INDS, 'green');
+    scamap = plt.cm.ScalarMappable(cmap='inferno')
+    fcolors = scamap.to_rgba(maximum)
+    size_scatter = [100 for n in range(len(x_axis))]
+    ax1.scatter3D(x_axis, y_axis, z_axis, s=size_scatter, c=z_axis, facecolors=fcolors, cmap='inferno')
+    x_axis = np.reshape(x_axis,(rows,columns))
+    y_axis = np.reshape(y_axis,(rows,columns))
+    z_axis = np.reshape(z_axis,(rows,columns))
+    x_final = int((columns-1)*lateral_length)
+    y_final = int((rows-1)*depth_length)
+    #el parametro j establece que tantos puntos se interpolaran entre el inicio y final -- añadir a parametro a escoger en el GUI
+    xnew, ynew = np.mgrid[0:x_final:40j, 0:y_final:40j]
+    #si son muy poquitos datos se tiene que agregar dentro del parentesis de "bisplrep" kx=2 y ky=1, se pueden cambiar sus valores para mejorar la interpolación
+    tck = interpolate.bisplrep(x_axis, y_axis, z_axis, s=0)
+    znew = interpolate.bisplev(xnew[:,0], ynew[0,:], tck)
+    ax1.plot_surface(xnew, ynew, znew,cmap=cm.inferno, linewidth=0, antialiased=False, rcount=500, ccount=500)
+    #ax1.plot_trisurf(x_axis, y_axis, z_axis, edgecolor='none',facecolors=fcolors, cmap='inferno')
+    ax1.set_xlabel('Carretera (m), (x)')
+    ax1.set_ylabel('Profundidad (m), (y)')
+    ax1.set_zlabel('ug/m3')
+    plt.title(str(i))	
+
 def AnimationCSV(columns, rows, lateral_length, depth_length, hora_de_estudio, tiempo, SenNum, AniTime,PMType,pth):
     '''
         @name: AnimationCSV
@@ -427,9 +488,11 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
     #function to animate the plot and update it (using the animate function) every certain amount of milliseconds
     frame_rate = AniTime*60000/len(z_axis[f'Sensor {j}'])
 
+    #animate2(0,z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,indx)
+
     # Modifica animate para poder extraer la data de z, ya que ahora es un diccionario de diccionarios.
-    ani = animation.FuncAnimation(fig, animate, interval= frame_rate,fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length),
-                                    frames=len(z_axis), repeat=True)
+    ani = animation.FuncAnimation(fig, animate2, interval= frame_rate,fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,indx),
+                                    frames=len(z_axis[f'Sensor {j}']), repeat=True)
                                     
     plt.show()
     return 1
