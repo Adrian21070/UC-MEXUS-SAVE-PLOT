@@ -28,7 +28,7 @@ class Thingspeak(object):                       # define a class called Thingspe
         #self.__url = 'http://api.thingspeak.com/update?api_key'
         self.__read_url = 'https://api.thingspeak.com/channels/{}/feeds.json?api_key='.format(channel_id)
 
-    def read_one_sensor(self, result=2, start='2022-03-10', end='2022-03-11'):
+    def read_one_sensor(self, start='2022-03-10', end='2022-03-11'):
         try:
             """
             @param result: how many data you want to fetch accept interger

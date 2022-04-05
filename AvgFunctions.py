@@ -27,6 +27,7 @@ import matplotlib.animation as animation
 from matplotlib.offsetbox import AnchoredText
 from matplotlib import cm
 from scipy import interpolate
+from scipy.interpolate import griddata
 import os
 
 # Fuente utilizada en los graficos
@@ -352,22 +353,30 @@ def animate2(i, measurements, x_axis, y_axis,ax1,columns,rows,lateral_length,dep
     fcolors = scamap.to_rgba(maximum)
     size_scatter = [100 for n in range(len(x_axis))]
     ax1.scatter3D(x_axis, y_axis, z_axis, s=size_scatter, c=z_axis, facecolors=fcolors, cmap='inferno')
-    x_axis = np.reshape(x_axis,(rows,columns))
-    y_axis = np.reshape(y_axis,(rows,columns))
-    z_axis = np.reshape(z_axis,(rows,columns))
+    #x_axis = np.reshape(x_axis,(rows,columns))
+    #y_axis = np.reshape(y_axis,(rows,columns))
+    #z_axis = np.reshape(z_axis,(rows,columns))
     x_final = int((columns-1)*lateral_length)
     y_final = int((rows-1)*depth_length)
+    gridx,gridy,gridz0 = Interpol(x_axis,y_axis,z_axis,x_final,y_final)
+    ax1.plot_surface(gridx, gridy, gridz0,cmap=cm.inferno, linewidth=0, antialiased=False)
     #el parametro j establece que tantos puntos se interpolaran entre el inicio y final -- añadir a parametro a escoger en el GUI
-    xnew, ynew = np.mgrid[0:x_final:40j, 0:y_final:40j]
+    #xnew, ynew = np.mgrid[0:x_final:40j, 0:y_final:40j]
     #si son muy poquitos datos se tiene que agregar dentro del parentesis de "bisplrep" kx=2 y ky=1, se pueden cambiar sus valores para mejorar la interpolación
-    tck = interpolate.bisplrep(x_axis, y_axis, z_axis, s=0)
-    znew = interpolate.bisplev(xnew[:,0], ynew[0,:], tck)
-    ax1.plot_surface(xnew, ynew, znew,cmap=cm.inferno, linewidth=0, antialiased=False, rcount=500, ccount=500)
+    #tck = interpolate.bisplrep(x_axis, y_axis, z_axis, s=0)
+    #znew = interpolate.bisplev(xnew[:,0], ynew[0,:], tck)
+    #ax1.plot_surface(xnew, ynew, znew,cmap=cm.inferno, linewidth=0, antialiased=False, rcount=500, ccount=500)
     #ax1.plot_trisurf(x_axis, y_axis, z_axis, edgecolor='none',facecolors=fcolors, cmap='inferno')
     ax1.set_xlabel('Carretera (m), (x)')
-    ax1.set_ylabel('Profundidad (m), (y)')
+    ax1.set_ylabel('Profundidad|campo (m), (y)')
     ax1.set_zlabel('ug/m3')
-    plt.title(str(i))	
+    plt.title(str(i))
+
+def Interpol(x,y,z,xfinal,yfinal):
+    points = np.concatenate((x.T, y.T), axis=1)
+    grid_x, grid_y = np.mgrid[0:xfinal:200j, 0:yfinal:200j]
+    grid_z0 = griddata(points, z, (grid_x, grid_y), method='cubic')
+    return grid_x, grid_y, grid_z0
 
 def AnimationCSV(columns, rows, lateral_length, depth_length, hora_de_estudio, tiempo, SenNum, AniTime,PMType,pth):
     '''
@@ -430,7 +439,7 @@ def AnimationCSV(columns, rows, lateral_length, depth_length, hora_de_estudio, t
     #ani.save("demo2.gif", writer='imagemagick')
     plt.show()
 
-def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, AniTime,PMType, indx, init_values, start, end):
+def AnimationPA2(columns, rows, lateral_length, depth_length, SenNum, AniTime,PMType, indx, init_values, start, end):
     '''
         @name: AnimationPA
         @brief: Funcion para generar proveer los componentes necesarios a animate() para generar la animación.
@@ -451,10 +460,12 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
     from_zone = tz.tzutc()
     to_zone = tz.tzlocal()
     z_axis = {}
-    x_axis =(list(range(0,columns))*rows)
-    x_axis = [element * lateral_length for element in x_axis]
+    x_axis = np.array([list(range(0,columns))*rows])*lateral_length 
+    #x_2 = np.array([x_axis])*lateral_length 
+    #x_axis = [element * lateral_length for element in x_axis]
     column_with_interval = np.arange(0,rows*depth_length,depth_length)
-    y_axis = np.concatenate([([t]*columns) for t in column_with_interval], axis=0)
+    y_axis = np.array([np.concatenate([([t]*columns) for t in column_with_interval], axis=0)])
+    #y_2 = np.array(y_axis) #To interpolate
 
     # This dictionaries, helps us to store the minimum and maximum date of each sensor.
     dict_of_dates_minimum = {}
@@ -465,7 +476,7 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
         sensor_id = sensors[f'Sensor {j}']
         TSobject = Thingspeak(read_api_key=sensor_id[0], channel_id=sensor_id[1])
 
-        data,c= TSobject.read_one_sensor(result=NumDatos, start=start, end=end)
+        data,c= TSobject.read_one_sensor(start=start, end=end)
         if len(data) == 0:
             return [j, 0]
 
@@ -489,14 +500,14 @@ def AnimationPA2(columns, rows, lateral_length, depth_length, NumDatos, SenNum, 
     #function to animate the plot and update it (using the animate function) every certain amount of milliseconds
     frame_rate = AniTime*60000/len(z_axis[f'Sensor {j}'])
 
-    #animate2(0,z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,indx)
+    animate2(0,z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,indx)
 
     # Modifica animate para poder extraer la data de z, ya que ahora es un diccionario de diccionarios.
     ani = animation.FuncAnimation(fig, animate2, interval= frame_rate,fargs=(z_axis,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,indx),
                                     frames=len(z_axis[f'Sensor {j}']), repeat=True)
                                     
     plt.show()
-    return 1
+    return ['Logrado', 1]
 
 def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
     """

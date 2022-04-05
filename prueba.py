@@ -1,87 +1,68 @@
-"""import csv
-from datetime import datetime
-from dateutil import tz
-import PySimpleGUI as sg
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation"""
-"""sg.theme("DarkTanBlue")
-options = [[sg.Frame('Disposición', [[sg.Input(f'{row}, {col}', key=f'{row}, {col}') for col in range(4)] for row in range(4)])],
-            [sg.Button('Submit', font=('Times New Roman',12))]]
-taa = [sg.Button('OK')]
-layout8 = [[sg.Input(f'{row}, {col}', key=f'{row}, {col}') for col in range(4)] for row in range(4)]
 
-#layout = [[sg.Column(layout8)]]
-
-layout = [[sg.Column(options)]]
-
-window = sg.Window('Proyecto UCMEXUS', layout)
-
-while True:
-    event, values = window.read()"""
-"""
-hora_de_estudio = 22
-from_zone = tz.tzutc()
-to_zone = tz.tzlocal()
-tiempo = 60
-time = 60
-PMType = 'field8'
-with open('feeds.csv') as csv_file:
-    reader = csv.DictReader(csv_file)
-    P1_ATM_IND = []
-    lower_time_limit = str(hora_de_estudio)+":00"
-    upper_time_limit = str(hora_de_estudio)+":01"
-    #mismo valor que el limite inferior
-    for row in reader:
-        utcstr = (row.get('UTCDateTime').strip('z').replace('T', ' '))
-        utc = datetime.strptime(utcstr, '%Y/%m/%d %H:%M:%S').replace(tzinfo=from_zone)
-        mx_time = (utc.astimezone(to_zone)).strftime("%H:%M")
-        #print(mx_time)
-        if time<tiempo and time > 0:
-            P1_ATM_IND.append(float(row.get(PMType)))
-            time = time -1
-        elif (mx_time == lower_time_limit) or (mx_time==upper_time_limit):
-            P1_ATM_IND.append(float(row.get(PMType)))
-            time = time -1
-"""
-"""
 from matplotlib import projections
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from scipy.interpolate import griddata
+from matplotlib import cm
 
-TWOPI = 2*np.pi
+def func(x, y):
 
-fig, ax = plt.subplots()
+    return x*(1-x)*np.cos(4*np.pi*x) * np.sin(4*np.pi*y**2)**2
 
-t = np.linspace(0, 10, 100)
+columns = 10
+rows = 5
+lateral_length = 1
+depth_length = 2
+x_axis =(list(range(0,columns))*rows)
+x_axis = np.array([x_axis])*lateral_length
+#x_axis = np.array([element * lateral_length for element in x_axis])
+column_with_interval = np.arange(0,rows*depth_length,depth_length)
+y_axis = (list(range(0,rows))*columns)
+y_axis = np.array([y_axis])*depth_length
+y_axis = np.array([np.concatenate([([t]*columns) for t in column_with_interval], axis=0)])
+print(x_axis[0,2])
+points = np.concatenate((x_axis.T, y_axis.T), axis=1)
+#print(points[1,1])
+z = np.sin(points[:,0] - points[:,1])
 
-#y = np.linspace(0, 10, 100)
-#t = np.arange(0.0, TWOPI, 0.001)
+grid_x, grid_y = np.mgrid[0:columns*lateral_length-lateral_length:200j, 0:rows*(depth_length)-depth_length:200j]
 
-x = np.sin(t)
-y = np.cos(t)
-z = np.sin(t)
+rng = np.random.default_rng()
 
-x = [0, 4, 8, 12, 16]
-y = [0, 2, 4, 6, 8]
-z = [[12.1, 10.9, 5.1, 8, 10], [9.1, 7.9, 4.1, 12, 7]]
+#points = rng.random((1000, 2))
 
-ax = plt.axes(projection = '3d')
+#values = func(points[:,0], points[:,1])
 
-def animate(i,x,y,z):
-    ax.scatter3D(x,y,z[i])
 
-# create animation using the animate() function
-myAnimation = animation.FuncAnimation(fig, animate, frames=len(z), fargs = (x,y,z),
-                                      interval=2000, repeat = False)
+grid_z0 = griddata(points, z, (grid_x, grid_y), method='cubic')
+
+#grid_z1 = griddata(points, values, (grid_x, grid_y), method='linear')
+
+#grid_z2 = griddata(points, values, (grid_x, grid_y), method='cubic')
+
+
+
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
+si = [105 for ii in range(len(z))]
+ax.scatter(points[:,0], points[:,1], z, s=si)
+
+
+ax.plot_surface(grid_x, grid_y, grid_z0,cmap=cm.inferno)
+plt.show()
+#plt.imshow(func(grid_x, grid_y).T, extent=(0,8,0,9), origin='lower')
+
+#plt.plot(points[:,0], points[:,1], 'k.', ms=1)
+
+plt.gcf().set_size_inches(6, 6)
 
 plt.show()
 """
 import PySimpleGUI as sg
 
-"""
-    Simple test harness to demonstate how to use the CalendarButton and the get date popup
-"""
+
+    #Simple test harness to demonstate how to use the CalendarButton and the get date popup
 # sg.theme('Dark Red')
 layout2 = [[sg.Input(key='Esc', size=(20,1))],
         [sg.Button('Read', key='HTML'), sg.Exit()]]
@@ -102,14 +83,6 @@ for i in range(2):
 layout8 = [[sg.Frame('Disposición de los sensores', [[sg.Input(a[f'{row},{col}'], key=f'{row},{col}', size=(5,1))
             for col in range(4)] for row in range(2)])],
             [sg.Button('Submit', font=('Times New Roman',12)),sg.Button('Exit', font=('Times New Roman',12))]]
-"""
-layout = [[sg.Text('Date Chooser Test Harness', key='-TXT-')],
-      [sg.Input(key='-IN-', size=(20,1)), sg.CalendarButton('Cal US No Buttons Location (0,0)', close_when_date_chosen=True,  target='-IN-', location=(0,0), no_titlebar=False, )],
-      [sg.Input(key='-IN3-', size=(20,1)), sg.CalendarButton('Cal Monday', title='Pick a date any date', no_titlebar=True, close_when_date_chosen=False,  target='-IN3-', begin_at_sunday_plus=1, month_names=('студзень', 'люты', 'сакавік', 'красавік', 'май', 'чэрвень', 'ліпень', 'жнівень', 'верасень', 'кастрычнік', 'лістапад', 'снежань'), day_abbreviations=('Дш', 'Шш', 'Шр', 'Бш', 'Жм', 'Иш', 'Жш'))],
-      [sg.Input(key='-IN2-', size=(20,1)), sg.CalendarButton('Cal German Feb 2020',  target='-IN2-',  default_date_m_d_y=(2,None,2020), locale='de_DE', begin_at_sunday_plus=1 )],
-      [sg.Input(key='-IN4-', size=(20,1)), sg.CalendarButton('Cal Format %m-%d Jan 2020',  target='-IN4-', format='20%y-%m-%d', default_date_m_d_y=(1,None,2020) )],
-      [sg.Button('Read'), sg.Button('Date Popup'), sg.Exit()]]
-sg.CalendarButton"""
 
 #layout4 = [[sg.Column(layout2, key='-COL1-'), sg.Column(layout3, visible=False, key='-COL2-')]]
 window = sg.Window('window', layout8)
@@ -126,3 +99,4 @@ while True:
         window[f'-COL{layout}-'].update(visible=True)
         sg.popup('You chose:', sg.popup_get_date())
 window.close()
+"""

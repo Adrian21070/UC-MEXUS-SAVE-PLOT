@@ -268,9 +268,9 @@ while True:
 
         PMType=PA_Dict[init_values['DDMAPA']]
         key = AF.AnimationPA2(columns, rows, lateral_length, 
-                    depth_length,int(int(init_values['MinsPasados'])/2),int(init_values['NumSenAPA']),
+                    depth_length,int(init_values['NumSenAPA']),
                     int(init_values['AniTimePA']),PMType, values, init_values, start, end)
-        if len(key) > 1:
+        if key[1] == 0:
             sg.Popup(f'No se encontraron datos en esta fecha del sensor {key[0]}', keep_on_top=True)
             break
 
