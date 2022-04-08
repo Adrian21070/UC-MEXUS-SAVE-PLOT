@@ -13,6 +13,7 @@
 #Librerias requeridas
 import PySimpleGUI as sg
 import AvgFunctions as AF
+import functions as F
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib
 import numpy as np
@@ -72,7 +73,7 @@ layout3 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros e
             [sg.Text('Hora de Inicio (24hrs)', size =(22, 1)), sg.InputText(key='Hora')],
             [sg.Text('Tiempo Monitoreo (Tiempo par en Min.)', size =(28, 1)), sg.InputText(key='Mins')],
             [sg.Text('Selecciona Folder con Datos'),sg.Input(), sg.FolderBrowse('Folder')],
-            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 1.0 ATM', 'PM 2.5 ATM', 'PM 10.0 ATM'], enable_events=True, key='DDMPCSV')],
+            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 1.0 ATM', 'PM 2.5 ATM', 'PM 10.0 ATM'], key='DDMPCSV')],
             [sg.Button("Graficar Promedio CSV"),sg.Button("Gráfica Lateral"),
              sg.Button('Exit', key='Exit')]]
 
@@ -88,7 +89,7 @@ layout4 = [[sg.Text('Datos para la animación (Todos se deben llenar con numeros
             [sg.Text('Tiempo Duración Animación (Min.)', size =(28, 1)), sg.InputText(key='AniTime')],
             [sg.Text('Concentración de Material Particulado')],
             [sg.Text('Selecciona Folder con Datos'),sg.Input(), sg.FolderBrowse('Carpeta')],
-            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 1.0 ATM', 'PM 2.5 ATM', 'PM 10.0 ATM'], enable_events=True, key='DDMACSV')],
+            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 1.0 ATM', 'PM 2.5 ATM', 'PM 10.0 ATM'], key='DDMACSV')],
             [sg.Button("Gráficar Animación CSV"),sg.Button('Exit', key='Exit',font=font2)]]
 
 # Interfaz para seleccionar que hacer con los datos de PurpleAir
@@ -96,19 +97,16 @@ layout5 = [[sg.Text('Seleccione que desea hacer los datos de PurpleAir',font=fon
            [sg.Button('Promedio Online'),sg.Button("Animación Online"),sg.Button('Exit', key='Exit')]]
 
 # Interfaz para hacer una animacion a partir de los datos de PurpleAir
-layout6 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros enteros!)')],
-            [sg.Text('Num. de Sensores', size =(22, 1)), sg.InputText(key='NumSenAPA')],
-            [sg.Text('Num. Columnas de Sensores', size =(22, 1)), sg.InputText(key='ColsAPA')],
-            [sg.Text('Num. Filas de Sensores', size =(22, 1)), sg.InputText(key='RowsAPA')],
-            [sg.Text('Distancia entre Columnas', size =(22, 1)), sg.InputText(key='LCAPA')],
-            [sg.Text('Distancia entre Filas', size =(22, 1)), sg.InputText(key='LRAPA')],
-            [sg.Text('Cuantos minutos en el pasado (pares)', size =(22, 1)), sg.InputText(key='MinsPasados')],
-            [sg.Text('Tiempo Duración Animación (Min.)', size =(28, 1)), sg.InputText(key='AniTimePA')],
-            [sg.Text('Inicio de medición', size=(22,1)), sg.InputText(key='Start_data')],
-            [sg.Text('Fin de medición', size=(22,1)), sg.InputText(key='End_data')],
+layout6_exp = [[sg.Text('Datos acerca del número de sensores y su disposición',font=font)],
+            [sg.Text('Num. de Sensores', size =(25, 1)), sg.InputText(key='NumSenAPA')],
+            [sg.Text('Num. Columnas de Sensores', size =(25, 1)), sg.InputText(key='ColsAPA')],
+            [sg.Text('Num. Filas de Sensores', size =(25, 1)), sg.InputText(key='RowsAPA')],
+            [sg.Text('Distancia entre Columnas', size =(25, 1)), sg.InputText(key='LCAPA')],
+            [sg.Text('Distancia entre Filas', size =(25, 1)), sg.InputText(key='LRAPA')],
+            [sg.Text('Tiempo de duración animación (Min.)', size =(25, 1)), sg.InputText(key='AniTimePA')],
             [sg.Text('Concentración de Material Particulado')],
-            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMAPA')],
-            [sg.Button("Graficar Animación PurpleAir"),sg.Button('Exit', key='Exit')]]
+            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], key='DDMAPA')],
+            [sg.Button("Next"), sg.Button('Exit', key='Exit')]]
 
 # Interfaz para hacer graficas promedio a partir de PurpleAir
 layout7 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros enteros!)',font=font)],
@@ -118,20 +116,8 @@ layout7 = [[sg.Text('Datos para el promedio (Todos se deben llenar con numeros e
             [sg.Text('Distancia entre Columnas', size =(22, 1)), sg.InputText(key='LCPPA')],
             [sg.Text('Distancia entre Filas', size =(22, 1)), sg.InputText(key='LRPPA')],
             [sg.Text('Tiempo Monitoreo (Tiempo par en Min.)', size =(28, 1)), sg.InputText(key='MinsPasadosP')],
-            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMPPA')],
+            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], key='DDMPPA')],
             [sg.Button("Gráfica Promedio PurpleAir"),sg.Button("Gráfica Lateral"),sg.Button('Exit', key='Exit')]]
-
-layout6_exp = [[sg.Text('Datos acerca del número de sensores y su disposición',font=font)],
-            [sg.Text('Num. de Sensores', size =(25, 1)), sg.InputText(key='NumSenAPA')],
-            [sg.Text('Num. Columnas de Sensores', size =(25, 1)), sg.InputText(key='ColsAPA')],
-            [sg.Text('Num. Filas de Sensores', size =(25, 1)), sg.InputText(key='RowsAPA')],
-            [sg.Text('Distancia entre Columnas', size =(25, 1)), sg.InputText(key='LCAPA')],
-            [sg.Text('Distancia entre Filas', size =(25, 1)), sg.InputText(key='LRAPA')],
-            #[sg.Text('Cuantos minutos en el pasado (pares)', size =(25, 1)), sg.InputText(key='MinsPasados')],
-            [sg.Text('Tiempo de duración animación (Min.)', size =(25, 1)), sg.InputText(key='AniTimePA')],
-            [sg.Text('Concentración de Material Particulado')],
-            [sg.Text('Selecciona PM'),sg.Combo(['PM 1.0 CF', 'PM 2.5 CF', 'PM 10.0 CF', 'PM 2.5 ATM'], enable_events=True, key='DDMAPA')],
-            [sg.Button("Next"), sg.Button('Exit', key='Exit')]]
 
 layout9 = [[sg.Text('Selección de fecha y hora de las mediciones',font=font)],
             [sg.CalendarButton('Dia de inicio de la medición',target='-IN-', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='-IN-')],
@@ -180,10 +166,12 @@ while True:
     # Lectura de los componentes de la ventana
     event, values = window.read()
     # Ejecucion de evento en caso de que se oprima un boton en la GUI
-    if event == sg.WINDOW_CLOSED or event[0:4] == 'Exit':
-        break
-    #if event in (sg.WIN_CLOSED, "Exit"):
-    #   break
+    if event[-1].isnumeric():
+        event = event[:-1]
+    """if event == sg.WINDOW_CLOSED or event[0:4] == 'Exit':
+        break"""
+    if event in (sg.WIN_CLOSED, "Exit"):
+       break
 
     if event == 'Promedio':
         # Se desactiva la pagina activa
@@ -267,7 +255,10 @@ while True:
         depth_length = float(init_values['LRAPA'])
 
         PMType=PA_Dict[init_values['DDMAPA']]
-        key = AF.AnimationPA2(columns, rows, lateral_length, 
+        #key = AF.AnimationPA2(columns, rows, lateral_length, 
+                    #depth_length,int(init_values['NumSenAPA']),
+                    #int(init_values['AniTimePA']),PMType, values, init_values, start, end)
+        key = F.AnimationPA2(columns, rows, lateral_length, 
                     depth_length,int(init_values['NumSenAPA']),
                     int(init_values['AniTimePA']),PMType, values, init_values, start, end)
         if key[1] == 0:
@@ -277,19 +268,41 @@ while True:
 
     # Eventos que causan que se llame una funcion del script AvgFunciontions.py
     elif event == 'Graficar Promedio CSV':
-        PMType=PM_Dict[values['DDMPCSV']]
+        PMType=PA_Dict[values['DDMPCSV']]
         AF.GraphAvg(int(values['Rows']),int(values['Cols']),int(values['LC']), 
                     int(values['LR']),int(values['Hora']),
                     int(int(values['Mins'])/2)+1,int(values['NumSen']),values['Folder'],PMType)
 
     elif event == 'Gráfica Lateral':
-        PMType=PM_Dict[values['DDMPCSV']]
-        AF.LateralAvg(int(values['Rows']),int(values['Cols']),int(values['LC']), 
-                    int(values['LR']),int(values['Hora']),
-                    int(int(values['Mins'])/2)+1,int(values['NumSen']),values['Folder'],PMType)
+        # Modificable
+        chain = list(range(1,int(values['NumSenPPA'])+1))
+        coordenadas = {}
+        it = 0
+        for i in range(int(values['RowsPPA'])):
+            for j  in range(int(values['ColsPPA'])):
+                coordenadas[f'{i},{j}'] = chain[it]
+                it += 1  
+        layout8 = [[sg.Text('Carretera', font=('Times New Roman', 24), justification='center', expand_x=True)],
+                [sg.Frame('Disposición de los sensores', [[sg.Input(coordenadas[f'{row},{col}'],
+                key=f'{row},{col}', size=(5,1)) for col in range(int(values['ColsPPA']))]
+                for row in range(int(values['RowsPPA']))],font=font2)],
+                [sg.Button('Submit', font=('Times New Roman',12)),sg.Button('Exit', font=('Times New Roman',12))]]
+        #event, values = window.read()
+        window.close()
+
+        window = sg.Window('Proyecto UCMEXUS', layout8, font=font2)
+        event, initvalues = window.read()
+
+        #start = init_values['-IN-'] + '%20' + init_values['Start_data'] + ':00'
+        start = '2022-03-14%2018:50:00'
+        #end = init_values['-IN2-'] + '%20' + init_values['End_data'] + ':00'
+        end = '2022-03-14%2023:50:00'
+        PMType=PA_Dict[values['DDMPPA']]
+        F.LateralAvg(int(values['RowsPPA']),int(values['ColsPPA']),int(values['LCPPA']), 
+                    int(values['LRPPA']),PMType,initvalues,start,end, int(values['MinsPasadosP']))
 
     elif event == 'Gráficar Animación CSV':
-        PMType=PM_Dict[values['DDMACSV']]
+        PMType=PA_Dict[values['DDMACSV']]
         AF.AnimationCSV(int(values['RowsACSV']),int(values['ColsACSV']),int(values['LCACSV']), 
                     int(values['LRACSV']),int(values['HoraACSV']),
                     int(int(values['MinsACSV'])/2)+1,int(values['NumSenACSV']),int(values['AniTime']),PMType,values['Carpeta'])

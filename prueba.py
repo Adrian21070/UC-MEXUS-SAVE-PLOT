@@ -4,8 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from scipy.interpolate import griddata
+from scipy import interpolate
 from matplotlib import cm
-
+"""
 def func(x, y):
 
     return x*(1-x)*np.cos(4*np.pi*x) * np.sin(4*np.pi*y**2)**2
@@ -41,8 +42,8 @@ grid_z0 = griddata(points, z, (grid_x, grid_y), method='cubic')
 
 #grid_z2 = griddata(points, values, (grid_x, grid_y), method='cubic')
 
-
-
+"""
+"""
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
 si = [105 for ii in range(len(z))]
@@ -57,7 +58,33 @@ plt.show()
 
 plt.gcf().set_size_inches(6, 6)
 
+plt.show()"""
+x = np.arange(0, 11, 2)
+
+y = np.array([14, 12, 16 ,18, 10, 13])
+
+tck = interpolate.splrep(x, y, s=0)
+
+f = interpolate.interp1d(x, y, kind='quadratic')
+
+xnew = np.arange(0, 10.1, 0.1)
+
+ynew = interpolate.splev(xnew, tck, der=0)
+ynew2 = f(xnew)
+plt.figure()
+plt.scatter(x,y, s=40, c='r')
+plt.plot(xnew, ynew, '--', xnew, ynew2, ':', c='b',linewidth=2)
+#plt.plot(x, y, 'x', xnew, ynew, xnew, np.sin(xnew), x, y, 'b')
+
+#plt.legend(['Linear', 'Cubic Spline', 'True'])
+
+#plt.axis([-0.05, 6.33, -1.05, 1.05])
+
+plt.title('Cubic-spline interpolation')
+
 plt.show()
+
+
 """
 import PySimpleGUI as sg
 

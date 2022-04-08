@@ -183,11 +183,11 @@ def GraphAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tiemp
     plt.show()
     #return fig
 
-def LateralAvg(columns, rows, lateral_length, depth_length, hora_de_estudio, tiempo, SenNum,pth,PMType):
+def LateralAvg(columns, rows, lateral_length, depth_length, tiempo, SenNum,PMType):
     '''
         @name: LateralAvg
         @brief: Funcion que hace un promedio de cada sensor para un tiempo definido y despues hace un promedio
-                de cada fila, resultando en una grafica lateral. Esta funcion usa archivos CSV
+                de cada fila, resultando en una grafica lateral.
         @param: 
             - columns: numero de columnas en el arreglos de sensores
             - rows: numero de filas en el arreglo de sensores

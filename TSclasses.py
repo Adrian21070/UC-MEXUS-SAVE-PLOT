@@ -37,7 +37,7 @@ class Thingspeak(object):                       # define a class called Thingspe
 
             URL_R = self.__read_url
             read_key = self.read_api_key
-            #timelapse = self.date
+            
             header_t = '&start={}'.format(start)
             header_t2 = '&end={}'.format(end)
             #header_r = '&results={}'.format(result)
