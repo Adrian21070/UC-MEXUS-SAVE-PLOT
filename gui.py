@@ -21,6 +21,14 @@ PA_Dict={"PM 1.0 CF": "field1",
          "PM 10.0 CF": "field3",
          "PM 2.5 ATM": "field8"}
 
+# Sirve para la identificación en pandas
+PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
+        "PM 10.0 ATM": "PM10.0_ATM_ug/m3", "PM 1.0 CF": "PM1.0_CF1_ug/m3",
+        "PM 2.5 CF": "PM2.5_CF1_ug/m3", "PM 10.0 CF": "PM10.0_CF1_ug/m3",
+        "PM 1.0 ATM B": "PM1.0_ATM_B_ug/m3", "PM 2.5 ATM B": "PM2.5_ATM_B_ug/m3",
+        "PM 10.0 ATM B": "PM10.0_ATM_B_ug/m3", "PM 1.0 CF B": "PM1.0_CF1_B_ug/m3",
+        "PM 2.5 CF B": "PM2.5_CF1_B_ug/m3", "PM 10.0 CF B": "PM10.0_CF1_B_ug/m3"}
+
 font = ('Times New Roman', 16)
 font2 = ('Times New Roman', 12)
 
@@ -161,7 +169,9 @@ while True:
             for ii in PA_Dict.keys():
                 if values[ii]:
                     # Para cada tipo de dato se sacara la data de todos los sensores
-                    PMType.append(PA_Dict[ii])
+                    #PMType.append(PA_Onl[ii])
+                    PMType.append(PM_Dict[ii])
+                    #PMType.append(PA_Dict[ii])
 
                     # Primero, mi función de redondeo de fechas, me asigna aquí
                     # a todos los sensores con las mismas fechas, si quiero hacerlo
@@ -179,7 +189,7 @@ while True:
                         [sg.Text('Los sensores son:')]]
 
             for ii in holes.keys():
-                if holes[ii]:
+                if holes[ii]: # Si no esta vacio, entra al if
                     k = list(holes[ii].keys())
                     v = list(holes[ii].values())
                     k2 = []
@@ -232,10 +242,27 @@ while True:
                             pass
                         else:
                             days.append(day2)
-                    layout.append([[sg.Text(f'{ii}, archivos de los dias {days}'), sg.Input(key=ii), sg.FileBrowse()]])
+                    layout.append([[sg.Text(f'{ii}, archivos de los dias {days}'), sg.Input(), sg.FileBrowse(key=ii)]])
+            
+            
+            
+            """
+            Por el momento solo podre solucionar 1 hueco por sensor
+            esto es debido a que aun no pienso como hacer para solicitar 2 ubicaciones de archivo
+            por sensor, y como guardarlas en un array o un diccionario o en que cosa...
+            """
+
+
+            layout.append([[sg.Button('Fix data'), sg.Button('Exit')]])
             window.close()
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
             event, value = window.read()
+            
+            if event == 'Fix data':
+                # Llama a una función que arreglara los huecos.
+                # z_axis tiene sus datos de fecha en local, no esta en UTC recuerdalo.
+                csv_data = Func.csv_extraction(value, indx)
+                Func.Fix_data(z_axis, csv_data, PMType, holes, indx)
 
             
 

@@ -6,8 +6,8 @@ import pandas as pd
 from matplotlib import cm
 from datetime import datetime, timedelta
 from dateutil import tz
-from scipy import interpolate
-from scipy.interpolate import griddata
+#from scipy import interpolate
+#from scipy.interpolate import griddata
 #from gui import PMType
 from purple_air import *
 
@@ -47,6 +47,33 @@ PM_Dict={"PM 1.0 CF": "pm1_0_cf_1",
          "PM 2.5 ATM": "pm2_5_atm",	
          "PM 10.0 ATM" : "pm10_0_atm"}
 
+# Simple formato para transformar de csv a online.
+CSV_dict = {"UTCDateTime":"created_at",
+            "pm1_0_atm":"PM1.0_ATM_ug/m3",
+            "pm2_5_atm":"PM2.5_ATM_ug/m3", 
+            "pm10_0_atm":"PM10.0_ATM_ug/m3",
+            "uptime":"UptimeMinutes", 
+            "rssi":"RSSI_dbm",
+            "current_temp_f":"Temperature_F", 
+            "current_humidity":"Humidity_%",
+            "pm1_0_cf_1":"PM1.0_CF1_ug/m3", 
+            "pm2_5_cf_1":"PM2.5_CF1_ug/m3",
+            "pm10_0_cf_1":"PM10.0_CF1_ug/m3", 
+            "p_0_3_um":">=0.3um/dl", "p_0_5_um":">=0.5um/dl", 
+            "p_1_0_um":">=1.0um/dl", "p_2_5_um":">=2.5um/dl", 
+            "p_5_0_um":">=5.0um/dl", "p_10_0_um":">=10.0um/dl",
+            "pm1_0_atm_b":"PM1.0_ATM_B_ug/m3",
+            "pm2_5_atm_b":"PM2.5_ATM_B_ug/m3", 
+            "pm10_0_atm_b":"PM10.0_ATM_B_ug/m3",
+            "mem":"UptimeMinutes_B", "adc":"ADC", 
+            "pressure":"Pressure_hpa",
+            "pm1_0_cf_1_b":"PM1.0_CF1_B_ug/m3", 
+            "pm2_5_cf_1_b":"PM2.5_CF1_B_ug/m3",
+            "pm10_0_cf_1_b":"PM10.0_CF1_B_ug/m3", 
+            "p_0_3_um_b":">=0.3_B_um/dl", "p_0_5_um_b":">=0.5_B_um/dl", 
+            "p_1_0_um_b":">=1.0_B_um/dl", "p_2_5_um_b":">=2.5_B_um/dl", 
+            "p_5_0_um_b":">=5.0_B_um/dl", "p_10_0_um_b":">=10.0_B_um/dl"}
+
 # Diccionario para seleccionar el tipo de material 
 # particulado a graficar a partir de los datos en el canal
 # principal de thingspeak. 
@@ -54,6 +81,20 @@ PA_Dict={"PM 1.0 CF": "field1",
          "PM 2.5 CF": "field2",	
          "PM 10.0 CF": "field3",
          "PM 2.5 ATM": "field8"}
+
+# Todos los datos que puede pedir el usuario de online.
+Column_labels = ['PM1.0_ATM_ug/m3', 'PM2.5_ATM_ug/m3', 'PM10.0_ATM_ug/m3',
+                'PM1.0_CF1_ug/m3', 'PM2.5_CF1_ug/m3', 'PM10.0_CF1_ug/m3',
+                'PM1.0_ATM_B_ug/m3', 'PM2.5_ATM_B_ug/m3', 'PM10.0_ATM_B_ug/m3',
+                'PM1.0_CF1_B_ug/m3', 'PM2.5_CF1_B_ug/m3', 'PM10.0_CF1_B_ug/m3']
+
+PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
+        "PM 10.0 ATM": "PM10.0_ATM_ug/m3", "PM 1.0 CF": "PM1.0_CF1_ug/m3",
+        "PM 2.5 CF": "PM2.5_CF1_ug/m3", "PM 10.0 CF": "PM10.0_CF1_ug/m3",
+        "PM 1.0 ATM B": "PM1.0_ATM_B_ug/m3", "PM 2.5 ATM B": "PM2.5_ATM_B_ug/m3",
+        "PM 10.0 ATM B": "PM10.0_ATM_B_ug/m3", "PM 1.0 CF B": "PM1.0_CF1_B_ug/m3",
+        "PM 2.5 CF B": "PM2.5_CF1_B_ug/m3", "PM 10.0 CF B": "PM10.0_CF1_B_ug/m3"}
+
 
 def Data_extraction(rows, columns, lateral_length, depth_length, PMType, indx, start, end):
     from_zone = tz.tzutc()
@@ -207,25 +248,124 @@ def huecos(raw_data, indx):
             
     return sizes
 
-def rellenado(data_online, dir, PMType):
+def csv_extraction(dir, indx):
+    """
+        Regresa un diccionario de dataframes, 1 por cada archivo que se le de.
+    """
+    sen = list(indx.values())
+    iter = 0
+
+    col_name = list(CSV_dict.keys())
+    new_col_name = list(CSV_dict.values())
+    data_frames = {}
+
+    for ii in sen:
+        df = pd.read_csv(dir[f'Sensor {ii}'])
+
+        # Ahora, solo nos quedaremos con los mismos datos que otorga el online
+        df = df[col_name]
+        # Cambiamos los nombres de las columnas.
+        df.columns = new_col_name
+
+        # Arreglamos las fechas para hacerlas más sencillas de tratar.
+        date = list(df['created_at'])
+        date_new = []
+        for temp in date:
+            temp = temp.replace('/','-')
+            temp = temp.replace('T',' ')
+            temp = temp.replace('z',' UTC')
+            date_new.append(temp)
+        date = [] #Limpio la variable
+        df['created_at'] = date_new #Asigno mi fecha corregida
+
+        # Ahora solo queda almacenar el dataframe en el diccionario
+        data_frames[f'Sensor {sen[iter]}'] = df
+        iter += 1
+    
+    return data_frames
+
+def conversor_datetime_string(date, key):
+    """
+        Si key = 0, tomara a date como string en formato utc,
+        regresara una lista con las fechas en formato datetime utc.
+
+        Si key = 1, tomara a date como string en formato local,
+        regresara una lista con las fechas en formato datetime local.
+
+        Si key = 2, tomara a date como datetime, y regresara
+        una lista de strings.
+    """
+    from_zone = tz.tzutc()
+    to_zone = tz.tzlocal()
+
+    new_date = []
+    if key == 0:
+        for ii in range(len(date)):
+            temp = date[ii].strip(' UTC')
+            # Transformo de string a datetime utc
+            time_utc = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
+            new_date.append(time_utc)
+
+    elif key == 1:
+        for ii in range(len(date)):
+            temp = date[ii]
+            # Transformo de string a datetime local
+            time_local = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=to_zone)
+            new_date.append(time_local)
+
+    elif key == 2:
+        for ii in range(len(date)):
+            temp = date[ii]
+            # Transformo de datetime a string
+            if str(temp.tzinfo()) == 'tzutc()':
+                time = temp.astimezone(to_zone)
+                new_date.append(time)
+            elif str(temp.tzinfo()) == 'tzlocal()':
+                time = temp.astimezone(from_zone)
+                new_date.append(time)
+        
+
+def Fix_data(data_online, csv_data, PMType, holes, indx):
     # Asegurate de que PMType tenga los nombres correctos de las columnas
     # de un csv de los sensores!!!
     # Agrega al inicio de PMType esto: UTCDateTime
+    # PMTypes solo son strings, los cuales van a ir en el nombre de la columna de data_online
 
-    for ii in range(len(dir)):
-        # Abre el archivo csv del sensor x
-        df = pd.read_csv(f'{dir[ii]}')
+    from_zone = tz.tzutc()
+    to_zone = tz.tzlocal()
 
-        # Ahora depuramos el df, solo queremos en este caso
-        # las columnas de los PM que selecciono el usuario.
-        df = df.loc[:,PMType]
+    # Extrae la numeración de los sensores
+    sen = list(indx.values())
+
+    # Por el momento solo solucionara 1 hueco por sensor.
+    
+    col = []
+    # Creo el dataframe de online
+    for ii in range(len(Column_labels)):
+        if Column_labels[ii] in PMType:
+            col.append(Column_labels[ii])
+
+    df_online = {}
+    # Se creara un diccionario de dataframes, para facilitar su acceso.
+    for jj in data_online.keys():
+        # Prepara data
+        val = list(data_online[jj].keys()) # Lista de todas las fechas
+        num = list(data_online[jj].values()) # Obtiene los datos numericos, en este caso son listas.
+        num = [[float(b) for b in i] for i in num[:]] # Convierto todo a numerico
+
+        #num = np.array(num)
+
+        df_online[jj] = pd.DataFrame(num,columns=col)
+        df_online[jj].insert(0,"created_at",val)
+
+    # Una vez con toda la data de online y csv puesta en dataframes
+    # Se realizara el rellenado de los huecos.
+    # Para esto se usara la comparación de datetime, es importante tener las fechas
+    # en formato datetime de python.
 
 
-        #for jj in PMType:
-        #    df_depurado[jj] = df.loc[:,jj]
-        
+    time_utc = datetime.strptime(earliest, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
 
-    pass
 
     # Esto para tener un dataframe bonito una vez todos los sensores, tienen
     # la misma cantidad de datos.
