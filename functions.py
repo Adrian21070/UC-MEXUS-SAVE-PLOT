@@ -1,4 +1,5 @@
 # Librerias
+import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.animation as animation
@@ -157,7 +158,12 @@ def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
         early = time_utc.astimezone(to_zone)
 
         # Lo transforma a formato datetime para operacionar con el
-        start = datetime(early.year, early.month, early.day, early.hour, early.minute, 0)
+        # compruebo que si los segundos son mayores a 30, pase al siguiente minuto
+        if early.second >= 30:
+            start = datetime(early.year, early.month, early.day, early.hour, early.minute+1, 0, tzinfo=to_zone)
+        else:
+            start = datetime(early.year, early.month, early.day, early.hour, early.minute, 0, tzinfo=to_zone)
+
         # Lo sobreescribe
         data[ii]['created_at'] = start
 
@@ -248,20 +254,24 @@ def huecos(raw_data, indx):
             
     return sizes
 
-def csv_extraction(dir, indx):
+def csv_extraction(dir, indx, key=0):
     """
+        Si key = 1, dara un dataframe con la fecha en formato datetime,
+        si no se da el parametros key, otorgara la fecha en string.
+
         Regresa un diccionario de dataframes, 1 por cada archivo que se le de.
     """
+    from_zone = tz.tzutc()
+
     sen = list(indx.values())
-    iter = 0
 
     col_name = list(CSV_dict.keys())
     new_col_name = list(CSV_dict.values())
     data_frames = {}
 
-    for ii in sen:
-        df = pd.read_csv(dir[f'Sensor {ii}'])
-
+    for ii in dir:
+        # df = pd.read_csv(dir[f'Sensor {ii}'])
+        df = pd.read_csv(ii)
         # Ahora, solo nos quedaremos con los mismos datos que otorga el online
         df = df[col_name]
         # Cambiamos los nombres de las columnas.
@@ -270,17 +280,36 @@ def csv_extraction(dir, indx):
         # Arreglamos las fechas para hacerlas más sencillas de tratar.
         date = list(df['created_at'])
         date_new = []
-        for temp in date:
-            temp = temp.replace('/','-')
-            temp = temp.replace('T',' ')
-            temp = temp.replace('z',' UTC')
-            date_new.append(temp)
+
+        if key == 1:
+            for temp in date:
+                temp = temp.replace('/','-')
+                temp = temp.replace('T',' ')
+                #temp = temp.replace('z',' UTC')
+                temp = temp.strip('z')
+                early = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
+                if early.second >= 30:
+                    #if early.minute == 59:
+                        #early = datetime(early.year, early.month, early.day, early.hour+1, 0, 0, tzinfo=from_zone)
+                    #else:
+                    early = early + timedelta(seconds=60-early.second)
+                        #early = datetime(early.year, early.month, early.day, early.hour, early.minute+1, 0, tzinfo=from_zone)
+                else:
+                    early = datetime(early.year, early.month, early.day, early.hour, early.minute, 0, tzinfo=from_zone)
+                date_new.append(early)
+        else:
+            for temp in date:
+                temp = temp.replace('/','-')
+                temp = temp.replace('T',' ')
+                temp = temp.replace('z',' UTC')
+                date_new.append(temp)
+
         date = [] #Limpio la variable
         df['created_at'] = date_new #Asigno mi fecha corregida
 
         # Ahora solo queda almacenar el dataframe en el diccionario
-        data_frames[f'Sensor {sen[iter]}'] = df
-        iter += 1
+        #data_frames[f'Sensor {sen[iter]}'] = df
+        data_frames[ii] = df
     
     return data_frames
 
@@ -314,57 +343,115 @@ def conversor_datetime_string(date, key):
             new_date.append(time_local)
 
     elif key == 2:
-        for ii in range(len(date)):
-            temp = date[ii]
-            # Transformo de datetime a string
-            if str(temp.tzinfo()) == 'tzutc()':
+        if str(date[0].tzinfo) == 'tzutc()':
+            for ii in range(len(date)):
+                temp = date[ii]
                 time = temp.astimezone(to_zone)
                 new_date.append(time)
-            elif str(temp.tzinfo()) == 'tzlocal()':
+
+        elif str(date[0].tzinfo) == 'tzlocal()':
+            for ii in range(len(date)):
+                temp = date[ii]
                 time = temp.astimezone(from_zone)
                 new_date.append(time)
+    
+    return new_date
         
 
-def Fix_data(data_online, csv_data, PMType, holes, indx):
+def Fix_data(data_online, csv_data, PMType, holes, indx, dir):
     # Asegurate de que PMType tenga los nombres correctos de las columnas
     # de un csv de los sensores!!!
     # Agrega al inicio de PMType esto: UTCDateTime
     # PMTypes solo son strings, los cuales van a ir en el nombre de la columna de data_online
 
-    from_zone = tz.tzutc()
-    to_zone = tz.tzlocal()
+    # Como un sensor puede presentar diversos huecos, debemos usar todos los csv designados a dicho sensor
+    # este pedazo de codigo solo ordenara los csv acorde a su sensor.
 
-    # Extrae la numeración de los sensores
-    sen = list(indx.values())
-
-    # Por el momento solo solucionara 1 hueco por sensor.
-    
     col = []
-    # Creo el dataframe de online
+    # Por el momento solo solucionara 1 hueco por sensor.
     for ii in range(len(Column_labels)):
         if Column_labels[ii] in PMType:
             col.append(Column_labels[ii])
+
+    # Quiza pase esta función a csv extraction...
+    csv_data_dic = {}
+    for kk in csv_data.keys():
+        name = kk[-15:-13] # Toma el valor SX
+        a = csv_data[kk] # se extrae el dataframe
+        a = a[['created_at']+col] # se filtra a solo los datos necesarios dados por el usuario.
+
+        if name in csv_data_dic.keys():
+            csv_data_dic[name].update({kk:a})
+        else:
+            csv_data_dic[name] = {}
+            csv_data_dic[name].update({kk:a})
+    
+    # Creo el dataframe de online
+
 
     df_online = {}
     # Se creara un diccionario de dataframes, para facilitar su acceso.
     for jj in data_online.keys():
         # Prepara data
         val = list(data_online[jj].keys()) # Lista de todas las fechas
+        # data online tiene sus fechas en formato datetime local
+        val = conversor_datetime_string(val, key = 2)
+
         num = list(data_online[jj].values()) # Obtiene los datos numericos, en este caso son listas.
-        num = [[float(b) for b in i] for i in num[:]] # Convierto todo a numerico
+        if isinstance(num[0], list): # Compruebo que sea una matriz
+            num = [[float(b) for b in i] for i in num] # Convierto todo a numerico
+        else: # Si no es matriz, aplico esta formula.
+            num = [float(b) for b in num]
 
         #num = np.array(num)
 
-        df_online[jj] = pd.DataFrame(num,columns=col)
-        df_online[jj].insert(0,"created_at",val)
+        df_online[f'S{jj[-1]}'] = pd.DataFrame(num,columns=col)
+        df_online[f'S{jj[-1]}'].insert(0,"created_at",val)
 
     # Una vez con toda la data de online y csv puesta en dataframes
     # Se realizara el rellenado de los huecos.
-    # Para esto se usara la comparación de datetime, es importante tener las fechas
-    # en formato datetime de python.
 
+    # Solo se realizara en los sensores que tengan huecos, no en todos.
+    for ii in csv_data_dic.keys():
+        df = df_online[ii]
+        
+        for jj in csv_data_dic[ii].keys():
+            df_c = csv_data_dic[ii][jj] # Itera con los archivos csv del sensor x, diversos dias
+            sensor_holes = holes[f'Sensor {ii[-1]}'] #Corregir lo de sensor ii, no aceptara sensores mayores al 9
+            for kk in sensor_holes.keys():
 
-    time_utc = datetime.strptime(earliest, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
+                start = conversor_datetime_string([kk, sensor_holes[kk]], key=2)
+                init = start[0]
+                end = start[1]
+
+                date = df_c['created_at'] 
+
+                # Encuentra en csv, donde esta init y end.
+                row = df_c.index[(((date-init) < timedelta(seconds=120)) & ((init-date) < timedelta(seconds=120)))].tolist()
+
+                row_end = df_c.index[(((date-end) < timedelta(seconds=120)) & ((end-date) < timedelta(seconds=120)))].tolist()
+
+                # Seleccionar el trozo de información entre row y row_end, no se incluyen
+                chunk = df_c.loc[row[0]+1:row_end[0]-1]
+
+                # Limpiamos la data?
+
+                # Unimos
+                df = pd.concat([df, chunk])
+
+                # Sort the data
+                df = df.sort_values(by=['created_at'])
+
+                # Reset the index
+                df.reset_index(inplace=True, drop=True)
+
+    
+    """
+    Ya une dataframes aparentemente sin problemas, falta actualizar df_online con los nuevos df ya unidos,
+    revisa los comentarios, quiza exista algo que falta corregir, detalles pequeños.
+    """
+
+    return df_online
 
 
     # Esto para tener un dataframe bonito una vez todos los sensores, tienen

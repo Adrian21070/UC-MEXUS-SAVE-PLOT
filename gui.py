@@ -169,8 +169,8 @@ while True:
             for ii in PA_Dict.keys():
                 if values[ii]:
                     # Para cada tipo de dato se sacara la data de todos los sensores
-                    #PMType.append(PA_Onl[ii])
-                    PMType.append(PM_Dict[ii])
+                    PMType.append(PA_Onl[ii])
+                    #PMType.append(PM_Dict[ii])
                     #PMType.append(PA_Dict[ii])
 
                     # Primero, mi función de redondeo de fechas, me asigna aquí
@@ -226,13 +226,13 @@ while True:
         if event == 'CSV':
             # Solicita la ubicación de los archivos, y utiliza pandas para rellenar info
             # Trabajo pesado!!!
-            layout = []
+            layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SX_YYYYMMDD:')]]
             # Solicito la ubicación de archivos
             for ii in holes.keys():
                 if holes[ii]:
                     days = []
                     for jj in range(len(k)):
-                        day = k[jj].day
+                        day = k[jj].day  #Esto esta bien???
                         day2 = v[jj].day
                         if (day in days):
                             pass
@@ -242,8 +242,12 @@ while True:
                             pass
                         else:
                             days.append(day2)
-                    layout.append([[sg.Text(f'{ii}, archivos de los dias {days}'), sg.Input(), sg.FileBrowse(key=ii)]])
-            
+                    
+                    lay = []
+                    for jj in days:
+                        lay.append([sg.Text(f'Archivo del dia {jj}'), sg.Input(), sg.FileBrowse()])
+                    
+                    layout.append([sg.Frame(f'{ii}', lay)])
             
             
             """
@@ -257,14 +261,25 @@ while True:
             window.close()
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
             event, value = window.read()
+
+            # Selecciono unicamente las direcciones no repetidas.
+            value = [value[a] for a in value.keys() if ('Browse' in str(a))]
             
             if event == 'Fix data':
                 # Llama a una función que arreglara los huecos.
                 # z_axis tiene sus datos de fecha en local, no esta en UTC recuerdalo.
-                csv_data = Func.csv_extraction(value, indx)
-                Func.Fix_data(z_axis, csv_data, PMType, holes, indx)
+                csv_data = Func.csv_extraction(value, indx, key=1)
 
-            
+                Func.Fix_data(z_axis, csv_data, PMType, holes, indx, value)
+
+                """
+                Ya une dataframes aparentemente sin problemas, falta actualizar df_online con los nuevos df ya unidos,
+                revisa los comentarios, quiza exista algo que falta corregir, detalles pequeños.
+
+                Dale orden a las secuencias de la interfaz, y toca trabajar en las graficas.
+
+                Limpia el codigo, hay mucho comentario no util.
+                """
 
             #Func.Data_extraction(rows, columns, lateral_length, depth_length, PMType, indx, start, end)
         elif event == 'CUT':
@@ -273,4 +288,8 @@ while True:
             pass
 
     elif 'Archivo CSV' in events:
+        """
+        Parte de esto se resolvio con Fix data, pero lo dificil ahora,
+        sera limpiar la data del csv, ya que contiene muchos errores en ciertas columnas...
+        """
         pass
