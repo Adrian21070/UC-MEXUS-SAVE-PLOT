@@ -134,7 +134,7 @@ def Data_extraction(rows, columns, lateral_length, depth_length, PMType, indx, s
     """
     # Se compatibiliza la data, ahora si es matriz rectangular/cuadrada, podemos graficar ya.
     #z_axis = Matrix_adjustment(dict_of_dates_minimum, dict_of_dates_maximum, z_axis, indx)
-    return x_axis, y_axis, z_axis
+    return x_axis, y_axis, z_axis, dict_of_dates_minimum, dict_of_dates_maximum
 
 def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
     """
@@ -172,10 +172,12 @@ def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
 
     return data, P1_ATM_IND
 
-def Matrix_adjustment(minimum, maximum, z, indx):
+def Matrix_adjust(minimum, maximum, z, indx):
     # Se obtiene el rango de las mediciones a partir de fechas que compartan todos.
-    medicion_inicial_mas_reciente = max(minimum.values())
-    primera_medicion_final = min(maximum.values())
+    medicion_inicial_mas_reciente = max(minimum.values()).astimezone(tz.tzutc())
+    init = medicion_inicial_mas_reciente
+    primera_medicion_final = min(maximum.values()).astimezone(tz.tzutc())
+    end = primera_medicion_final
     
     # Identificacion de caso del rango
     inicio = medicion_inicial_mas_reciente.minute%2
@@ -187,47 +189,35 @@ def Matrix_adjustment(minimum, maximum, z, indx):
     elif((inicio==1 and fin==0) or (inicio==0 and fin==1)):
         caso = 1
 
+    # Creo una lista de fechas desde medicion inicial más reciente hasta primera medición final
+    seconds = (primera_medicion_final-medicion_inicial_mas_reciente).seconds + (primera_medicion_final-medicion_inicial_mas_reciente).days*24*60*60
+    dates = [medicion_inicial_mas_reciente + timedelta(seconds=d) for d in range(seconds + 1) if d%120 == 0]
+
     # Clone the original dataframe
     z_adjusted = {}
 
     for ii in indx.values():
-        z_adjusted[f'Sensor {ii}'] = {}
+        z_adjusted[f'S{ii}'] = pd.DataFrame()
         aa = medicion_inicial_mas_reciente
+        df = z[f'S{ii}']
+        date = df['created_at']
 
-        for jj in z[f'Sensor {ii}'].keys():
-            # Calcula diferencias entre los extremos del intervalo de medicion inicial
-            # y primera medicion final.
-            delta = medicion_inicial_mas_reciente - jj
-            delta2 = primera_medicion_final - jj
+        # Encuentra en csv, donde esta init y end.
+        row = df.index[(((date-init) < timedelta(seconds=120)) & ((init-date) < timedelta(seconds=120)))].tolist()
 
-            # Se pasa a segundos
-            seconds_delta = delta.days*24*60*60 + delta.seconds
-            seconds_delta2 = delta2.days*24*60*60 + delta2.seconds
+        row_end = df.index[(((date-end) < timedelta(seconds=120)) & ((end-date) < timedelta(seconds=120)))].tolist()
 
-            # Se comprueba el caso en el que estamos y comparamos los deltas
-            if caso == 0:
-                if (seconds_delta <= 0) and (seconds_delta2 >= 0):
-                    z_adjusted[f'Sensor {ii}'][aa] = z[f'Sensor {ii}'][jj]
-                    aa = aa + timedelta(minutes=2)
+        # Seleccionar el trozo de información entre row y row_end, no se incluyen
+        chunk = df.loc[row[0]:row_end[0]]
 
-                else:
-                    if (seconds_delta <= 60) and (seconds_delta >= -60):
-                        z_adjusted[f'Sensor {ii}'][aa] = z[f'Sensor {ii}'][jj]
-                        aa = aa + timedelta(minutes=2)
+        chunk.loc[:,'created_at'] = dates
 
-            elif caso == 1:
-                if (seconds_delta <= 0) and (seconds_delta2 >= 0):
-                    z_adjusted[f'Sensor {ii}'][aa] = z[f'Sensor {ii}'][jj]
-                    aa = aa + timedelta(minutes=2)
+        # Unimos
+        z_adjusted[f'S{ii}'] = pd.concat([z_adjusted[f'S{ii}'], chunk])
 
-                else:
-                    if (seconds_delta <= 60) and (seconds_delta >= -60):
-                        z_adjusted[f'Sensor {ii}'][aa] = z[f'Sensor {ii}'][jj]
-                        aa = aa + timedelta(minutes=2)
-                    if (seconds_delta2 <= 60) and (seconds_delta2 >= -60):
-                        z_adjusted[f'Sensor {ii}'][aa] = z[f'Sensor {ii}'][jj]
-                        aa = aa + timedelta(minutes=2)
-            
+        # Reset the index
+        z_adjusted[f'S{ii}'].reset_index(inplace=True, drop=True)
+
     return z_adjusted
 
 def huecos(raw_data, indx):
@@ -236,8 +226,11 @@ def huecos(raw_data, indx):
     # Buscando huecos, los extremos y la cantidad de datos del sensor x
     # No interesa en este momento, solo comprueba si existen huecos.
     sizes = {}
-    it = 0
-
+    """
+    # Quiza con loc de pandas se realice más eficientemente.
+    # Para esto, hay que transformar en dataframe desde antes de entrar aquí.
+    # Y modificar este codigo.
+    """
     # Fuerza bruta, quiza exista otro metodo de comprobar los huecos...
     for ii in indx.values():
         # Fechas de las mediciones
@@ -357,13 +350,7 @@ def conversor_datetime_string(date, key):
     
     return new_date
         
-
 def Fix_data(data_online, csv_data, PMType, holes, indx, dir):
-    # Asegurate de que PMType tenga los nombres correctos de las columnas
-    # de un csv de los sensores!!!
-    # Agrega al inicio de PMType esto: UTCDateTime
-    # PMTypes solo son strings, los cuales van a ir en el nombre de la columna de data_online
-
     # Como un sensor puede presentar diversos huecos, debemos usar todos los csv designados a dicho sensor
     # este pedazo de codigo solo ordenara los csv acorde a su sensor.
 
@@ -376,7 +363,7 @@ def Fix_data(data_online, csv_data, PMType, holes, indx, dir):
     # Quiza pase esta función a csv extraction...
     csv_data_dic = {}
     for kk in csv_data.keys():
-        name = kk[-15:-13] # Toma el valor SX
+        name = kk[-15:-13] # Toma el valor SX  """Arregla esto"""
         a = csv_data[kk] # se extrae el dataframe
         a = a[['created_at']+col] # se filtra a solo los datos necesarios dados por el usuario.
 
@@ -387,7 +374,6 @@ def Fix_data(data_online, csv_data, PMType, holes, indx, dir):
             csv_data_dic[name].update({kk:a})
     
     # Creo el dataframe de online
-
 
     df_online = {}
     # Se creara un diccionario de dataframes, para facilitar su acceso.
@@ -402,8 +388,6 @@ def Fix_data(data_online, csv_data, PMType, holes, indx, dir):
             num = [[float(b) for b in i] for i in num] # Convierto todo a numerico
         else: # Si no es matriz, aplico esta formula.
             num = [float(b) for b in num]
-
-        #num = np.array(num)
 
         df_online[f'S{jj[-1]}'] = pd.DataFrame(num,columns=col)
         df_online[f'S{jj[-1]}'].insert(0,"created_at",val)
@@ -445,14 +429,124 @@ def Fix_data(data_online, csv_data, PMType, holes, indx, dir):
                 # Reset the index
                 df.reset_index(inplace=True, drop=True)
 
+        # Se actualizan los datos de online ya corregidos.
+        df_online[ii] = df
     
     """
-    Ya une dataframes aparentemente sin problemas, falta actualizar df_online con los nuevos df ya unidos,
-    revisa los comentarios, quiza exista algo que falta corregir, detalles pequeños.
+
+    Limpiar data, existen errores por esto...
+
     """
 
     return df_online
 
+def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx):
+    z_axis = []
+    indx = list(indx.values())
+
+    # Se obtiene la lista de las fechas de cada medición
+    time = list(measurements[f'S{indx[0]}'].keys())
+    for k in range(len(measurements)):
+        jj = indx[k] #Numero del sensor actual.
+        #Accede al dato del sensor jj, en el tiempo i.
+        df = measurements[f'S{jj}']
+        dato = df[PMType][i]
+        #dato = measurements[f'Sensor {jj}'][time[i]]
+        z_axis.append(float(dato))
+    
+    minimum = min(z_axis)
+    maximum = max(z_axis)
+    average = round(np.mean(z_axis),2)
+    textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3  Promedio: "+str(average)+" ug/m3"
+
+    ax1.clear()
+    ax1.annotate(textstr,
+            xy=(0.5, 0), xytext=(0, 10),
+            xycoords=('axes fraction', 'figure fraction'),
+            textcoords='offset points',
+            size=10, ha='center', va='bottom')
+
+    scamap = plt.cm.ScalarMappable(cmap='inferno')
+    fcolors = scamap.to_rgba(maximum)
+    size_scatter = [100 for n in range(len(x_axis))]
+    ax1.scatter3D(x_axis, y_axis, z_axis, s=size_scatter, c=z_axis, facecolors=fcolors, cmap='inferno')
+
+    x_final = int((columns-1)*lateral_length)
+    y_final = int((rows-1)*depth_length)
+    gridx,gridy,gridz0 = Interpol(x_axis,y_axis,z_axis,x_final,y_final)
+    ax1.plot_surface(gridx, gridy, gridz0,cmap=cm.inferno, linewidth=0, antialiased=False)
+
+    ax1.set_xlabel('Carretera (m), (x)')
+    ax1.set_ylabel('Profundidad|campo (m), (y)')
+    ax1.set_zlabel('ug/m3')
+    plt.title(str(i))
+
+def Interpol(x,y,z,xfinal,yfinal):
+    points = np.concatenate((x.T, y.T), axis=1)
+    grid_x, grid_y = np.mgrid[0:xfinal:200j, 0:yfinal:200j]
+    grid_z0 = griddata(points, z, (grid_x, grid_y), method='cubic')
+    return grid_x, grid_y, grid_z0
+
+def animate_1D(i, measurements, y_axis, depth, ax1, columns, rows, indx, time, limites):
+    # Solo importa y_axis, profundidad
+    z_axis = []
+    y_axis = [value*depth for value in range(rows)]
+    # Creando lista con los datos ii
+    for jj in indx.values():
+        s = measurements[f'Sensor {jj}'][time[i]]
+        z_axis.append(float(s))
+
+    # Promedio por filas.
+    filas = []
+    kk = 0
+    col = columns
+    #No = list(prom.values())
+    for ii in range(rows):
+        sum = z_axis[kk:col]
+        kk = col
+        col = kk + columns
+
+        filas.append(np.mean(sum))
+        # Aquí ya se obtuvo el promedio por filas en el tiempo ii, se obtendra una cantidad n de promedio de filas a lo largo
+        # de todo el for principal, se piensa mandar a animar esto para obtener una animación del cambio de promedio de filas.
+    
+    # Realiza el plot
+    ax1.clear()
+    ax1.scatter(y_axis, filas, s=40, c='r')
+
+    # Interpolación
+    f = interpolate.interp1d(y_axis, filas, kind='cubic')
+    f2 = interpolate.interp1d(y_axis, filas, kind='quadratic')
+    x = np.arange(0, max(y_axis), 0.1)
+    ax1.plot(x, f(x), '--', x, f2(x), ':', linewidth=2)
+
+    ax1.set_xlabel('Profundidad|campo (m), (x)')
+    ax1.set_ylabel('Valor promedio (ug/m3)')
+    ax1.legend(['Promedio', 'Interpolación cubica', 'Interpolación cuadrática'])
+    ax1.axis([0, max(y_axis), limites[0], limites[1]])
+    plt.title(str(i))
+
+def graphs(x, y, z, columns, rows, row_dist, col_dist, value, indx):
+    length = value['length']
+    if 'Animation3D' in value:
+        fig = plt.subplots()
+        ax1 = plt.axes(projection='3d')
+        
+        time = len( z[f'S{indx[0]}']['created_at'] )
+
+        frame_rate = length*60000/len(time)
+
+        animate(0,z,x,y,ax1,columns,rows,col_dist,row_dist,indx)
+
+        ani = animation.FuncAnimation(fig, animate, interval= frame_rate,fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,indx),
+                                    frames=len(time), repeat=True)
+                
+    if 'LateralAvg' in value:
+        pass
+
+    if 'Historico' in value:
+        pass
+    pass
 
     # Esto para tener un dataframe bonito una vez todos los sensores, tienen
     # la misma cantidad de datos.

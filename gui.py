@@ -4,6 +4,33 @@ import functions as Func
 from datetime import datetime
 from dateutil import tz
 
+### Urgente.
+"""
+Puntos importantes.
+Arregla la selección de SX, solo sirve para sensores con denominación menor a 10
+S1, S2,... esto viene en fix_data y holes
+
+###
+Matrix Adjust, esta practicamente acabado, sin embargo, la data que se extrae de csv
+tiene ciertos problemas, en ocasiones se pierden datos, digamos, entre 12:51 pasa a 12:55,
+se deben arreglar estos datos falsos, ya que no todos los sensores tendran misma longitud de datos
+y se rompe todo.
+###
+
+###
+Otro error de csv es que al redondear fechas ocurren saltos de tiempo, principalmente cuando
+las mediciones estan siendo medidas entre 12:55:50s y 12:55:59s, por dar un ejemplo.
+###
+
+Esto se soluciono de una manera medianamente bien con online, el redondeo de segundos esta bien hecho.
+Aplicalo en csv, quiza en csv extraction para facilitar las cosas.
+
+Tambien es importante realizar cosas con los NaN ocasionales que puedan venir (poco probable para
+el tipo de dato que tomamos para completar online, pero si es necesario para generar csv con este codigo,
+esto para un futuro...)
+
+"""
+
 # Diccionario para seleccionar el tipo de material
 # particulado a graficar a partir de los archivos CSV
 PM_Dict={"PM 1.0 CF": "pm1_0_cf_1",	
@@ -89,7 +116,6 @@ while True:
                 [sg.Text('Num. Filas de Sensores', size =(25, 1)), sg.InputText(key='Rows')],
                 [sg.Text('Distancia entre Columnas', size =(25, 1)), sg.InputText(key='Col_dis')],
                 [sg.Text('Distancia entre Filas', size =(25, 1)), sg.InputText(key='Row_dis')],
-                [sg.Text('Tiempo de duración animación (Min.)', size =(25, 1)), sg.InputText(key='Length')],
                 [sg.Button("Next"), sg.Button('Exit')]]
             
             # Posible error, numero de cols y rows exceden la cantidad de sensores maximos
@@ -176,7 +202,7 @@ while True:
                     # Primero, mi función de redondeo de fechas, me asigna aquí
                     # a todos los sensores con las mismas fechas, si quiero hacerlo
                     # a prueba de huecos(falta de datos) no debo hacer esto.
-                    x_axis, y_axis, z_axis = Func.Data_extraction(rows, columns, lateral_length, depth_length, PA_Dict[ii], indx, start, end)
+                    x_axis, y_axis, z_axis, minimum_dates, maximum_dates = Func.Data_extraction(rows, columns, lateral_length, depth_length, PA_Dict[ii], indx, start, end)
                     """
                     Esta data es cruda en este momento, no hay ajuste de datos ni nada
                     Puedo trabajar con ella para comprobar los huecos.
@@ -270,7 +296,7 @@ while True:
                 # z_axis tiene sus datos de fecha en local, no esta en UTC recuerdalo.
                 csv_data = Func.csv_extraction(value, indx, key=1)
 
-                Func.Fix_data(z_axis, csv_data, PMType, holes, indx, value)
+                z_axis = Func.Fix_data(z_axis, csv_data, PMType, holes, indx, value)
 
                 """
                 Ya une dataframes aparentemente sin problemas, falta actualizar df_online con los nuevos df ya unidos,
@@ -281,7 +307,36 @@ while True:
                 Limpia el codigo, hay mucho comentario no util.
                 """
 
-            #Func.Data_extraction(rows, columns, lateral_length, depth_length, PMType, indx, start, end)
+                # Se ajusta la data para que inicien y terminen igual los sensores, adecua la función.
+
+                z_axis = Func.Matrix_adjust(minimum_dates, maximum_dates, z_axis, indx)
+                
+                # Notificar al usuario si existieron problemas o todo bien???
+                # if exito == true
+                layout = [[sg.Text('Se completo exitosamente el arreglo de datos')],[sg.Button('Next')]]
+                
+                # else
+                # layout = [sg.Text('Ocurrio un error al rellenar datos')]
+                window.close()
+                window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+                event, value = window.read()
+            
+
+            # Se pregunta que graficas quiere realizar
+            layout = [[sg.Text('Favor de seleccionar que graficas desea obtener')],
+                    [sg.Checkbox('Animación 3D (superficie)', default=False, key='Animation3D')],
+                    [sg.Checkbox('Lateral average', default=False, key='LateralAvg')],
+                    [sg.Checkbox('Registro historico de filas', default=False, key='Historico')],
+                    [sg.Text('Tiempo de duración animación (Min.)', size =(25, 1)), sg.InputText(key='Length')],
+                    [sg.Button('Graficar'), sg.Button('Exit')]]
+            window.close()
+            window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+            event, value = window.read()
+            
+            if event == 'Graficar':
+                Func.graphs(x_axis, y_axis, z_axis, columns, rows, depth_length, lateral_length, value, indx)
+                
+
         elif event == 'CUT':
             # Utiliza pandas u otra cosa para simplemente borrar el intervalo de datos perdidos
             # En todos los sensores.
