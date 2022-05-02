@@ -274,6 +274,37 @@ def csv_extraction(dir, indx, key=0):
         date = list(df['created_at'])
         date_new = []
 
+        """
+        Me pregunto si valdra solo con tomar la primera fecha, y la ultima.
+        crear una lista de datetime entre inicio y fin y unirlas a date_new
+        esto ahorrario pasos del for, pero no detectaria falta de datos,
+        simplemente se los saltaria reduciendo en 2 minutos el resultado final
+        por cada dato perdido.
+        Todo esto solo aplicaria para key==1
+
+        Como le hago con la unión de online y csv??????????????????
+        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        """
+
+        if key == 1:
+            inicio = date[0].replace('/','-').replace('T',' ').strip('z')
+            fin = date[-1].replace('/','-').replace('T',' ').strip('z')
+            inicio = datetime.strptime(inicio, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
+            fin = datetime.strptime(fin, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
+            if inicio.second >= 30:
+                inicio = inicio + timedelta(seconds=60-inicio.second)
+            else:
+                inicio = inicio - timedelta(seconds=inicio.second)
+            if fin.second >= 30:
+                fin = fin + timedelta(seconds=60-fin.second)
+            else:
+                fin = fin - timedelta(seconds=fin.second) 
+
+            # Creo lista entre inicio y fin, con separación de dos minutos
+            seconds = (fin-inicio).seconds + (fin-inicio).days*24*60*60
+            dates = [inicio + timedelta(seconds=d) for d in range(seconds + 1) if d%120 == 0]
+            date_new.append(dates)
+        """
         if key == 1:
             for temp in date:
                 temp = temp.replace('/','-')
@@ -289,6 +320,14 @@ def csv_extraction(dir, indx, key=0):
                         #early = datetime(early.year, early.month, early.day, early.hour, early.minute+1, 0, tzinfo=from_zone)
                 else:
                     early = datetime(early.year, early.month, early.day, early.hour, early.minute, 0, tzinfo=from_zone)
+                
+                if date_new != []:
+                    if (early-antigua != timedelta(seconds=120)):
+                        early = antigua + timedelta(seconds=120)
+                        antigua = early
+                        date_new.append(early)
+                        continue
+                antigua = early
                 date_new.append(early)
         else:
             for temp in date:
@@ -296,8 +335,9 @@ def csv_extraction(dir, indx, key=0):
                 temp = temp.replace('T',' ')
                 temp = temp.replace('z',' UTC')
                 date_new.append(temp)
-
+        """
         date = [] #Limpio la variable
+        dates = []
         df['created_at'] = date_new #Asigno mi fecha corregida
 
         # Ahora solo queda almacenar el dataframe en el diccionario
