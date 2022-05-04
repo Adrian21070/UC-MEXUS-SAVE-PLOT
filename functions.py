@@ -8,9 +8,8 @@ import math
 from matplotlib import cm
 from datetime import datetime, timedelta
 from dateutil import tz
-#from scipy import interpolate
-#from scipy.interpolate import griddata
-#from gui import PMType
+from scipy import interpolate
+from scipy.interpolate import griddata
 from purple_air import *
 
 #IDs y Llaves del canal prinicpal del sensor A los dispositivos  PurpleAir 
@@ -183,6 +182,9 @@ def Matrix_adjustment(minimum, maximum, z, indx, delta):
     seconds = dif.seconds + dif.days*24*60*60
     cycles = math.ceil(seconds/(delta*60*60))
 
+    maximum = []
+    minimum = []
+
     for ii in indx.values():
         df = z[f'S{ii}']
         columns = df.columns.tolist()
@@ -197,7 +199,8 @@ def Matrix_adjustment(minimum, maximum, z, indx, delta):
 
             # Calculamos promedios
             prom = [start.strftime("%Y/%m/%d, %H:%M:%S")+' -> '+end.strftime("%Y/%m/%d, %H:%M:%S")]
-            for kk in columns[1:]:
+
+            for kk in columns[1:]: # Para revisar si PMType es mas de 1
                 data = rows[kk]
                 prom.append(round(np.mean(data),4))
 
@@ -210,7 +213,11 @@ def Matrix_adjustment(minimum, maximum, z, indx, delta):
                 start = end
                 end = final_end + timedelta(seconds=1)
 
-    return z_adjusted
+        maximum.append(max(z_adjusted[f'S{ii}'][kk])) # Para revisar si PMType es mas de 1
+        minimum.append(min(z_adjusted[f'S{ii}'][kk]))
+    
+    limites = [min(minimum), max(maximum)]
+    return z_adjusted, limites
 
 def Matrix_adjust(minimum, maximum, z, indx):
     # Se obtiene el rango de las mediciones a partir de fechas que compartan todos.
@@ -485,8 +492,8 @@ def Fix_data(data_online, csv_data, PMType, holes):
 
     return df_online
 
-def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx):
-    z_axis = []
+def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx,limites):
+    z_axis = []  
 
     # Se obtiene la lista de las fechas de cada medición
     #time = list(measurements[f'S{indx[0]}']['created_at'].keys())
@@ -523,6 +530,9 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     ax1.set_xlabel('Carretera (m), (x)')
     ax1.set_ylabel('Profundidad|campo (m), (y)')
     ax1.set_zlabel('ug/m3')
+    ax1.set_xlim3d(0, (columns-1)*lateral_length)
+    ax1.set_ylim3d(0, (rows-1)*depth_length)
+    ax1.set_zlim3d(limites[0], limites[1])
     plt.title(str(i))
 
 def Interpol(x,y,z,xfinal,yfinal):
@@ -531,13 +541,14 @@ def Interpol(x,y,z,xfinal,yfinal):
     grid_z0 = griddata(points, z, (grid_x, grid_y), method='cubic')
     return grid_x, grid_y, grid_z0
 
-def animate_1D(i, measurements, y_axis, depth, ax1, columns, rows, indx, time, limites):
+def animate_1D(i, measurements, PMType, depth, ax1, columns, rows, indx, limites):
     # Solo importa y_axis, profundidad
     z_axis = []
     y_axis = [value*depth for value in range(rows)]
     # Creando lista con los datos ii
-    for jj in indx.values():
-        s = measurements[f'Sensor {jj}'][time[i]]
+    for jj in indx:
+        df = measurements[f'S{jj}']
+        s = df[PMType[0]][i]
         z_axis.append(float(s))
 
     # Promedio por filas.
@@ -559,38 +570,44 @@ def animate_1D(i, measurements, y_axis, depth, ax1, columns, rows, indx, time, l
     ax1.scatter(y_axis, filas, s=40, c='r')
 
     # Interpolación
-    f = interpolate.interp1d(y_axis, filas, kind='cubic')
-    f2 = interpolate.interp1d(y_axis, filas, kind='quadratic')
+    #f = interpolate.interp1d(y_axis, filas, kind='cubic')
+    f = interpolate.interp1d(y_axis, filas, kind='quadratic')
     x = np.arange(0, max(y_axis), 0.1)
-    ax1.plot(x, f(x), '--', x, f2(x), ':', linewidth=2)
+    ax1.plot(x, f(x), '--', linewidth=2)
 
     ax1.set_xlabel('Profundidad|campo (m), (x)')
     ax1.set_ylabel('Valor promedio (ug/m3)')
-    ax1.legend(['Promedio', 'Interpolación cubica', 'Interpolación cuadrática'])
+    ax1.legend(['Promedio', 'Interpolación cuadratica'])
     ax1.axis([0, max(y_axis), limites[0], limites[1]])
     plt.title(str(i))
 
-def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx):
+def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limites):
     indx = list(indx.values())
     length = float(value['Length'])
     if value['Animation3D']:
-        fig = plt.subplots()
+        fig,ax = plt.subplots()
         ax1 = plt.axes(projection='3d')
         
-        frames = len( z[f'S{indx[0]}']['created_at'] )
-
+        frames = len(z[f'S{indx[0]}']['created_at'])
         frame_rate = length*60000/frames
 
-        animate(0,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx)
-
-        ani = animation.FuncAnimation(fig, animate, interval= frame_rate,fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,indx),
-                                    frames=frames, repeat=True)
+        #animate(0,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites)
+        #plt.show()
+        ani = animation.FuncAnimation(fig,animate,interval=frame_rate,
+                fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites),
+                frames=frames, repeat=True)
+        plt.show()
                 
     if value['LateralAvg']:
-        fig, ax = plt.subplots()
-        
-
-        animate_1D
+        fig, ax1 = plt.subplots()
+        frames = len(z[f'S{indx[0]}']['created_at'])
+        frame_rate = length*60000/frames
+        #animate_1D(0, z, PMType, row_dist, ax1, columns, rows, indx, limites)
+        #plt.show()
+        ani = animation.FuncAnimation(fig, animate_1D, interval=frame_rate,
+                fargs=(z,PMType,row_dist,ax1,columns,rows,indx,limites),
+                frames=frames, repeat=True)
+        plt.show()
 
     if value['Historico']:
         pass

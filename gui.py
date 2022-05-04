@@ -299,7 +299,7 @@ while True:
 
                 # Se ajusta la data para que inicien y terminen igual los sensores, adecua la función.
                 delta = 1
-                z_axis = Func.Matrix_adjustment(minimum_dates, maximum_dates, z_axis, indx, delta)
+                z_axis, limites = Func.Matrix_adjustment(minimum_dates, maximum_dates, z_axis, indx, delta)
                 #z_axis = Func.Matrix_adjust(minimum_dates, maximum_dates, z_axis, indx)
                 
                 # Notificar al usuario si existieron problemas o todo bien???
@@ -325,7 +325,7 @@ while True:
             event, value = window.read()
             
             if event == 'Graficar':
-                Func.graphs(x_axis, y_axis, z_axis, columns, rows, depth_length, lateral_length, value, PMType, indx)
+                Func.graphs(x_axis, y_axis, z_axis, columns, rows, depth_length, lateral_length, value, PMType, indx, limites)
                 
 
         elif event == 'CUT':
