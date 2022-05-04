@@ -10,21 +10,6 @@ Puntos importantes.
 Arregla la selección de SX, solo sirve para sensores con denominación menor a 10
 S1, S2,... esto viene en fix_data y holes
 
-###
-Matrix Adjust, esta practicamente acabado, sin embargo, la data que se extrae de csv
-tiene ciertos problemas, en ocasiones se pierden datos, digamos, entre 12:51 pasa a 12:55,
-se deben arreglar estos datos falsos, ya que no todos los sensores tendran misma longitud de datos
-y se rompe todo.
-###
-
-###
-Otro error de csv es que al redondear fechas ocurren saltos de tiempo, principalmente cuando
-las mediciones estan siendo medidas entre 12:55:50s y 12:55:59s, por dar un ejemplo.
-###
-
-Esto se soluciono de una manera medianamente bien con online, el redondeo de segundos esta bien hecho.
-Aplicalo en csv, quiza en csv extraction para facilitar las cosas.
-
 Tambien es importante realizar cosas con los NaN ocasionales que puedan venir (poco probable para
 el tipo de dato que tomamos para completar online, pero si es necesario para generar csv con este codigo,
 esto para un futuro...)
@@ -247,7 +232,10 @@ while True:
                     [sg.Text('Recortar este intervalo para todos los sensores (Perdida de información): ',size=(50,1)), sg.Button('CUT')]]
         window.close()
         window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
-        event, value = window.read()      
+        event, value = window.read()
+
+
+
 
         if event == 'CSV':
             # Solicita la ubicación de los archivos, y utiliza pandas para rellenar info
@@ -258,8 +246,8 @@ while True:
                 if holes[ii]:
                     days = []
                     for jj in range(len(k)):
-                        day = k[jj].day  #Esto esta bien???
-                        day2 = v[jj].day
+                        day = k[jj].day  # Esto esta bien???
+                        day2 = v[jj].day # Esta bien???
                         if (day in days):
                             pass
                         else:
@@ -283,6 +271,8 @@ while True:
             """
 
 
+
+
             layout.append([[sg.Button('Fix data'), sg.Button('Exit')]])
             window.close()
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
@@ -294,9 +284,9 @@ while True:
             if event == 'Fix data':
                 # Llama a una función que arreglara los huecos.
                 # z_axis tiene sus datos de fecha en local, no esta en UTC recuerdalo.
-                csv_data = Func.csv_extraction(value, indx, key=1)
+                csv_data = Func.csv_extraction(value, key=1)
 
-                z_axis = Func.Fix_data(z_axis, csv_data, PMType, holes, indx, value)
+                z_axis = Func.Fix_data(z_axis, csv_data, PMType, holes)
 
                 """
                 Ya une dataframes aparentemente sin problemas, falta actualizar df_online con los nuevos df ya unidos,
@@ -308,8 +298,9 @@ while True:
                 """
 
                 # Se ajusta la data para que inicien y terminen igual los sensores, adecua la función.
-
-                z_axis = Func.Matrix_adjust(minimum_dates, maximum_dates, z_axis, indx)
+                delta = 1
+                z_axis = Func.Matrix_adjustment(minimum_dates, maximum_dates, z_axis, indx, delta)
+                #z_axis = Func.Matrix_adjust(minimum_dates, maximum_dates, z_axis, indx)
                 
                 # Notificar al usuario si existieron problemas o todo bien???
                 # if exito == true
@@ -334,7 +325,7 @@ while True:
             event, value = window.read()
             
             if event == 'Graficar':
-                Func.graphs(x_axis, y_axis, z_axis, columns, rows, depth_length, lateral_length, value, indx)
+                Func.graphs(x_axis, y_axis, z_axis, columns, rows, depth_length, lateral_length, value, PMType, indx)
                 
 
         elif event == 'CUT':

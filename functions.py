@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.animation as animation
 import pandas as pd
+import math
 from matplotlib import cm
 from datetime import datetime, timedelta
 from dateutil import tz
@@ -160,7 +161,8 @@ def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
         # Lo transforma a formato datetime para operacionar con el
         # compruebo que si los segundos son mayores a 30, pase al siguiente minuto
         if early.second >= 30:
-            start = datetime(early.year, early.month, early.day, early.hour, early.minute+1, 0, tzinfo=to_zone)
+            #start = datetime(early.year, early.month, early.day, early.hour, early.minute+1, 0, tzinfo=to_zone)
+            start = early + timedelta(seconds=60-early.second)
         else:
             start = datetime(early.year, early.month, early.day, early.hour, early.minute, 0, tzinfo=to_zone)
 
@@ -171,6 +173,44 @@ def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
         P1_ATM_IND[start] = data[ii][PMType]
 
     return data, P1_ATM_IND
+
+def Matrix_adjustment(minimum, maximum, z, indx, delta):
+    z_adjusted = {}
+    first_start = max(minimum.values()).astimezone(tz.tzutc())
+    final_end = min(maximum.values()).astimezone(tz.tzutc())
+    dif = final_end - first_start
+
+    seconds = dif.seconds + dif.days*24*60*60
+    cycles = math.ceil(seconds/(delta*60*60))
+
+    for ii in indx.values():
+        df = z[f'S{ii}']
+        columns = df.columns.tolist()
+        date = df['created_at']
+        z_adjusted[f'S{ii}'] = pd.DataFrame(columns=columns)
+        
+        start = first_start
+        end = first_start + timedelta(hours=delta)
+        for jj in range(cycles):
+            # Se tomaran pedazos de datos en intervalos de tiempo para sacarles su promedio
+            rows = df.loc[((date >= start) & (date < end))]
+
+            # Calculamos promedios
+            prom = [start.strftime("%Y/%m/%d, %H:%M:%S")+' -> '+end.strftime("%Y/%m/%d, %H:%M:%S")]
+            for kk in columns[1:]:
+                data = rows[kk]
+                prom.append(round(np.mean(data),4))
+
+            z_adjusted[f'S{ii}'].loc[jj] = prom
+
+            if jj != cycles-2:
+                start = end
+                end = start + timedelta(hours=delta)
+            else:
+                start = end
+                end = final_end + timedelta(seconds=1)
+
+    return z_adjusted
 
 def Matrix_adjust(minimum, maximum, z, indx):
     # Se obtiene el rango de las mediciones a partir de fechas que compartan todos.
@@ -198,7 +238,6 @@ def Matrix_adjust(minimum, maximum, z, indx):
 
     for ii in indx.values():
         z_adjusted[f'S{ii}'] = pd.DataFrame()
-        aa = medicion_inicial_mas_reciente
         df = z[f'S{ii}']
         date = df['created_at']
 
@@ -247,7 +286,7 @@ def huecos(raw_data, indx):
             
     return sizes
 
-def csv_extraction(dir, indx, key=0):
+def csv_extraction(dir, key=0):
     """
         Si key = 1, dara un dataframe con la fecha en formato datetime,
         si no se da el parametros key, otorgara la fecha en string.
@@ -255,8 +294,6 @@ def csv_extraction(dir, indx, key=0):
         Regresa un diccionario de dataframes, 1 por cada archivo que se le de.
     """
     from_zone = tz.tzutc()
-
-    sen = list(indx.values())
 
     col_name = list(CSV_dict.keys())
     new_col_name = list(CSV_dict.values())
@@ -273,38 +310,7 @@ def csv_extraction(dir, indx, key=0):
         # Arreglamos las fechas para hacerlas más sencillas de tratar.
         date = list(df['created_at'])
         date_new = []
-
-        """
-        Me pregunto si valdra solo con tomar la primera fecha, y la ultima.
-        crear una lista de datetime entre inicio y fin y unirlas a date_new
-        esto ahorrario pasos del for, pero no detectaria falta de datos,
-        simplemente se los saltaria reduciendo en 2 minutos el resultado final
-        por cada dato perdido.
-        Todo esto solo aplicaria para key==1
-
-        Como le hago con la unión de online y csv??????????????????
-        AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-        """
-
-        if key == 1:
-            inicio = date[0].replace('/','-').replace('T',' ').strip('z')
-            fin = date[-1].replace('/','-').replace('T',' ').strip('z')
-            inicio = datetime.strptime(inicio, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
-            fin = datetime.strptime(fin, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
-            if inicio.second >= 30:
-                inicio = inicio + timedelta(seconds=60-inicio.second)
-            else:
-                inicio = inicio - timedelta(seconds=inicio.second)
-            if fin.second >= 30:
-                fin = fin + timedelta(seconds=60-fin.second)
-            else:
-                fin = fin - timedelta(seconds=fin.second) 
-
-            # Creo lista entre inicio y fin, con separación de dos minutos
-            seconds = (fin-inicio).seconds + (fin-inicio).days*24*60*60
-            dates = [inicio + timedelta(seconds=d) for d in range(seconds + 1) if d%120 == 0]
-            date_new.append(dates)
-        """
+        
         if key == 1:
             for temp in date:
                 temp = temp.replace('/','-')
@@ -313,21 +319,10 @@ def csv_extraction(dir, indx, key=0):
                 temp = temp.strip('z')
                 early = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
                 if early.second >= 30:
-                    #if early.minute == 59:
-                        #early = datetime(early.year, early.month, early.day, early.hour+1, 0, 0, tzinfo=from_zone)
-                    #else:
                     early = early + timedelta(seconds=60-early.second)
-                        #early = datetime(early.year, early.month, early.day, early.hour, early.minute+1, 0, tzinfo=from_zone)
                 else:
                     early = datetime(early.year, early.month, early.day, early.hour, early.minute, 0, tzinfo=from_zone)
                 
-                if date_new != []:
-                    if (early-antigua != timedelta(seconds=120)):
-                        early = antigua + timedelta(seconds=120)
-                        antigua = early
-                        date_new.append(early)
-                        continue
-                antigua = early
                 date_new.append(early)
         else:
             for temp in date:
@@ -335,13 +330,12 @@ def csv_extraction(dir, indx, key=0):
                 temp = temp.replace('T',' ')
                 temp = temp.replace('z',' UTC')
                 date_new.append(temp)
-        """
+        
         date = [] #Limpio la variable
-        dates = []
+
         df['created_at'] = date_new #Asigno mi fecha corregida
 
         # Ahora solo queda almacenar el dataframe en el diccionario
-        #data_frames[f'Sensor {sen[iter]}'] = df
         data_frames[ii] = df
     
     return data_frames
@@ -390,7 +384,7 @@ def conversor_datetime_string(date, key):
     
     return new_date
         
-def Fix_data(data_online, csv_data, PMType, holes, indx, dir):
+def Fix_data(data_online, csv_data, PMType, holes):
     # Como un sensor puede presentar diversos huecos, debemos usar todos los csv designados a dicho sensor
     # este pedazo de codigo solo ordenara los csv acorde a su sensor.
 
@@ -458,6 +452,17 @@ def Fix_data(data_online, csv_data, PMType, holes, indx, dir):
                 # Seleccionar el trozo de información entre row y row_end, no se incluyen
                 chunk = df_c.loc[row[0]+1:row_end[0]-1]
 
+                # Creo lista entre inicio y fin, con separación de dos minutos, esto corrige las fechas
+                #seconds = (end-init).seconds + (end-init).days*24*60*60 - 2*60
+                #dates = [init + timedelta(seconds=d) for d in range(seconds + 1) if((d%120 == 0) & (d!=0))]
+                #chunk['created_at'] = dates
+
+                # Que pasa si online tiene un hueco de 12:00 a 14:01?, chunck tendra los datos de 12:02
+                # 12:04, ..., 13:58. Va a existir un problema...
+                
+                # Puedo modificar el 14:01 para que se redonde a 14:00 o 14:02, pero esto me obligara a modificar
+                # todos los datos posteriores a este...
+
                 # Limpiamos la data?
 
                 # Unimos
@@ -482,20 +487,19 @@ def Fix_data(data_online, csv_data, PMType, holes, indx, dir):
 
 def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx):
     z_axis = []
-    indx = list(indx.values())
 
     # Se obtiene la lista de las fechas de cada medición
-    time = list(measurements[f'S{indx[0]}'].keys())
+    #time = list(measurements[f'S{indx[0]}']['created_at'].keys())
     for k in range(len(measurements)):
         jj = indx[k] #Numero del sensor actual.
         #Accede al dato del sensor jj, en el tiempo i.
         df = measurements[f'S{jj}']
-        dato = df[PMType][i]
+        dato = df[PMType[0]][i]
         #dato = measurements[f'Sensor {jj}'][time[i]]
         z_axis.append(float(dato))
     
-    minimum = min(z_axis)
-    maximum = max(z_axis)
+    minimum = round(min(z_axis),2)
+    maximum = round(max(z_axis),2)
     average = round(np.mean(z_axis),2)
     textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3  Promedio: "+str(average)+" ug/m3"
 
@@ -566,25 +570,29 @@ def animate_1D(i, measurements, y_axis, depth, ax1, columns, rows, indx, time, l
     ax1.axis([0, max(y_axis), limites[0], limites[1]])
     plt.title(str(i))
 
-def graphs(x, y, z, columns, rows, row_dist, col_dist, value, indx):
-    length = value['length']
-    if 'Animation3D' in value:
+def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx):
+    indx = list(indx.values())
+    length = float(value['Length'])
+    if value['Animation3D']:
         fig = plt.subplots()
         ax1 = plt.axes(projection='3d')
         
-        time = len( z[f'S{indx[0]}']['created_at'] )
+        frames = len( z[f'S{indx[0]}']['created_at'] )
 
-        frame_rate = length*60000/len(time)
+        frame_rate = length*60000/frames
 
-        animate(0,z,x,y,ax1,columns,rows,col_dist,row_dist,indx)
+        animate(0,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx)
 
         ani = animation.FuncAnimation(fig, animate, interval= frame_rate,fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,indx),
-                                    frames=len(time), repeat=True)
+                                    frames=frames, repeat=True)
                 
-    if 'LateralAvg' in value:
-        pass
+    if value['LateralAvg']:
+        fig, ax = plt.subplots()
+        
 
-    if 'Historico' in value:
+        animate_1D
+
+    if value['Historico']:
         pass
     pass
 
