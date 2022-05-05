@@ -23,6 +23,8 @@ while True:
     if event in (sg.WIN_CLOSED, "Exit"):
         break
 """
+#fig = plt.figure()
+#ax1 = fig.add_axes((0.1, 0.17, 0.8, 0.75))
 fig,ax1=plt.subplots()
 ax1=plt.axes(projection="3d")
 y_axis = [0.0,4.0,8.0,12.0,16.0]
@@ -33,9 +35,20 @@ z = [1,2,3,4,5]
 #f = interpolate.interp1d(y_axis, filas, kind='cubic')
 #x = np.arange(0, max(y_axis), 0.1)
 ax1.plot(filas,y_axis,z)
-ax1.set_xlim3d(2,3.5)
-ax1.set_ylim3d(0,5)
-ax1.set_zlim3d(1,3)
+plt.xlabel('Carretera')
+plt.ylabel('ug/m3')
+plt.title('FIG1')
+#ax1.annotate('Hola a todos, prueba',
+#            xy=(0.5, 0), xytext=(0, 10),
+#            xycoords=('axes fraction', 'figure fraction'),
+#            textcoords='offset points',
+#            size=10, ha='center', va='bottom')
+#ax1.set_xlim3d(2,3.5)
+#ax1.set_ylim3d(0,5)
+#ax1.set_zlim3d(1,3)
+
+#ax1.view_init(-135, 15) 
+
 plt.show()
 
 

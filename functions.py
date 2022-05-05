@@ -29,6 +29,8 @@ channel_ids =[1367948, 1367997, 1336916, 1367985, 1369647,
 
 # Se crea un diccionario para los sensores
 sensors = {}
+Utc = tz.gettz('UTC')
+Local_H = tz.tzlocal()
 for ii in range(0,len(keys)):
     sensors[f'Sensor {ii+1}'] = [keys[ii],channel_ids[ii]]
 
@@ -185,11 +187,11 @@ def Matrix_adjustment(minimum, maximum, z, indx, delta):
     maximum = []
     minimum = []
 
-    for ii in indx.values():
-        df = z[f'S{ii}']
+    for ii in z.keys():
+        df = z[ii]
         columns = df.columns.tolist()
         date = df['created_at']
-        z_adjusted[f'S{ii}'] = pd.DataFrame(columns=columns)
+        z_adjusted[ii] = pd.DataFrame(columns=columns)
         
         start = first_start
         end = first_start + timedelta(hours=delta)
@@ -198,13 +200,13 @@ def Matrix_adjustment(minimum, maximum, z, indx, delta):
             rows = df.loc[((date >= start) & (date < end))]
 
             # Calculamos promedios
-            prom = [start.strftime("%Y/%m/%d, %H:%M:%S")+' -> '+end.strftime("%Y/%m/%d, %H:%M:%S")]
+            prom = [start.astimezone(Local_H).strftime("%Y/%m/%d, %H:%M:%S")+' -> '+end.astimezone(Local_H).strftime("%Y/%m/%d, %H:%M:%S")]
 
             for kk in columns[1:]: # Para revisar si PMType es mas de 1
                 data = rows[kk]
                 prom.append(round(np.mean(data),4))
 
-            z_adjusted[f'S{ii}'].loc[jj] = prom
+            z_adjusted[ii].loc[jj] = prom
 
             if jj != cycles-2:
                 start = end
@@ -213,8 +215,8 @@ def Matrix_adjustment(minimum, maximum, z, indx, delta):
                 start = end
                 end = final_end + timedelta(seconds=1)
 
-        maximum.append(max(z_adjusted[f'S{ii}'][kk])) # Para revisar si PMType es mas de 1
-        minimum.append(min(z_adjusted[f'S{ii}'][kk]))
+        maximum.append(max(z_adjusted[ii][kk])) # Para revisar si PMType es mas de 1
+        minimum.append(min(z_adjusted[ii][kk]))
     
     limites = [min(minimum), max(maximum)]
     return z_adjusted, limites
@@ -286,7 +288,7 @@ def huecos(raw_data, indx):
         for jj in range(len(time)-1):
             delta = time[jj+1] - time[jj]
 
-            if delta.seconds > 180:
+            if delta.seconds > 250:
                 # Existe un hueco
                 # sizes tiene como llave el inicio del hueco y como value el final.
                 sizes[f'Sensor {ii}'].update({time[jj]:time[jj+1]})
@@ -308,6 +310,53 @@ def csv_extraction(dir, key=0):
 
     for ii in dir:
         # df = pd.read_csv(dir[f'Sensor {ii}'])
+        df = pd.DataFrame()
+        for jj in dir[ii]: # Lee todos los archivos del sensor XX, ya que puede tener mas de 1
+            # Ahora, solo nos quedaremos con los mismos datos que otorga el online
+            df2 = pd.read_csv(jj)
+            df2 = df2[col_name]
+            # Cambiamos los nombres de las columnas.
+            df2.columns = new_col_name
+
+            # Arreglamos las fechas para hacerlas más sencillas de tratar.
+            date = list(df2['created_at'])
+            date_new = []
+        
+            if key == 1:
+                for temp in date:
+                    temp = temp.replace('/','-')
+                    temp = temp.replace('T',' ')
+                    temp = temp.strip('z')
+                    early = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
+                    if early.second >= 30:
+                        early = early + timedelta(seconds=60-early.second)
+                    else:
+                        early = datetime(early.year, early.month, early.day, early.hour, early.minute, 0, tzinfo=from_zone)
+                
+                    date_new.append(early)
+            else: #Quiza esto en otra funcion separada, no le veo utilidad aqui.
+                for temp in date:
+                    temp = temp.replace('/','-')
+                    temp = temp.replace('T',' ')
+                    temp = temp.replace('z',' UTC')
+                    date_new.append(temp)
+        
+            date = [] #Limpio la variable
+
+            df2['created_at'] = date_new #Asigno mi fecha corregida
+
+            # Unimos
+            df = pd.concat([df, df2])
+
+        # Sort the data
+        df = df.sort_values(by=['created_at'])
+
+        # Reset the index
+        df.reset_index(inplace=True, drop=True)
+
+        # Ahora solo queda almacenar el dataframe en el diccionario
+        data_frames[ii] = df
+        """
         df = pd.read_csv(ii)
         # Ahora, solo nos quedaremos con los mismos datos que otorga el online
         df = df[col_name]
@@ -344,7 +393,7 @@ def csv_extraction(dir, key=0):
 
         # Ahora solo queda almacenar el dataframe en el diccionario
         data_frames[ii] = df
-    
+        """
     return data_frames
 
 def conversor_datetime_string(date, key):
@@ -401,18 +450,11 @@ def Fix_data(data_online, csv_data, PMType, holes):
         if Column_labels[ii] in PMType:
             col.append(Column_labels[ii])
 
-    # Quiza pase esta función a csv extraction...
-    csv_data_dic = {}
+    
     for kk in csv_data.keys():
-        name = kk[-15:-13] # Toma el valor SX  """Arregla esto"""
         a = csv_data[kk] # se extrae el dataframe
         a = a[['created_at']+col] # se filtra a solo los datos necesarios dados por el usuario.
-
-        if name in csv_data_dic.keys():
-            csv_data_dic[name].update({kk:a})
-        else:
-            csv_data_dic[name] = {}
-            csv_data_dic[name].update({kk:a})
+        csv_data[kk] = a
     
     # Creo el dataframe de online
 
@@ -430,16 +472,47 @@ def Fix_data(data_online, csv_data, PMType, holes):
         else: # Si no es matriz, aplico esta formula.
             num = [float(b) for b in num]
 
-        df_online[f'S{jj[-1]}'] = pd.DataFrame(num,columns=col)
-        df_online[f'S{jj[-1]}'].insert(0,"created_at",val)
+        df_online[jj] = pd.DataFrame(num,columns=col)
+        df_online[jj].insert(0,"created_at",val)
 
     # Una vez con toda la data de online y csv puesta en dataframes
     # Se realizara el rellenado de los huecos.
 
     # Solo se realizara en los sensores que tengan huecos, no en todos.
-    for ii in csv_data_dic.keys():
+    for ii in csv_data.keys():
         df = df_online[ii]
         
+        df_c = csv_data[ii]
+        sensor_holes = holes[ii]
+
+        for kk in sensor_holes.keys():
+            start = conversor_datetime_string([kk, sensor_holes[kk]], key=2) #Convierto a utc
+            init = start[0]
+            end = start[1]
+
+            date = df_c['created_at'] 
+
+            # Encuentra en csv, donde esta init y end.
+            row = df_c.index[(((date-init) < timedelta(seconds=120)) & ((init-date) < timedelta(seconds=120)))].tolist()
+
+            row_end = df_c.index[(((date-end) < timedelta(seconds=120)) & ((end-date) < timedelta(seconds=120)))].tolist()
+
+            # Seleccionar el trozo de información entre row y row_end, no se incluyen
+            chunk = df_c.loc[row[0]+1:row_end[0]-1]
+
+            # Unimos
+            df = pd.concat([df, chunk])
+
+            # Sort the data
+            df = df.sort_values(by=['created_at'])
+
+            # Reset the index
+            df.reset_index(inplace=True, drop=True)
+
+        # Se actualizan los datos de online ya corregidos.
+        df_online[ii] = df
+
+        """
         for jj in csv_data_dic[ii].keys():
             df_c = csv_data_dic[ii][jj] # Itera con los archivos csv del sensor x, diversos dias
             sensor_holes = holes[f'Sensor {ii[-1]}'] #Corregir lo de sensor ii, no aceptara sensores mayores al 9
@@ -483,7 +556,7 @@ def Fix_data(data_online, csv_data, PMType, holes):
 
         # Se actualizan los datos de online ya corregidos.
         df_online[ii] = df
-    
+        """
     """
 
     Limpiar data, existen errores por esto...
@@ -500,7 +573,7 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     for k in range(len(measurements)):
         jj = indx[k] #Numero del sensor actual.
         #Accede al dato del sensor jj, en el tiempo i.
-        df = measurements[f'S{jj}']
+        df = measurements[f'Sensor {jj}']
         dato = df[PMType[0]][i]
         #dato = measurements[f'Sensor {jj}'][time[i]]
         z_axis.append(float(dato))
@@ -508,11 +581,18 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     minimum = round(min(z_axis),2)
     maximum = round(max(z_axis),2)
     average = round(np.mean(z_axis),2)
-    textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3  Promedio: "+str(average)+" ug/m3"
+    #textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3  Promedio: "+str(average)+" ug/m3"
+    textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3"
 
     ax1.clear()
     ax1.annotate(textstr,
             xy=(0.5, 0), xytext=(0, 10),
+            xycoords=('axes fraction', 'figure fraction'),
+            textcoords='offset points',
+            size=10, ha='center', va='bottom')
+    
+    ax1.annotate(df['created_at'][i],
+            xy=(0.5, 0.8), xytext=(0, 10),
             xycoords=('axes fraction', 'figure fraction'),
             textcoords='offset points',
             size=10, ha='center', va='bottom')
@@ -529,11 +609,17 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
 
     ax1.set_xlabel('Carretera (m), (x)')
     ax1.set_ylabel('Profundidad|campo (m), (y)')
-    ax1.set_zlabel('ug/m3')
+    ax1.zaxis.set_rotate_label(False)
+    ax1.set_zlabel('ug/m3', rotation = 0)
     ax1.set_xlim3d(0, (columns-1)*lateral_length)
+    ax1.set_xticks(np.arange(0, columns*lateral_length, lateral_length))
     ax1.set_ylim3d(0, (rows-1)*depth_length)
-    ax1.set_zlim3d(limites[0], limites[1])
-    plt.title(str(i))
+    ax1.set_yticks(np.arange(0, rows*depth_length, depth_length))
+    #ax1.set_zlim3d(limites[0], limites[1])
+    ax1.view_init(25, -130)
+    #ax1.view_init(17, -176)
+    #plt.title(df['created_at'][i])
+    plt.title(PMType[0])
 
 def Interpol(x,y,z,xfinal,yfinal):
     points = np.concatenate((x.T, y.T), axis=1)
@@ -547,7 +633,7 @@ def animate_1D(i, measurements, PMType, depth, ax1, columns, rows, indx, limites
     y_axis = [value*depth for value in range(rows)]
     # Creando lista con los datos ii
     for jj in indx:
-        df = measurements[f'S{jj}']
+        df = measurements[f'Sensor {jj}']
         s = df[PMType[0]][i]
         z_axis.append(float(s))
 
@@ -575,38 +661,51 @@ def animate_1D(i, measurements, PMType, depth, ax1, columns, rows, indx, limites
     x = np.arange(0, max(y_axis), 0.1)
     ax1.plot(x, f(x), '--', linewidth=2)
 
-    ax1.set_xlabel('Profundidad|campo (m), (x)')
+    ax1.annotate(df['created_at'][i],
+        xy=(0.5, 0), xytext=(0, 10),
+        xycoords=('axes fraction', 'figure fraction'),
+        textcoords='offset points',
+        size=10, ha='center', va='bottom')
+
+    ax1.set_xlabel('Profundidad|campo (m), (y)')
     ax1.set_ylabel('Valor promedio (ug/m3)')
-    ax1.legend(['Promedio', 'Interpolación cuadratica'])
-    ax1.axis([0, max(y_axis), limites[0], limites[1]])
-    plt.title(str(i))
+    ax1.legend(['Promedio', 'Interpolación cuadrática'])
+    ax1.set_xticks(np.arange(0, rows*depth, depth))
+    ax1.axis([-0.5, max(y_axis)+0.5, 0, limites[1]])
+    plt.title(PMType[0])
 
 def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limites):
     indx = list(indx.values())
     length = float(value['Length'])
     if value['Animation3D']:
-        fig,ax = plt.subplots()
-        ax1 = plt.axes(projection='3d')
+        #fig,ax = plt.subplots()
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111, projection='3d')
+        #ax1 = plt.axes(projection='3d')
         
-        frames = len(z[f'S{indx[0]}']['created_at'])
+        frames = len(z[f'Sensor {indx[0]}']['created_at'])
         frame_rate = length*60000/frames
 
-        #animate(0,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites)
+        #animate(7,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites)
         #plt.show()
         ani = animation.FuncAnimation(fig,animate,interval=frame_rate,
                 fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites),
                 frames=frames, repeat=True)
+        ani.save('3.gif',writer='imagemagick', fps=frames/(length*60))
         plt.show()
                 
     if value['LateralAvg']:
-        fig, ax1 = plt.subplots()
-        frames = len(z[f'S{indx[0]}']['created_at'])
+        fig = plt.figure()
+        ax1 = fig.add_axes((0.1, 0.17, 0.8, 0.72))
+        #fig, ax1 = plt.subplots()
+        frames = len(z[f'Sensor {indx[0]}']['created_at'])
         frame_rate = length*60000/frames
-        #animate_1D(0, z, PMType, row_dist, ax1, columns, rows, indx, limites)
+        #animate_1D(6, z, PMType, row_dist, ax1, columns, rows, indx, limites)
         #plt.show()
-        ani = animation.FuncAnimation(fig, animate_1D, interval=frame_rate,
+        anim = animation.FuncAnimation(fig, animate_1D, interval=frame_rate,
                 fargs=(z,PMType,row_dist,ax1,columns,rows,indx,limites),
                 frames=frames, repeat=True)
+        anim.save('Lateral_avg.gif',writer='imagemagick', fps=frames/(length*60))
         plt.show()
 
     if value['Historico']:

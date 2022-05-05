@@ -199,7 +199,9 @@ while True:
             layout = [[sg.Text('Existen sensores con huecos de información',font=font), sg.Text(f'(YYYY-MM-DD HH-MM-SS)')],
                         [sg.Text('Los sensores son:')]]
 
+            num_holes_per_sensor = {}
             for ii in holes.keys():
+                temp = 1
                 if holes[ii]: # Si no esta vacio, entra al if
                     k = list(holes[ii].keys())
                     v = list(holes[ii].values())
@@ -207,23 +209,34 @@ while True:
                     v2 = []
                     utc_k = []
                     utc_v = []
-                    k = [m.replace(tzinfo=Local_H) for m in k]
-                    v = [m.replace(tzinfo=Local_H) for m in v]
+                    k = [m.replace(tzinfo=Local_H) for m in k] #Lo pongo en local, no utc
+                    v = [m.replace(tzinfo=Local_H) for m in v] #Lo pongo en local, no utc
 
                     #zone = k[0].strftime('%Z')
                     # Transformo a string los elementos de tiempo.
+                    holes_text = [[sg.Text(f'{ii} presenta un hueco desde')]]
+                    day = (k[0].astimezone(Utc)).day
+                    num_holes_per_sensor[ii] = temp
                     for jj in range(len(k)):
+                        if (k[jj].astimezone(Utc)).day != day:
+                            temp += 1
+                            num_holes_per_sensor[ii] = temp
                         utc_k.append(k[jj].astimezone(Utc).strftime('%Y-%m-%d %X'))
                         utc_v.append(v[jj].astimezone(Utc).strftime('%Y-%m-%d %X'))
                         k2.append(k[jj].strftime('%Y-%m-%d %X'))
                         v2.append(v[jj].strftime('%Y-%m-%d %X'))
-                        layout.append([sg.Frame('',[[sg.Text(f'{ii} presenta un hueco desde')]
-                                                ,[sg.Text(f'{k2[jj]} hasta {v2[jj]}, timezone: Local.')]
-                                                ,[sg.Text(f'{utc_k[jj]} hasta {utc_v[jj]}, timezone: UTC')]])])
 
+                        holes_text.append([sg.Text(f'{k2[jj]} hasta {v2[jj]}, timezone: Local.')])
+                        holes_text.append([sg.Text(f'{utc_k[jj]} hasta {utc_v[jj]}, timezone: UTC')])
+
+                        #layout.append([sg.Frame('',[[sg.Text(f'{ii} presenta un hueco desde')]
+                        #                        ,[sg.Text(f'{k2[jj]} hasta {v2[jj]}, timezone: Local.')]
+                        #                        ,[sg.Text(f'{utc_k[jj]} hasta {utc_v[jj]}, timezone: UTC')]])])
+                    layout.append([sg.Frame('',holes_text)])
             layout.append([sg.Button('Solucionar errores')])
+            lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
             window.close()
-            window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+            window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
             event, value = window.read()
 
         # Solicitar CSV de los dias donde hay huecos de los sensores que tienen el error.
@@ -238,15 +251,36 @@ while True:
 
 
         if event == 'CSV':
-            # Solicita la ubicación de los archivos, y utiliza pandas para rellenar info
-            # Trabajo pesado!!!
             layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SX_YYYYMMDD:')]]
             # Solicito la ubicación de archivos
+            for ii in num_holes_per_sensor.keys():
+                k = list(holes[ii].keys())
+                v = list(holes[ii].values())
+                days = []
+                for jj in range(len(k)):
+                    day = k[jj].day
+                    day2 = v[jj].day
+                    if (day in days):
+                        pass
+                    else:
+                        days.append(day)
+                    if (day2 in days):
+                        pass
+                    else:
+                        days.append(day2)
+                lay = []
+                for jj in days:
+                    lay.append([sg.Text(f'Archivo del dia {jj}'), sg.Input(), sg.FileBrowse()])
+                    
+                layout.append([sg.Frame(f'{ii}', lay)])
+                
+            """
+            
             for ii in holes.keys():
                 if holes[ii]:
                     days = []
                     for jj in range(len(k)):
-                        day = k[jj].day  # Esto esta bien???
+                        day = k[jj].day  # Esto esta bien??? Varios huecos???
                         day2 = v[jj].day # Esta bien???
                         if (day in days):
                             pass
@@ -262,7 +296,7 @@ while True:
                         lay.append([sg.Text(f'Archivo del dia {jj}'), sg.Input(), sg.FileBrowse()])
                     
                     layout.append([sg.Frame(f'{ii}', lay)])
-            
+            """
             
             """
             Por el momento solo podre solucionar 1 hueco por sensor
@@ -270,16 +304,26 @@ while True:
             por sensor, y como guardarlas en un array o un diccionario o en que cosa...
             """
 
-
-
-
-            layout.append([[sg.Button('Fix data'), sg.Button('Exit')]])
+            layout.append([sg.Button('Fix data'), sg.Button('Exit')])
+            lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
             window.close()
-            window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+            window = sg.Window('Proyecto UC-MEXUS', lay, font=font2, size=(720,480))
             event, value = window.read()
 
             # Selecciono unicamente las direcciones no repetidas.
-            value = [value[a] for a in value.keys() if ('Browse' in str(a))]
+            val = [value[a] for a in value.keys() if ('Browse' in str(a))]
+
+            # Lo transformo en un diccionario, para facilitar ciertas cosas posteriores
+            value = {}
+            iter = 0
+            for ii in num_holes_per_sensor.keys():
+                value[ii] = []
+                for jj in range(len(val)):
+                    if jj == num_holes_per_sensor[ii]:
+                        break
+                    value[ii].append(val[iter])
+                    iter += 1
+            val = []
             
             if event == 'Fix data':
                 # Llama a una función que arreglara los huecos.
@@ -298,7 +342,7 @@ while True:
                 """
 
                 # Se ajusta la data para que inicien y terminen igual los sensores, adecua la función.
-                delta = 1
+                delta = 0.5
                 z_axis, limites = Func.Matrix_adjustment(minimum_dates, maximum_dates, z_axis, indx, delta)
                 #z_axis = Func.Matrix_adjust(minimum_dates, maximum_dates, z_axis, indx)
                 
