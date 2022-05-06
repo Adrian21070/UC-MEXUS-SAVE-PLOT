@@ -6,14 +6,9 @@ from dateutil import tz
 
 ### Urgente.
 """
-Puntos importantes.
-Arregla la selección de SX, solo sirve para sensores con denominación menor a 10
-S1, S2,... esto viene en fix_data y holes
-
 Tambien es importante realizar cosas con los NaN ocasionales que puedan venir (poco probable para
 el tipo de dato que tomamos para completar online, pero si es necesario para generar csv con este codigo,
 esto para un futuro...)
-
 """
 
 # Diccionario para seleccionar el tipo de material
@@ -61,8 +56,8 @@ layout = [[sg.Text('Seleccione de donde desea sacar los datos', font = font)],
             sg.Button('Exit',key='Exit')]]
 
 # Columnas reutilizables.
-col1=[[sg.Text('Selecciona los datos a analizar.')]]
-col2=[[sg.Checkbox('PM 1.0 CF', default=False, key="PM 1.0 CF")], 
+col1=[[sg.Text('Selecciona los datos a analizar')],
+        [sg.Checkbox('PM 1.0 CF', default=False, key="PM 1.0 CF")], 
         [sg.Checkbox('PM 2.5 CF', default=False, key ="PM 2.5 CF")],
         [sg.Checkbox('PM 10.0 CF', default=False, key ="PM 10.0 CF")],
         [sg.Checkbox('PM 2.5 ATM', default=False, key ="PM 2.5 ATM")]]
@@ -82,7 +77,7 @@ while True:
     elif 'Online' in events:
         window.close()
         # Selección de datos a analizar
-        layout = [col1, col2, [sg.Button('Next'), sg.Button('Exit')]]
+        layout = [col1, [sg.Button('Next'), sg.Button('Exit')]]
 
         window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
         event, value = window.read()
@@ -343,7 +338,7 @@ while True:
 
                 # Se ajusta la data para que inicien y terminen igual los sensores, adecua la función.
                 delta = 0.5
-                z_axis, limites = Func.Matrix_adjustment(minimum_dates, maximum_dates, z_axis, indx, delta)
+                z_axis, limites = Func.Matrix_adjustment(minimum_dates, maximum_dates, z_axis, delta)
                 #z_axis = Func.Matrix_adjust(minimum_dates, maximum_dates, z_axis, indx)
                 
                 # Notificar al usuario si existieron problemas o todo bien???

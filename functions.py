@@ -29,8 +29,6 @@ channel_ids =[1367948, 1367997, 1336916, 1367985, 1369647,
 
 # Se crea un diccionario para los sensores
 sensors = {}
-Utc = tz.gettz('UTC')
-Local_H = tz.tzlocal()
 for ii in range(0,len(keys)):
     sensors[f'Sensor {ii+1}'] = [keys[ii],channel_ids[ii]]
 
@@ -98,6 +96,8 @@ PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
         "PM 10.0 ATM B": "PM10.0_ATM_B_ug/m3", "PM 1.0 CF B": "PM1.0_CF1_B_ug/m3",
         "PM 2.5 CF B": "PM2.5_CF1_B_ug/m3", "PM 10.0 CF B": "PM10.0_CF1_B_ug/m3"}
 
+Utc = tz.gettz('UTC')
+Local_H = tz.tzlocal()
 
 def Data_extraction(rows, columns, lateral_length, depth_length, PMType, indx, start, end):
     from_zone = tz.tzutc()
@@ -175,7 +175,7 @@ def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
 
     return data, P1_ATM_IND
 
-def Matrix_adjustment(minimum, maximum, z, indx, delta):
+def Matrix_adjustment(minimum, maximum, z, delta):
     z_adjusted = {}
     first_start = max(minimum.values()).astimezone(tz.tzutc())
     final_end = min(maximum.values()).astimezone(tz.tzutc())
@@ -220,53 +220,6 @@ def Matrix_adjustment(minimum, maximum, z, indx, delta):
     
     limites = [min(minimum), max(maximum)]
     return z_adjusted, limites
-
-def Matrix_adjust(minimum, maximum, z, indx):
-    # Se obtiene el rango de las mediciones a partir de fechas que compartan todos.
-    medicion_inicial_mas_reciente = max(minimum.values()).astimezone(tz.tzutc())
-    init = medicion_inicial_mas_reciente
-    primera_medicion_final = min(maximum.values()).astimezone(tz.tzutc())
-    end = primera_medicion_final
-    
-    # Identificacion de caso del rango
-    inicio = medicion_inicial_mas_reciente.minute%2
-    fin = primera_medicion_final.minute%2
-
-    # Comprobación de casos...
-    if ((inicio==0 and fin==0) or (inicio==1 and fin==1)):
-        caso = 0
-    elif((inicio==1 and fin==0) or (inicio==0 and fin==1)):
-        caso = 1
-
-    # Creo una lista de fechas desde medicion inicial más reciente hasta primera medición final
-    seconds = (primera_medicion_final-medicion_inicial_mas_reciente).seconds + (primera_medicion_final-medicion_inicial_mas_reciente).days*24*60*60
-    dates = [medicion_inicial_mas_reciente + timedelta(seconds=d) for d in range(seconds + 1) if d%120 == 0]
-
-    # Clone the original dataframe
-    z_adjusted = {}
-
-    for ii in indx.values():
-        z_adjusted[f'S{ii}'] = pd.DataFrame()
-        df = z[f'S{ii}']
-        date = df['created_at']
-
-        # Encuentra en csv, donde esta init y end.
-        row = df.index[(((date-init) < timedelta(seconds=120)) & ((init-date) < timedelta(seconds=120)))].tolist()
-
-        row_end = df.index[(((date-end) < timedelta(seconds=120)) & ((end-date) < timedelta(seconds=120)))].tolist()
-
-        # Seleccionar el trozo de información entre row y row_end, no se incluyen
-        chunk = df.loc[row[0]:row_end[0]]
-
-        chunk.loc[:,'created_at'] = dates
-
-        # Unimos
-        z_adjusted[f'S{ii}'] = pd.concat([z_adjusted[f'S{ii}'], chunk])
-
-        # Reset the index
-        z_adjusted[f'S{ii}'].reset_index(inplace=True, drop=True)
-
-    return z_adjusted
 
 def huecos(raw_data, indx):
     # Comprobación de datos
