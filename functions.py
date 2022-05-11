@@ -3,8 +3,10 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.animation as animation
+import PySimpleGUI as sg
 import pandas as pd
 import math
+
 from matplotlib import cm
 from datetime import datetime, timedelta
 from dateutil import tz
@@ -227,6 +229,7 @@ def huecos(raw_data, indx):
     # Buscando huecos, los extremos y la cantidad de datos del sensor x
     # No interesa en este momento, solo comprueba si existen huecos.
     sizes = {}
+    num_holes_per_sensor = {}
     """
     # Quiza con loc de pandas se realice más eficientemente.
     # Para esto, hay que transformar en dataframe desde antes de entrar aquí.
@@ -237,16 +240,31 @@ def huecos(raw_data, indx):
         # Fechas de las mediciones
         time = list(raw_data[f'Sensor {ii}'].keys())
         sizes[f'Sensor {ii}'] = {}
+        temp = 0
 
         for jj in range(len(time)-1):
             delta = time[jj+1] - time[jj]
 
             if delta.seconds > 250:
+                day = (time[jj].astimezone(Utc)).day
+                day2 = (time[jj+1].astimezone(Utc)).day
                 # Existe un hueco
                 # sizes tiene como llave el inicio del hueco y como value el final.
                 sizes[f'Sensor {ii}'].update({time[jj]:time[jj+1]})
+
+                if temp == 0:
+                    temp += 1
+                    num_holes_per_sensor[f'Sensor {ii}'] = temp
+                    day3 = day
+                    day4 = day2
+                else:
+                    if day != day3 or day2 != day4:
+                        temp += 1
+                        num_holes_per_sensor[f'Sensor {ii}'] = temp
+                        day3 = day
+                        day4 = day2
             
-    return sizes
+    return sizes, num_holes_per_sensor
 
 def csv_extraction(dir, key=0):
     """

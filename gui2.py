@@ -120,7 +120,7 @@ def distribution(window,num_sen,rows,columns):
     if 'Exit' in event:
         shutdown(window)
 
-    return event, value
+    return window, event, value
 
 def date_hour(window):
     layout = [[sg.Text('Selección de fecha y hora de las mediciones',font=font)],
@@ -129,7 +129,7 @@ def date_hour(window):
                 [sg.Text('')],
                 [sg.CalendarButton('Dia del fin de la medición',target='End', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='End')],
                 [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_hour')],
-                [sg.Button("Next"), sg.Button('Return',key='SensorDistribution'),sg.Button('Exit')]]
+                [sg.Button("Next",key='Extraction'), sg.Button('Return',key='SensorDistribution'),sg.Button('Exit')]]
     
                 # No se puede escoger una fecha en el futuro, ya que no existen datos.
 
@@ -140,9 +140,97 @@ def date_hour(window):
     if 'Exit' in event:
         shutdown(window)
     
-    return event, value
+    return window, event, value
 
+def extraction(value,rows,columns,lateral_length,depth_length,indx,start,end):
+    # Tipos de datos a sacar
+    holes = {}
+    PMType = []
+    for ii in PA_Dict.keys():
+        if value[ii]:
+            # Para cada tipo de dato se sacara la data de todos los sensores
+            PMType.append(PA_Onl[ii])
 
+            x_axis, y_axis, z_axis, minimum_dates, maximum_dates = Func.Data_extraction(rows, columns, lateral_length, depth_length, PA_Dict[ii], indx, start, end)
+
+            # Se comprueba si existen huecos
+            # Probablemente esta sea la función más tardada e ineficiente de todas...
+            holes, num_csv = Func.huecos(z_axis, indx)
+
+    if num_csv:
+        it = 1
+    else:
+        it = 0
+
+    return x_axis, y_axis, z_axis, minimum_dates, maximum_dates, holes, num_csv, it
+
+def holes_warning(window,holes,num_csv):
+    
+    # Notificar con una ventana que existen huecos
+    layout = [[sg.Text('Existen sensores con huecos de información',font=font), sg.Text(f'(YYYY-MM-DD HH-MM-SS)')],
+                    [sg.Text('Los sensores son:')]]
+    for ii in num_csv.keys():
+        k = list(holes[ii].keys())
+        v = list(holes[ii].values())
+
+        k = [m.replace(tzinfo=Local_H) for m in k] #Lo pongo en local, no utc
+        v = [m.replace(tzinfo=Local_H) for m in v] #Lo pongo en local, no utc
+
+        # Transformo a string los elementos de tiempo.
+        holes_text = [[sg.Text(f'{ii} presenta un hueco desde')]]
+
+        for jj in range(len(k)):
+            utc_k = k[jj].astimezone(Utc).strftime('%Y-%m-%d %X')
+            utc_v = v[jj].astimezone(Utc).strftime('%Y-%m-%d %X')
+            k2 = k[jj].strftime('%Y-%m-%d %X')
+            v2 = v[jj].strftime('%Y-%m-%d %X')
+
+            holes_text.append([sg.Text(f'{k2[jj]} hasta {v2[jj]}, timezone: Local.')])
+            holes_text.append([sg.Text(f'{utc_k[jj]} hasta {utc_v[jj]}, timezone: UTC')])
+        layout.append([sg.Frame('',holes_text)])
+    layout.append([sg.Button('Solucionar errores',key='Fix_errors')])
+    lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
+
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
+    event, value = window.read()
+
+    return window, event
+    """
+    for ii in holes.keys():
+        if holes[ii]: # Si no esta vacio, entra al if
+            k = list(holes[ii].keys())
+            v = list(holes[ii].values())
+            k2 = []
+            v2 = []
+            utc_k = []
+            utc_v = []
+            k = [m.replace(tzinfo=Local_H) for m in k] #Lo pongo en local, no utc
+            v = [m.replace(tzinfo=Local_H) for m in v] #Lo pongo en local, no utc
+
+            # Transformo a string los elementos de tiempo.
+            holes_text = [[sg.Text(f'{ii} presenta un hueco desde')]]
+            day = (k[0].astimezone(Utc)).day
+            
+            for jj in range(len(k)):
+                utc_k.append(k[jj].astimezone(Utc).strftime('%Y-%m-%d %X'))
+                utc_v.append(v[jj].astimezone(Utc).strftime('%Y-%m-%d %X'))
+                k2.append(k[jj].strftime('%Y-%m-%d %X'))
+                v2.append(v[jj].strftime('%Y-%m-%d %X'))
+
+                holes_text.append([sg.Text(f'{k2[jj]} hasta {v2[jj]}, timezone: Local.')])
+                holes_text.append([sg.Text(f'{utc_k[jj]} hasta {utc_v[jj]}, timezone: UTC')])
+
+            layout.append([sg.Frame('',holes_text)])
+    layout.append([sg.Button('Solucionar errores')])
+    lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
+
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
+    event, value = window.read()
+
+    return window, event, num_holes_per_sensor
+    """
 def shutdown(window):
     window.close()
     sys.exit()

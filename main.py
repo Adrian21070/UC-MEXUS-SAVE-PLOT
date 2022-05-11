@@ -14,6 +14,7 @@ if __name__ == "__main__":
             if event == 'TypeData':
                 # Pregunta que tipo de dato quiere analizar
                 window, event, value = gui.data_type(window)
+                PMType = value
 
             if event == 'Return':
                 pass
@@ -34,12 +35,29 @@ if __name__ == "__main__":
 
             if event == 'SensorDistribution':
                 # Solicitamos al usuario los rangos de fecha de las mediciones
-                event, indx = gui.distribution(window,num_sen,rows,columns)
+                window, event, indx = gui.distribution(window,num_sen,rows,columns)
             
             if event == 'Date_hour':
-                event, value = gui.date_hour(window)
+                window, event, value = gui.date_hour(window)
+                if event != 'Extraction':
+                    continue
+                start = value['Start'] + '%20' + value['Start_hour'] + ':00'
+                end = value['End'] + '%20' + value['End_hour'] + ':00'
 
+            if event == 'Extraction':
+                window,x_axis,y_axis,z_axis,minimum_dates,maximum_dates,holes,num_csv_per_sensor,it = gui.extraction(PMType,rows,
+                                                                                                    columns,col_dist,row_dist,
+                                                                                                    indx,start,end)
+                if it > 0:
+                    window, event = gui.holes_warning(window,holes,num_csv_per_sensor)
+                else:
+                    event = 'Graphs'
+            
+            if event == 'Fix_errors':
+                pass
 
+            if event == 'Graphs':
+                pass
 
     elif event == 'CSV':
         pass
