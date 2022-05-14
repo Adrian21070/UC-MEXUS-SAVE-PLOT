@@ -162,7 +162,7 @@ def extraction(value,rows,columns,lateral_length,depth_length,indx,start,end):
     else:
         it = 0
 
-    return x_axis, y_axis, z_axis, minimum_dates, maximum_dates, holes, num_csv, it
+    return x_axis, y_axis, z_axis, minimum_dates, maximum_dates, holes, num_csv, it, PMType
 
 def holes_warning(window,holes,num_csv):
     
@@ -180,13 +180,13 @@ def holes_warning(window,holes,num_csv):
         holes_text = [[sg.Text(f'{ii} presenta un hueco desde')]]
 
         for jj in range(len(k)):
-            utc_k = k[jj].astimezone(Utc).strftime('%Y-%m-%d %X')
-            utc_v = v[jj].astimezone(Utc).strftime('%Y-%m-%d %X')
-            k2 = k[jj].strftime('%Y-%m-%d %X')
-            v2 = v[jj].strftime('%Y-%m-%d %X')
+            utc_k = k[jj].astimezone(Utc).strftime('%Y-%m-%d, %X')
+            utc_v = v[jj].astimezone(Utc).strftime('%Y-%m-%d, %X')
+            k2 = k[jj].strftime('%Y-%m-%d, %X')
+            v2 = v[jj].strftime('%Y-%m-%d, %X')
 
-            holes_text.append([sg.Text(f'{k2[jj]} hasta {v2[jj]}, timezone: Local.')])
-            holes_text.append([sg.Text(f'{utc_k[jj]} hasta {utc_v[jj]}, timezone: UTC')])
+            holes_text.append([sg.Text(f'{k2} hasta {v2}, timezone: Local.')])
+            holes_text.append([sg.Text(f'{utc_k} hasta {utc_v}, timezone: UTC')])
         layout.append([sg.Frame('',holes_text)])
     layout.append([sg.Button('Solucionar errores',key='Fix_errors')])
     lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
@@ -231,6 +231,106 @@ def holes_warning(window,holes,num_csv):
 
     return window, event, num_holes_per_sensor
     """
+
+def csv_online(window, num_holes_per_sensor, holes):
+    # Solicita archivos csv
+    layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SX_YYYYMMDD:')]]
+    for ii in num_holes_per_sensor.keys():
+        k = list(holes[ii].keys())
+        v = list(holes[ii].values())
+        days = []
+        for jj in range(len(k)):
+            day = k[jj].day
+            day2 = v[jj].day
+            if (day in days):
+                pass
+            else:
+                days.append(day)
+            if (day2 in days):
+                pass
+            else:
+                days.append(day2)
+        lay = []
+        for jj in days:
+            lay.append([sg.Text(f'Archivo del dia {jj}'), sg.Input(), sg.FileBrowse()])
+                    
+        layout.append([sg.Frame(f'{ii}', lay)])
+    
+    layout.append([sg.Button('Fix data'), sg.Button('Exit')])
+    lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', lay, font=font2, size=(720,480))
+    event, value = window.read()
+    
+    if 'Exit' in event:
+        shutdown(window)
+
+    # Selecciono unicamente las direcciones no repetidas.
+    val = [value[a] for a in value.keys() if ('Browse' in str(a))]
+
+    # Lo transformo en un diccionario, para facilitar ciertas cosas posteriores
+    value = {}
+    iter = 0
+    for ii in num_holes_per_sensor.keys():
+        value[ii] = []
+        for jj in range(len(val)):
+            if jj == num_holes_per_sensor[ii]:
+                break
+            value[ii].append(val[iter])
+            iter += 1
+    val = []
+
+    return window, value
+
+def fixing(value, z_axis, PMType, holes, minimum_dates, maximum_dates):
+    csv_data = Func.csv_extraction(value, key=1)
+
+    z_axis2 = Func.Fix_data(z_axis, csv_data, PMType, holes)
+    # Se ajusta la data para que inicien y terminen igual los sensores, adecua la función.
+    delta = 0.5
+    z_axis2, limites = Func.Matrix_adjustment(minimum_dates, maximum_dates, z_axis2, delta)
+
+    # Notificar al usuario si existieron problemas o todo bien???
+    # Aquí comprueba si existen errores, como? no se...
+    error = False
+    
+    if error == True:
+        z_axis2 = []
+        return z_axis, limites, error
+    else:
+        return z_axis2, limites, error
+
+
+def graph_domain(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites):
+    # Se pregunta que graficas quiere realizar
+    layout = [[sg.Text('Favor de seleccionar que graficas desea obtener')],
+            [sg.Checkbox('Animación 3D (superficie)', default=False, key='Animation3D')],
+            [sg.Checkbox('Lateral average', default=False, key='LateralAvg')],
+            [sg.Checkbox('Registro historico de filas', default=False, key='Historico')],
+            [sg.Text('Tiempo de duración animación (Min.)', size =(25, 1)), sg.InputText(key='Length')],
+            [sg.Button('Graficar'), sg.Button('Exit')]]
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+    event, value = window.read()
+
+    if event == 'Graficar':
+        Func.graphs(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, value, PMType, indx, limites)
+        
+        # Preguntamos si queremos modificar algo de las graficas, regresamos al inicio de esta función.
+        layout = [[sg.Text('Si requiere modificar algo de las graficas de nuevo.')],
+                    [sg.Text('Favor de seleccionar "Repetir graficado"')],
+                    [sg.Button('Repetir graficado'), sg.Button('No volver a graficar')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+        event, value = window.read()
+        if event == 'Repetir graficado':
+            event = 'Graphs'
+
+        return window, event, value
+
+    elif event == 'Exit':
+        shutdown(window)
+
 def shutdown(window):
     window.close()
     sys.exit()

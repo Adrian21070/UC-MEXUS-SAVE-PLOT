@@ -24,7 +24,7 @@ if __name__ == "__main__":
                 # Pedimos al usuario información sobre el número de sensores,
                 # distancia entre ellos, etc.
                 window, event, value = gui.sensors_info(window)
-                if event != 'Sensor Distribution':
+                if event != 'SensorDistribution':
                     continue
                 # Almacenamos los datos importantes de esto
                 rows = int(value['Rows'])
@@ -45,7 +45,7 @@ if __name__ == "__main__":
                 end = value['End'] + '%20' + value['End_hour'] + ':00'
 
             if event == 'Extraction':
-                window,x_axis,y_axis,z_axis,minimum_dates,maximum_dates,holes,num_csv_per_sensor,it = gui.extraction(PMType,rows,
+                x_axis,y_axis,z_axis,minimum_dates,maximum_dates,holes,num_csv_per_sensor,it,PMType = gui.extraction(PMType,rows,
                                                                                                     columns,col_dist,row_dist,
                                                                                                     indx,start,end)
                 if it > 0:
@@ -54,9 +54,24 @@ if __name__ == "__main__":
                     event = 'Graphs'
             
             if event == 'Fix_errors':
-                pass
+                # Solicito archivos csv
+                window, value = gui.csv_online(window, num_csv_per_sensor, holes)
+                # Arreglo los huecos
+                z_axis, limites, error = gui.fixing(value,z_axis,PMType,holes,minimum_dates, maximum_dates)
+                
+                if error != True:
+                    event = 'Graphs'
+                else:
+                    event = 'Fix_errors'
 
             if event == 'Graphs':
+                window, event, value = gui.graph_domain(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites)
+
+            if event == 'No volver a graficar':
+                # Falta esto...
+                # Termino el programa...
+                # Pregunto si quiere regresar al inicio para hacer otra cosa...
+                
                 pass
 
     elif event == 'CSV':

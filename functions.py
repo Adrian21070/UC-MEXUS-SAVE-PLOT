@@ -202,7 +202,7 @@ def Matrix_adjustment(minimum, maximum, z, delta):
             rows = df.loc[((date >= start) & (date < end))]
 
             # Calculamos promedios
-            prom = [start.astimezone(Local_H).strftime("%Y/%m/%d, %H:%M:%S")+' -> '+end.astimezone(Local_H).strftime("%Y/%m/%d, %H:%M:%S")]
+            prom = [start.astimezone(Local_H).strftime("%Y/%m/%d, %H:%M")+' -> '+end.astimezone(Local_H).strftime("%Y/%m/%d, %H:%M")]
 
             for kk in columns[1:]: # Para revisar si PMType es mas de 1
                 data = rows[kk]
@@ -435,6 +435,7 @@ def Fix_data(data_online, csv_data, PMType, holes):
         # Prepara data
         val = list(data_online[jj].keys()) # Lista de todas las fechas
         # data online tiene sus fechas en formato datetime local
+        # Paso a UTC
         val = conversor_datetime_string(val, key = 2)
 
         num = list(data_online[jj].values()) # Obtiene los datos numericos, en este caso son listas.
