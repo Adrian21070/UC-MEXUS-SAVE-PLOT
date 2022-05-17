@@ -51,7 +51,18 @@ col1=[[sg.Text('Selecciona los datos a analizar')],
         [sg.Checkbox('PM 10.0 CF', default=False, key ="PM 10.0 CF")],
         [sg.Checkbox('PM 2.5 ATM', default=False, key ="PM 2.5 ATM")]]
 
-def gui_creation():
+def save_or_graph():
+    layout = [[sg.Text('Favor de seleccionar lo que desea realizar:')],
+                [sg.Button('Guardar datos',key='Save_data'), sg.Button('Graficar',key='Plot'), sg.Button('Exit')]]
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+    event, value = window.read()
+
+    if 'Exit' in event:
+        shutdown()
+    
+    return window, event
+    
+def gui_graph_creation():
     # Creacion de la interfaz
     layout = [[sg.Text('Seleccione de donde desea sacar los datos', font = font)],
            [sg.Button('Online'),sg.Button('Archivo CSV'),
@@ -61,6 +72,65 @@ def gui_creation():
     event, value = window.read()
     
     return window, event
+
+def saving_data(window):
+    # Primero solicita el número de sensores a guardar e intervalo de tiempo
+    # de la medición.
+    layout = [[sg.Text('Datos acerca del número de sensores y el intervalo de medición')],
+                [sg.Text('Numero de sensores:'), sg.Input(key='NumSen')],
+                [sg.CalendarButton('Dia de inicio de la medición',target='Start', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='Start')],
+                [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_hour')],
+                [sg.CalendarButton('Dia del fin de la medición',target='End', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='End')],
+                [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_hour')],
+                [sg.Button('Continue'), sg.Button('Return'), sg.Button('Exit')]]
+    
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+    event, value = window.read()
+    
+    if 'Exit' in event:
+        shutdown()
+
+    elif 'Return' in event:
+        event = 'init'
+        return
+
+    numsen = int(value['NumSen'])
+    start = value['Start'] + '%20' + value['Start_hour'] + ':00'
+    end = value['End'] + '%20' + value['End_hour'] + ':00'
+
+    # Ahora, solicito los numeros de los sensores en campo.
+    if event == 'Continue':
+        chain = list(range(1,numsen+1))
+
+        lay = []
+        layout = []
+        
+        r = 0
+        c = 0
+
+        for ii in chain:
+            if ii%9 == 0:
+                r += 1
+                c = 0
+                layout.append(lay)
+                lay = []
+            lay.append(sg.Input(ii,key=f'{r},{c}', size=(5,1)))
+            c += 1
+        if lay:
+            layout.append(lay)
+            lay = []
+
+        lay = [[sg.Text('Carretera', font=('Times New Roman', 24), justification='center', expand_x=True)],
+                [sg.Frame('Disposición de los sensores', layout)],
+                [sg.Button('Next',key='Next'),sg.Button('Return',key='Init'),sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
+        event, value = window.read()
+        
+    # Extrae los datos de online.
+    if event == '':
+        pass
 
 def data_type(window):
     # Se pregunta el tipo de dato que quiere analizar.
@@ -122,7 +192,7 @@ def distribution(window,num_sen,rows,columns):
 
     return window, event, value
 
-def date_hour(window):
+def date_hour(window, key=0):
     layout = [[sg.Text('Selección de fecha y hora de las mediciones',font=font)],
                 [sg.CalendarButton('Dia de inicio de la medición',target='Start', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='Start')],
                 [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_hour')],
@@ -139,8 +209,16 @@ def date_hour(window):
 
     if 'Exit' in event:
         shutdown(window)
-    
-    return window, event, value
+
+    if key == 1:
+        # Paso las fechas a datetime y saco los dias entre ambas fechas en utc.
+        start = datetime.strptime(value['Start'], '%Y-%m-%d').replace(tzinfo=tz.tzutc())
+        end = datetime.strptime(value['End'], '%Y-%m-%d').replace(tzinfo=tz.tzutc())
+        days = [ii for ii in range(start, end+1, 1)]
+        return window, event, value, days
+
+    else:
+        return window, event, value
 
 def extraction(value,rows,columns,lateral_length,depth_length,indx,start,end):
     # Tipos de datos a sacar
@@ -196,45 +274,10 @@ def holes_warning(window,holes,num_csv):
     event, value = window.read()
 
     return window, event
-    """
-    for ii in holes.keys():
-        if holes[ii]: # Si no esta vacio, entra al if
-            k = list(holes[ii].keys())
-            v = list(holes[ii].values())
-            k2 = []
-            v2 = []
-            utc_k = []
-            utc_v = []
-            k = [m.replace(tzinfo=Local_H) for m in k] #Lo pongo en local, no utc
-            v = [m.replace(tzinfo=Local_H) for m in v] #Lo pongo en local, no utc
-
-            # Transformo a string los elementos de tiempo.
-            holes_text = [[sg.Text(f'{ii} presenta un hueco desde')]]
-            day = (k[0].astimezone(Utc)).day
-            
-            for jj in range(len(k)):
-                utc_k.append(k[jj].astimezone(Utc).strftime('%Y-%m-%d %X'))
-                utc_v.append(v[jj].astimezone(Utc).strftime('%Y-%m-%d %X'))
-                k2.append(k[jj].strftime('%Y-%m-%d %X'))
-                v2.append(v[jj].strftime('%Y-%m-%d %X'))
-
-                holes_text.append([sg.Text(f'{k2[jj]} hasta {v2[jj]}, timezone: Local.')])
-                holes_text.append([sg.Text(f'{utc_k[jj]} hasta {utc_v[jj]}, timezone: UTC')])
-
-            layout.append([sg.Frame('',holes_text)])
-    layout.append([sg.Button('Solucionar errores')])
-    lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
-
-    window.close()
-    window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
-    event, value = window.read()
-
-    return window, event, num_holes_per_sensor
-    """
 
 def csv_online(window, num_holes_per_sensor, holes):
     # Solicita archivos csv
-    layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SX_YYYYMMDD:')]]
+    layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SXX_YYYYMMDD:')]]
     for ii in num_holes_per_sensor.keys():
         k = list(holes[ii].keys())
         v = list(holes[ii].values())
@@ -281,6 +324,47 @@ def csv_online(window, num_holes_per_sensor, holes):
     val = []
 
     return window, value
+
+def csv_files(indx, days, key=0):
+    # Solicita archivos csv
+    layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SXX_YYYYMMDD:')]]
+    for ii in indx:
+        lay = []
+        for jj in days:
+            lay.append([sg.Text(f'Archivo del dia {jj}'), sg.Input(), sg.FileBrowse()])
+        layout.append([sg.Frame(f'Sensor {ii}', lay)])
+
+    layout.append([sg.Button('Continue'), sg.Button('Return'), sg.Button('Exit')])
+    lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', lay, font=font2, size=(720,480))
+    event, value = window.read()
+
+    if 'Exit' in event:
+        shutdown(window)
+
+    elif 'Return' in event:
+        event = 'Date_hour'
+        return window, event, value
+
+    # Selecciono unicamente las direcciones no repetidas.
+    val = [value[a] for a in value.keys() if ('Browse' in str(a))]
+
+    # Lo transformo en un diccionario, para facilitar ciertas cosas posteriores
+    value = {}
+    iter = 0
+    for ii in num_holes_per_sensor.keys():
+        value[ii] = []
+        for jj in range(len(val)):
+            if jj == num_holes_per_sensor[ii]:
+                break
+            value[ii].append(val[iter])
+            iter += 1
+
+    # Creo dataframes de los csv
+    csv_data = Func.csv_extraction(value, key)
+
+    return window, event, csv_data
 
 def fixing(value, z_axis, PMType, holes, minimum_dates, maximum_dates):
     csv_data = Func.csv_extraction(value, key=1)
