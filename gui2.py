@@ -126,10 +126,12 @@ def saving_data(window):
                 [sg.Button('Next',key='Next'),sg.Button('Return',key='Init'),sg.Button('Exit')]]
         window.close()
         window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
-        event, value = window.read()
+        event, indx = window.read()
         
     # Extrae los datos de online.
-    if event == '':
+    if event == 'Next':
+        x_axis, y_axis, z_axis, minimum_dates, maximum_dates = Func.Data_extraction(1, 1, 1, 1, PA_Dict[ii], indx, start, end)
+
         pass
 
 def data_type(window):

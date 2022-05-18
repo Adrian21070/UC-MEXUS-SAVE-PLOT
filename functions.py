@@ -132,13 +132,21 @@ def Data_extraction(rows, columns, lateral_length, depth_length, PMType, indx, s
 
         z_axis[f'Sensor {j}'] = P1_ATM_IND
 
-    """
-    Por el momento el ajuste de la matriz, se dejara para posterior, ya que esto sera lo ultimo a
-    verificar. Primero debemos observar si existen huecos.
-    """
-    # Se compatibiliza la data, ahora si es matriz rectangular/cuadrada, podemos graficar ya.
-    #z_axis = Matrix_adjustment(dict_of_dates_minimum, dict_of_dates_maximum, z_axis, indx)
     return x_axis, y_axis, z_axis, dict_of_dates_minimum, dict_of_dates_maximum
+
+def Data_extraction_save_data(indx, start, end):
+    for ii in indx.values():
+        sensor_id = sensors[f'Sensor {ii}']
+        TSobject = Thingspeak(read_api_key=sensor_id[0], channel_id=sensor_id[1])
+
+        data,c = TSobject.read_one_sensor(start=start, end=end)
+
+        z_axis = {}
+        for jj in range(len(data)):
+            temp = data[jj]['created_at'].strip('Z').replace('T', ' ')
+            data[jj]['created_at'] = temp
+            
+    pass
 
 def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
     """

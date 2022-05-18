@@ -1,6 +1,7 @@
 # Librerias
 import sys
 import gui2 as gui
+import save_data as save
 #from purple_air import *
 
 if __name__ == "__main__":
@@ -8,13 +9,23 @@ if __name__ == "__main__":
     window, event = gui.save_or_graph()
 
     if event == 'Save_data':
-        # Saca datos online y los revisa para guardarlos en csv...
+        event = 'sensor_info'
+        while True:
+            # Saca datos online y los revisa para guardarlos en csv...
 
-        # Manda a una función que realiza todo el proceso de guardado,
-        # se apoya de las demas funciones que utiliza graficar ya que
-        # unas se repiten.
-        gui.saving_data(window)
-        pass
+            if event == 'sensor_info':
+                window, event, value = save.sensor_info(window)
+                numsen = int(value['NumSen'])
+                start = value['Start'] + '%20' + value['Start_hour'] + ':00'
+                end = value['End'] + '%20' + value['End_hour'] + ':00'
+                #gui.saving_data(window)
+            
+            if event == 'Continue':
+                window, event, indx = save.sensors_in_field(window, numsen)
+            
+            if event == 'Next':
+                save.total_extraction(indx,start,end)
+        
     else:
         # Saca datos online o por csv y los procesa para graficarlos.
         window, event = gui.gui_graph_creation()
