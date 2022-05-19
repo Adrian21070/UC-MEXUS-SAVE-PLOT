@@ -1,7 +1,9 @@
 # Librerias
 import sys
 import gui2 as gui
+import functions as Func
 import save_data as save
+import pandas as pd
 #from purple_air import *
 
 if __name__ == "__main__":
@@ -29,16 +31,15 @@ if __name__ == "__main__":
                 # Se comprueba que no existan huecos de información
                 window, event, holes, num_csv_per_sensor = save.holes_verification(window, data, indx)
 
-            if event == 'Fix_errors':
-                # Solicito archivos csv
-                window, value = gui.csv_online(window, num_csv_per_sensor, holes)
-                # Arreglo los huecos
-                z_axis, limites, error = gui.fixing(value,data,PMType,holes,minimum_dates, maximum_dates)
-
-                if error != True:
-                    event = 'Graphs'
+                if event == 'Fix_errors':
+                    window, data = save.fix_save(window, num_csv_per_sensor, holes, data)
+                    event = 'Save'
                 else:
-                    event = 'Fix_errors'
+                    event = 'Save'
+
+            if event == 'Save':
+                # Guardo los archivos.
+                save.save(window, data, indx)
 
         
     else:
@@ -96,7 +97,7 @@ if __name__ == "__main__":
                     # Solicito archivos csv
                     window, value = gui.csv_online(window, num_csv_per_sensor, holes)
                     # Arreglo los huecos
-                    z_axis, limites, error = gui.fixing(value,z_axis,PMType,holes,minimum_dates, maximum_dates)
+                    z_axis, limites, error = gui.fixing(value,z_axis,PMType,holes,minimum_dates, maximum_dates, key='Online')
 
                     if error != True:
                         event = 'Graphs'

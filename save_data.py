@@ -1,8 +1,10 @@
+from msilib.schema import Directory
 import PySimpleGUI as sg
 import functions as Func
 import gui2 as gui
 import pandas as pd
 import sys
+import os
 from datetime import datetime
 from dateutil import tz
 from purple_air import *
@@ -89,7 +91,33 @@ PA_Onl_B = {"PM1.0 (ATM)": "PM1.0_ATM_B_ug/m3", "PM2.5 (ATM)": "PM2.5_ATM_B_ug/m
             "0.3um":">=0.3_B_um/dl", "0.5um":">=0.5_B_um/dl",
             "1.0um":">=1.0_B_um/dl", "2.5um":">=2.5_B_um/dl",
             "5.0um":">=5.0_B_um/dl", "10.0um":">=10.0_B_um/dl",
-            "PM1.0 (CF=1)": "PM1.0_CF1_ug/m3","PM10.0 (CF=1)": "PM10.0_CF1_ug/m3"}
+            "PM1.0 (CF=1)": "PM1.0_CF1_B_ug/m3","PM10.0 (CF=1)": "PM10.0_CF1_B_ug/m3"}
+
+CSV_dict = {"UTCDateTime":"created_at",
+            "pm1_0_atm":"PM1.0_ATM_ug/m3",
+            "pm2_5_atm":"PM2.5_ATM_ug/m3", 
+            "pm10_0_atm":"PM10.0_ATM_ug/m3",
+            "uptime":"UptimeMinutes", 
+            "rssi":"RSSI_dbm",
+            "current_temp_f":"Temperature_F", 
+            "current_humidity":"Humidity_%",
+            "pm1_0_cf_1":"PM1.0_CF1_ug/m3", 
+            "pm2_5_cf_1":"PM2.5_CF1_ug/m3",
+            "pm10_0_cf_1":"PM10.0_CF1_ug/m3", 
+            "p_0_3_um":">=0.3um/dl", "p_0_5_um":">=0.5um/dl", 
+            "p_1_0_um":">=1.0um/dl", "p_2_5_um":">=2.5um/dl", 
+            "p_5_0_um":">=5.0um/dl", "p_10_0_um":">=10.0um/dl",
+            "pm1_0_atm_b":"PM1.0_ATM_B_ug/m3",
+            "pm2_5_atm_b":"PM2.5_ATM_B_ug/m3", 
+            "pm10_0_atm_b":"PM10.0_ATM_B_ug/m3",
+            "mem":"UptimeMinutes_B", "adc":"ADC", 
+            "pressure":"Pressure_hpa",
+            "pm1_0_cf_1_b":"PM1.0_CF1_B_ug/m3", 
+            "pm2_5_cf_1_b":"PM2.5_CF1_B_ug/m3",
+            "pm10_0_cf_1_b":"PM10.0_CF1_B_ug/m3", 
+            "p_0_3_um_b":">=0.3_B_um/dl", "p_0_5_um_b":">=0.5_B_um/dl", 
+            "p_1_0_um_b":">=1.0_B_um/dl", "p_2_5_um_b":">=2.5_B_um/dl", 
+            "p_5_0_um_b":">=5.0_B_um/dl", "p_10_0_um_b":">=10.0_B_um/dl"}
 
 # Fuentes para la interfaz
 font = ('Times New Roman', 16)
@@ -202,6 +230,17 @@ def total_extraction(indx, start, end):
                     df_aux = df_aux.drop(['Unused'], axis=1)
 
             df = pd.concat([df, df_aux], axis=1)
+        
+        date = df['created_at']
+        time = []
+        for jj in range(len(date)):
+            temp = date[jj].strip('Z').replace('T', ' ')
+            # Transformo de string a datetime local
+            # Posteriormente en el proceso final se hara UTC
+            time_utc = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz.tzutc())
+            time_utc = time_utc.astimezone(tz.tzlocal())
+            time.append(time_utc)
+        df['created_at'] = time
         total_data[f'Sensor {ii}'] = df
     
     return total_data
@@ -211,14 +250,7 @@ def holes_verification(window, data, indx):
     num_holes_per_sensor = {}
     for ii in indx.values():
         sensor = data[f'Sensor {ii}']
-        date = sensor['created_at']
-        time = []
-
-        for jj in range(len(date)):
-            temp = date[jj].strip('Z').replace('T', ' ')
-            # Transformo de string a datetime utc
-            time_utc = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz.tzutc())
-            time.append(time_utc)
+        time = sensor['created_at']
 
         sizes[f'Sensor {ii}'] = {}
         temp = 0
@@ -248,6 +280,49 @@ def holes_verification(window, data, indx):
     window, event = gui.holes_warning(window,sizes,num_holes_per_sensor)
 
     return window, event, sizes, num_holes_per_sensor
+
+def fix_save(window, num_csv_per_sensor, holes, data):
+    # Solicito archivos csv
+    window, value = gui.csv_online(window, num_csv_per_sensor, holes)
+    # Arreglo los huecos
+    csv_data = Func.csv_extraction(value, key=1)
+    data = Func.Fix_data(data, csv_data, 0, holes, key='CSV)
+    for ii in data.keys():
+        df = data[ii]
+        df = df.reindex(columns=list(CSV_dict.values()))
+        data[ii] = df
+    
+    return window, data
+
+def save(window, data, indx):
+    layout = [[sg.Text('¿Donde desea guardar los datos?')],
+            [sg.Text(f'Ubicación de creación de carpeta: '), sg.Input(), sg.FileBrowse()],
+            [sg.Button('Guardar'), sg.Button('Exit')]]
+
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', lay, font=font2, size=(720,480))
+    event, value = window.read()
+
+    if 'Exit' in event:
+        shutdown(window)
+    
+    directorio = value['Browse']
+
+    os.mkdir(directorio)
+
+    for ii in indx.values():
+        # Crea todos los archivos csv con los nombres de ii.
+        df = data[f'Sensor {ii}']
+        
+        # Fecha tiene el formato de 20220407 AñoMesDia
+        # Sacarlo de df?
+        # Como le hago para sacar un archivo por cada dia?
+        # Utilizo loc como en los huecos????????????
+        
+        fecha = ''
+
+        dir = directorio + '/' + f'S{ii}_' + fecha
+        df.to_csv(Directory)
 
 
 def shutdown(window):

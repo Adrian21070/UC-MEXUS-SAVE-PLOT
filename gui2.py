@@ -368,10 +368,10 @@ def csv_files(indx, days, key=0):
 
     return window, event, csv_data
 
-def fixing(value, z_axis, PMType, holes, minimum_dates, maximum_dates):
+def fixing(value, z_axis, PMType, holes, minimum_dates, maximum_dates, key):
     csv_data = Func.csv_extraction(value, key=1)
 
-    z_axis2 = Func.Fix_data(z_axis, csv_data, PMType, holes)
+    z_axis2 = Func.Fix_data(z_axis, csv_data, PMType, holes, key)
     # Se ajusta la data para que inicien y terminen igual los sensores, adecua la función.
     delta = 0.5
     z_axis2, limites = Func.Matrix_adjustment(minimum_dates, maximum_dates, z_axis2, delta)
@@ -385,7 +385,6 @@ def fixing(value, z_axis, PMType, holes, minimum_dates, maximum_dates):
         return z_axis, limites, error
     else:
         return z_axis2, limites, error
-
 
 def graph_domain(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites):
     # Se pregunta que graficas quiere realizar

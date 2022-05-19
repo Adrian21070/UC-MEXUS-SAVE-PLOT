@@ -417,41 +417,47 @@ def conversor_datetime_string(date, key):
     
     return new_date
         
-def Fix_data(data_online, csv_data, PMType, holes):
+def Fix_data(data_online, csv_data, PMType, holes, key):
     # Como un sensor puede presentar diversos huecos, debemos usar todos los csv designados a dicho sensor
     # este pedazo de codigo solo ordenara los csv acorde a su sensor.
 
-    col = []
-    # Por el momento solo solucionara 1 hueco por sensor.
-    #for ii in range(len(Column_labels)):
-    #    if Column_labels[ii] in PMType:
-    #        col.append(Column_labels[ii])
+    if key == 'Online':
+        col = []
+        # Por el momento solo solucionara 1 hueco por sensor.
+        for ii in range(len(Column_labels)):
+            if Column_labels[ii] in PMType:
+                col.append(Column_labels[ii])
 
-    
-    for kk in csv_data.keys():
-        a = csv_data[kk] # se extrae el dataframe
-        a = a[['created_at']+col] # se filtra a solo los datos necesarios dados por el usuario.
-        csv_data[kk] = a
-    
-    # Creo el dataframe de online
 
-    df_online = {}
-    # Se creara un diccionario de dataframes, para facilitar su acceso.
-    for jj in data_online.keys():
-        # Prepara data
-        val = list(data_online[jj].keys()) # Lista de todas las fechas
-        # data online tiene sus fechas en formato datetime local
-        # Paso a UTC
-        val = conversor_datetime_string(val, key = 2)
+        for kk in csv_data.keys():
+            a = csv_data[kk] # se extrae el dataframe
+            a = a[['created_at']+col] # se filtra a solo los datos necesarios dados por el usuario.
+            csv_data[kk] = a
 
-        num = list(data_online[jj].values()) # Obtiene los datos numericos, en este caso son listas.
-        if isinstance(num[0], list): # Compruebo que sea una matriz
-            num = [[float(b) for b in i] for i in num] # Convierto todo a numerico
-        else: # Si no es matriz, aplico esta formula.
-            num = [float(b) for b in num]
+        # Creo el dataframe de online
+        df_online = {}
+        # Se creara un diccionario de dataframes, para facilitar su acceso.
+        for jj in data_online.keys():
+            # Prepara data
+            val = list(data_online[jj].keys()) # Lista de todas las fechas
+            # data online tiene sus fechas en formato datetime local
+            # Paso a UTC
+            val = conversor_datetime_string(val, key = 2)
 
-        df_online[jj] = pd.DataFrame(num,columns=col)
-        df_online[jj].insert(0,"created_at",val)
+            num = list(data_online[jj].values()) # Obtiene los datos numericos, en este caso son listas.
+            if isinstance(num[0], list): # Compruebo que sea una matriz
+                num = [[float(b) for b in i] for i in num] # Convierto todo a numerico
+            else: # Si no es matriz, aplico esta formula.
+                num = [float(b) for b in num]
+
+            df_online[jj] = pd.DataFrame(num,columns=col)
+            df_online[jj].insert(0,"created_at",val)
+    else:
+        for ii in data_online.keys():
+            val = data_online[ii]['created_at']
+            val = conversor_datetime_string(val, key = 2)
+            data_online[ii]['created_at'] = val
+        df_online = data_online
 
     # Una vez con toda la data de online y csv puesta en dataframes
     # Se realizara el rellenado de los huecos.
@@ -476,7 +482,7 @@ def Fix_data(data_online, csv_data, PMType, holes):
             row_end = df_c.index[(((date-end) < timedelta(seconds=120)) & ((end-date) < timedelta(seconds=120)))].tolist()
 
             # Seleccionar el trozo de información entre row y row_end, no se incluyen
-            chunk = df_c.loc[row[0]+1:row_end[0]-1]
+            chunk = df_c.loc[row[-1]+1:row_end[0]-1]
 
             # Unimos
             df = pd.concat([df, chunk])
