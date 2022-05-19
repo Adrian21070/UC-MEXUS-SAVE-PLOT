@@ -24,7 +24,22 @@ if __name__ == "__main__":
                 window, event, indx = save.sensors_in_field(window, numsen)
             
             if event == 'Next':
-                save.total_extraction(indx,start,end)
+                data = save.total_extraction(indx,start,end)
+
+                # Se comprueba que no existan huecos de información
+                window, event, holes, num_csv_per_sensor = save.holes_verification(window, data, indx)
+
+            if event == 'Fix_errors':
+                # Solicito archivos csv
+                window, value = gui.csv_online(window, num_csv_per_sensor, holes)
+                # Arreglo los huecos
+                z_axis, limites, error = gui.fixing(value,data,PMType,holes,minimum_dates, maximum_dates)
+
+                if error != True:
+                    event = 'Graphs'
+                else:
+                    event = 'Fix_errors'
+
         
     else:
         # Saca datos online o por csv y los procesa para graficarlos.

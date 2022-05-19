@@ -1,6 +1,8 @@
 import PySimpleGUI as sg
 import functions as Func
+import gui2 as gui
 import pandas as pd
+import sys
 from datetime import datetime
 from dateutil import tz
 from purple_air import *
@@ -68,16 +70,26 @@ key_B_secundario = ['S26M6JT22KN1VIDK','O45GOHMJ4Q47JAFR','IBA7X29X9UX5JGCQ','75
                     'FAKAE3TIIP7EVWJD','GP8N5TST5N9XXTPR','PUN6KC9U1MAOQUPT','MVEKFJNPQ69915ZH','A7SM2BENAMNB8IHI']
 
 # Diccionario para pasar las columnas de online a un csv estandar.
-PA_Onl_A = {'PM '}
+# Canal A
 
-PA_Onl_B = {}
+PA_Onl_A = {"PM1.0 (ATM)": "PM1.0_ATM_ug/m3", "PM2.5 (ATM)": "PM2.5_ATM_ug/m3",
+            "PM10.0 (ATM)": "PM10.0_ATM_ug/m3", "Uptime":"UptimeMinutes",
+            "RSSI":"RSSI_dbm", "Temperature": "Temperature_F",
+            "Humidity":"Humidity_%", "PM2.5 (CF=1)": "PM2.5_CF1_ug/m3",
+            "0.3um":">=0.3um/dl", "0.5um":">=0.5um/dl",
+            "1.0um":">=1.0um/dl", "2.5um":">=2.5um/dl",
+            "5.0um":">=5.0um/dl", "10.0um":">=10.0um/dl",
+            "PM1.0 (CF=1)": "PM1.0_CF1_ug/m3","PM10.0 (CF=1)": "PM10.0_CF1_ug/m3"}
 
-PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
-        "PM 10.0 ATM": "PM10.0_ATM_ug/m3", "PM 1.0 CF": "PM1.0_CF1_ug/m3",
-        "PM 2.5 CF": "PM2.5_CF1_ug/m3", "PM 10.0 CF": "PM10.0_CF1_ug/m3",
-        "PM 1.0 ATM B": "PM1.0_ATM_B_ug/m3", "PM 2.5 ATM B": "PM2.5_ATM_B_ug/m3",
-        "PM 10.0 ATM B": "PM10.0_ATM_B_ug/m3", "PM 1.0 CF B": "PM1.0_CF1_B_ug/m3",
-        "PM 2.5 CF B": "PM2.5_CF1_B_ug/m3", "PM 10.0 CF B": "PM10.0_CF1_B_ug/m3"}
+# Canal B
+PA_Onl_B = {"PM1.0 (ATM)": "PM1.0_ATM_B_ug/m3", "PM2.5 (ATM)": "PM2.5_ATM_B_ug/m3",
+            "PM10.0 (ATM)": "PM10.0_ATM_B_ug/m3", "Mem":"UptimeMinutes_B",
+            "Adc":"ADC", "Pressure": "Pressure_hpa",
+            "PM2.5 (CF=1)": "PM2.5_CF1_B_ug/m3", "Unused":"Unused",
+            "0.3um":">=0.3_B_um/dl", "0.5um":">=0.5_B_um/dl",
+            "1.0um":">=1.0_B_um/dl", "2.5um":">=2.5_B_um/dl",
+            "5.0um":">=5.0_B_um/dl", "10.0um":">=10.0_B_um/dl",
+            "PM1.0 (CF=1)": "PM1.0_CF1_ug/m3","PM10.0 (CF=1)": "PM10.0_CF1_ug/m3"}
 
 # Fuentes para la interfaz
 font = ('Times New Roman', 16)
@@ -153,23 +165,18 @@ def total_extraction(indx, start, end):
         # A primario
         ids.append(id_A_primaria[ii-1])
         keys.append(key_A_primaria[ii-1])
-        id_A = id_A_primaria[ii-1]
-        key_A = key_A_primaria[ii-1]
+
         # A secundario
         ids.append(id_A_secundario[ii-1])
         keys.append(key_A_secundario[ii-1])
-        id_A_sec = id_A_secundario[ii-1]
-        key_A_sec = key_A_secundario[ii-1]
+
         # B primario
         ids.append(id_B_primaria[ii-1])
         keys.append(key_B_primaria[ii-1])
-        id_B = id_B_primaria[ii-1]
-        key_B = key_B_primaria[ii-1]
+
         # B secundario
         ids.append(id_B_secundario[ii-1])
         keys.append(key_B_secundario[ii-1])
-        id_B_sec = id_B_secundario[ii-1]
-        key_B_sec = key_B_secundario[ii-1]
 
         for jj in range(4):
             TSobject = Thingspeak(read_api_key=keys[jj], channel_id=ids[jj])
@@ -180,12 +187,68 @@ def total_extraction(indx, start, end):
                 df_aux = df_aux.drop(['created_at'], axis=1)
 
             rename = {}
-            for kk in range(8):
-                name = 'field'+str(kk+1)
-                rename.update({name:c[name]})
-            df_aux.rename(columns=rename, inplace=True)
+            if jj < 2:
+                for kk in range(8):
+                    name = 'field'+str(kk+1)
+                    rename.update({name:PA_Onl_A[c[name]]})
+                df_aux.rename(columns=rename, inplace=True)
+            else:
+                for kk in range(8):
+                    name = 'field'+str(kk+1)
+                    rename.update({name:PA_Onl_B[c[name]]})
+                df_aux.rename(columns=rename, inplace=True)
+
+                if jj == 2:
+                    df_aux = df_aux.drop(['Unused'], axis=1)
 
             df = pd.concat([df, df_aux], axis=1)
+        total_data[f'Sensor {ii}'] = df
+    
+    return total_data
+
+def holes_verification(window, data, indx):
+    sizes = {}
+    num_holes_per_sensor = {}
+    for ii in indx.values():
+        sensor = data[f'Sensor {ii}']
+        date = sensor['created_at']
+        time = []
+
+        for jj in range(len(date)):
+            temp = date[jj].strip('Z').replace('T', ' ')
+            # Transformo de string a datetime utc
+            time_utc = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz.tzutc())
+            time.append(time_utc)
+
+        sizes[f'Sensor {ii}'] = {}
+        temp = 0
+
+        for jj in range(len(time)-1):
+            delta = time[jj+1] - time[jj]
+
+            if delta.seconds > 250:
+                day = (time[jj]).day
+                day2 = (time[jj+1]).day
+                # Existe un hueco
+                # sizes tiene como llave el inicio del hueco y como value el final.
+                sizes[f'Sensor {ii}'].update({time[jj]:time[jj+1]})
+
+                if temp == 0:
+                    temp += 1
+                    num_holes_per_sensor[f'Sensor {ii}'] = temp
+                    day3 = day
+                    day4 = day2
+                else:
+                    if day != day3 or day2 != day4:
+                        temp += 1
+                        num_holes_per_sensor[f'Sensor {ii}'] = temp
+                        day3 = day
+                        day4 = day2
+    
+    window, event = gui.holes_warning(window,sizes,num_holes_per_sensor)
+
+    return window, event, sizes, num_holes_per_sensor
+
 
 def shutdown(window):
     window.close()

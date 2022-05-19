@@ -98,7 +98,7 @@ PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
         "PM 10.0 ATM B": "PM10.0_ATM_B_ug/m3", "PM 1.0 CF B": "PM1.0_CF1_B_ug/m3",
         "PM 2.5 CF B": "PM2.5_CF1_B_ug/m3", "PM 10.0 CF B": "PM10.0_CF1_B_ug/m3"}
 
-Utc = tz.gettz('UTC')
+Utc = tz.tzutc()
 Local_H = tz.tzlocal()
 
 def Data_extraction(rows, columns, lateral_length, depth_length, PMType, indx, start, end):
@@ -234,8 +234,6 @@ def Matrix_adjustment(minimum, maximum, z, delta):
 def huecos(raw_data, indx):
     # Comprobación de datos
     # Se comprueban los datos internos de cada sensor
-    # Buscando huecos, los extremos y la cantidad de datos del sensor x
-    # No interesa en este momento, solo comprueba si existen huecos.
     sizes = {}
     num_holes_per_sensor = {}
     """
@@ -425,9 +423,9 @@ def Fix_data(data_online, csv_data, PMType, holes):
 
     col = []
     # Por el momento solo solucionara 1 hueco por sensor.
-    for ii in range(len(Column_labels)):
-        if Column_labels[ii] in PMType:
-            col.append(Column_labels[ii])
+    #for ii in range(len(Column_labels)):
+    #    if Column_labels[ii] in PMType:
+    #        col.append(Column_labels[ii])
 
     
     for kk in csv_data.keys():
