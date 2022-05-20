@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
             if event == 'Save':
                 # Guardo los archivos.
-                save.save(window, data, indx)
+                event = save.save(window, data, indx, value['Start'], value['End'])
 
         
     else:

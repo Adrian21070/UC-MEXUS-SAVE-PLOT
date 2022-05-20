@@ -1,11 +1,10 @@
-from msilib.schema import Directory
 import PySimpleGUI as sg
 import functions as Func
 import gui2 as gui
 import pandas as pd
 import sys
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import tz
 from purple_air import *
 
@@ -286,7 +285,7 @@ def fix_save(window, num_csv_per_sensor, holes, data):
     window, value = gui.csv_online(window, num_csv_per_sensor, holes)
     # Arreglo los huecos
     csv_data = Func.csv_extraction(value, key=1)
-    data = Func.Fix_data(data, csv_data, 0, holes, key='CSV)
+    data = Func.Fix_data(data, csv_data, 0, holes, key='CSV')
     for ii in data.keys():
         df = data[ii]
         df = df.reindex(columns=list(CSV_dict.values()))
@@ -294,37 +293,72 @@ def fix_save(window, num_csv_per_sensor, holes, data):
     
     return window, data
 
-def save(window, data, indx):
+def save(window, data, indx, start, end):
     layout = [[sg.Text('¿Donde desea guardar los datos?')],
-            [sg.Text(f'Ubicación de creación de carpeta: '), sg.Input(), sg.FileBrowse()],
+            [sg.Text(f'Ubicación de creación de carpeta: '), sg.Input(), sg.FolderBrowse()],
             [sg.Button('Guardar'), sg.Button('Exit')]]
 
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', lay, font=font2, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', layout, font=font2, size=(720,480))
     event, value = window.read()
 
     if 'Exit' in event:
         shutdown(window)
     
-    directorio = value['Browse']
+    parent_id = value['Browse']
+    dir = "Sensors_data"
 
-    os.mkdir(directorio)
+    path = os.path.join(parent_id, dir)
+    os.mkdir(path)
 
-    for ii in indx.values():
-        # Crea todos los archivos csv con los nombres de ii.
-        df = data[f'Sensor {ii}']
-        
-        # Fecha tiene el formato de 20220407 AñoMesDia
-        # Sacarlo de df?
-        # Como le hago para sacar un archivo por cada dia?
-        # Utilizo loc como en los huecos????????????
-        
-        fecha = ''
+    start = datetime.strptime(start, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
+    end = datetime.strptime(end, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
 
-        dir = directorio + '/' + f'S{ii}_' + fecha
-        df.to_csv(Directory)
+    for jj in range(start.day-end.day +1):
+        # Verifico si ya existe el directorio
+        it = 0
+        path_new = os.path.join(path, start.strftime("%Y_%m_%d"))
+        while True:
+            it += 1
+            if not os.path.exists(path_new):
+                os.mkdir(path_new)
+                break
+            else:
+                path_new = os.path.join(path, start.strftime("%Y_%m_%d"))
+                path_new = path_new + str(it)
 
+        for ii in indx.values():
+            # Crea todos los archivos csv con los nombres de ii.
+            df = data[f'Sensor {ii}']
+            date = df['created_at']
+            # Fecha tiene el formato de 20220407 AñoMesDia
+            # Sacarlo de df?
+            # Como le hago para sacar un archivo por cada dia?
+            # Utilizo loc como en los huecos????????????
+            # Encuentra en csv, donde esta init y end.
+            row = df.index[((date >= start) & (date < start+timedelta(days=1)))].tolist()
+            chunk = df.loc[row[0]:row[-1]]
 
+            # Convierto created_at a string
+            chunk['created_at'] = Func.conversor_datetime_string(chunk['created_at'], key=3)
+
+            fecha = start.strftime("%Y%m%d")
+            dir = f'S{ii}_' + fecha
+
+            csv_path = os.path.join(path_new,dir)
+            df.to_csv(csv_path+'.csv')
+        start = start + timedelta(days=1)
+    
+    layout = [[sg.Text('Se termino de almacenar la información.', font=font)]
+            [sg.Button('Finalizar'), sg.Button('Realizar otro guardado', key='Sensor_info')]]
+
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font=font2, size=(720,480))
+    event, value = window.read()
+
+    return event
+
+    
 def shutdown(window):
     window.close()
     sys.exit()

@@ -381,7 +381,10 @@ def conversor_datetime_string(date, key):
         Si key = 1, tomara a date como string en formato local,
         regresara una lista con las fechas en formato datetime local.
 
-        Si key = 2, tomara a date como datetime, y regresara
+        Si key = 2, tomara a date como datetime, y cambiara de utc a local,
+        o de local a utc.
+
+        Si key = 3, tomara a date como datetime, y regresara
         una lista de strings.
     """
     from_zone = tz.tzutc()
@@ -415,6 +418,21 @@ def conversor_datetime_string(date, key):
                 time = temp.astimezone(from_zone)
                 new_date.append(time)
     
+    elif key == 3:
+        if str(date[0].tzinfo) == 'tzutc()':
+            for ii in range(len(date)):
+                temp = date[ii]
+                # Transformo de datetime a string
+                time_local = temp.strftime('%Y-%m-%d %H:%M:%S UTC')
+                new_date.append(time_local)
+                
+        elif str(date[0].tzinfo) == 'tzlocal()':
+            for ii in range(len(date)):
+                temp = date[ii]
+                # Transformo de datetime a string
+                time_local = temp.strftime('%Y-%m-%d %H:%M:%S')
+                new_date.append(time_local)
+
     return new_date
         
 def Fix_data(data_online, csv_data, PMType, holes, key):
