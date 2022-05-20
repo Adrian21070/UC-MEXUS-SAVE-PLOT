@@ -419,18 +419,16 @@ def conversor_datetime_string(date, key):
                 new_date.append(time)
     
     elif key == 3:
-        if str(date[0].tzinfo) == 'tzutc()':
-            for ii in range(len(date)):
-                temp = date[ii]
+        if str(date.iloc[-1].tzinfo) == 'tzutc()':
+            for ii in date:
                 # Transformo de datetime a string
-                time_local = temp.strftime('%Y-%m-%d %H:%M:%S UTC')
+                time_local = ii.strftime('%Y-%m-%d %H:%M:%S UTC')
                 new_date.append(time_local)
                 
-        elif str(date[0].tzinfo) == 'tzlocal()':
-            for ii in range(len(date)):
-                temp = date[ii]
+        elif str(date.iloc[-1].tzinfo) == 'tzlocal()':
+            for ii in date:
                 # Transformo de datetime a string
-                time_local = temp.strftime('%Y-%m-%d %H:%M:%S')
+                time_local = ii.strftime('%Y-%m-%d %H:%M:%S')
                 new_date.append(time_local)
 
     return new_date

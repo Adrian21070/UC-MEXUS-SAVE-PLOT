@@ -58,7 +58,7 @@ def save_or_graph():
     event, value = window.read()
 
     if 'Exit' in event:
-        shutdown()
+        shutdown(window)
     
     return window, event
     

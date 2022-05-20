@@ -142,11 +142,6 @@ def sensor_info(window):
 
     elif 'Return' in event:
         event = 'init'
-        return window, event, value
-
-    numsen = int(value['NumSen'])
-    start = value['Start'] + '%20' + value['Start_hour'] + ':00'
-    end = value['End'] + '%20' + value['End_hour'] + ':00'
 
     return window, event, value
 
@@ -172,7 +167,7 @@ def sensors_in_field(window, numsen):
         lay = []
     lay = [[sg.Text('Carretera', font=('Times New Roman', 24), justification='center', expand_x=True)],
             [sg.Frame('Disposición de los sensores', layout)],
-            [sg.Button('Continue',key='Next'),sg.Button('Return',key='Init'),sg.Button('Exit')]]
+            [sg.Button('Continue',key='Next'),sg.Button('Return',key='sensor_info'),sg.Button('Exit')]]
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
     event, indx = window.read()
@@ -229,7 +224,9 @@ def total_extraction(indx, start, end):
                     df_aux = df_aux.drop(['Unused'], axis=1)
 
             df = pd.concat([df, df_aux], axis=1)
-        
+
+        df = df[df['created_at'].notna()]
+
         date = df['created_at']
         time = []
         for jj in range(len(date)):
@@ -257,7 +254,7 @@ def holes_verification(window, data, indx):
         for jj in range(len(time)-1):
             delta = time[jj+1] - time[jj]
 
-            if delta.seconds > 250:
+            if delta.seconds > 300:
                 day = (time[jj]).day
                 day2 = (time[jj+1]).day
                 # Existe un hueco
@@ -308,55 +305,62 @@ def save(window, data, indx, start, end):
     parent_id = value['Browse']
     dir = "Sensors_data"
 
+    # Ubicación principal
     path = os.path.join(parent_id, dir)
-    os.mkdir(path)
 
     start = datetime.strptime(start, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
     end = datetime.strptime(end, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
 
-    for jj in range(start.day-end.day +1):
-        # Verifico si ya existe el directorio
-        it = 0
+    for jj in range(end.day-start.day +1):
+
         path_new = os.path.join(path, start.strftime("%Y_%m_%d"))
-        while True:
-            it += 1
-            if not os.path.exists(path_new):
-                os.mkdir(path_new)
-                break
-            else:
-                path_new = os.path.join(path, start.strftime("%Y_%m_%d"))
-                path_new = path_new + str(it)
+
+        # Verifico si no existen los directorios.
+        if not os.path.exists(path_new):
+            os.makedirs(path_new, exist_ok=True)
 
         for ii in indx.values():
             # Crea todos los archivos csv con los nombres de ii.
             df = data[f'Sensor {ii}']
             date = df['created_at']
-            # Fecha tiene el formato de 20220407 AñoMesDia
-            # Sacarlo de df?
-            # Como le hago para sacar un archivo por cada dia?
-            # Utilizo loc como en los huecos????????????
-            # Encuentra en csv, donde esta init y end.
+
             row = df.index[((date >= start) & (date < start+timedelta(days=1)))].tolist()
-            chunk = df.loc[row[0]:row[-1]]
 
-            # Convierto created_at a string
-            chunk['created_at'] = Func.conversor_datetime_string(chunk['created_at'], key=3)
+            # Compruebo que si existan datos en ese dia.
+            if row:
+                chunk = df.loc[row[0]:row[-1]]
 
-            fecha = start.strftime("%Y%m%d")
-            dir = f'S{ii}_' + fecha
+                # Convierto created_at a string
+                chunk['created_at'] = Func.conversor_datetime_string(chunk['created_at'], key=3)
 
-            csv_path = os.path.join(path_new,dir)
-            df.to_csv(csv_path+'.csv')
+                fecha = start.strftime("%Y%m%d")
+                dir = f'S{ii}_' + fecha
+
+                # Dirección del csv del sensor x
+                csv_path = os.path.join(path_new,dir)
+            
+                it = 0
+                #while True:
+                    #it += 1
+                if not os.path.exists(csv_path):
+                    chunk.to_csv(csv_path+'.csv', index=False)
+                        #break
+                    #else:
+                        #csv_path = os.path.join(path_new,dir)
+                        #csv_path = csv_path + f'_{it}'
+            else:
+                continue
+
         start = start + timedelta(days=1)
     
-    layout = [[sg.Text('Se termino de almacenar la información.', font=font)]
+    layout = [[sg.Text('Se termino de almacenar la información.', font=font)],
             [sg.Button('Finalizar'), sg.Button('Realizar otro guardado', key='Sensor_info')]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font=font2, size=(720,480))
     event, value = window.read()
 
-    return event
+    return window, event
 
     
 def shutdown(window):

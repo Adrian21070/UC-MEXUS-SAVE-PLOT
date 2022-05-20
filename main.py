@@ -39,7 +39,10 @@ if __name__ == "__main__":
 
             if event == 'Save':
                 # Guardo los archivos.
-                event = save.save(window, data, indx, value['Start'], value['End'])
+                window, event = save.save(window, data, indx, value['Start'], value['End'])
+            
+            if event == 'Finalizar':
+                gui.shutdown(window)
 
         
     else:
