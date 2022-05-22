@@ -333,44 +333,7 @@ def csv_extraction(dir, key=0):
 
         # Ahora solo queda almacenar el dataframe en el diccionario
         data_frames[ii] = df
-        """
-        df = pd.read_csv(ii)
-        # Ahora, solo nos quedaremos con los mismos datos que otorga el online
-        df = df[col_name]
-        # Cambiamos los nombres de las columnas.
-        df.columns = new_col_name
-
-        # Arreglamos las fechas para hacerlas más sencillas de tratar.
-        date = list(df['created_at'])
-        date_new = []
         
-        if key == 1:
-            for temp in date:
-                temp = temp.replace('/','-')
-                temp = temp.replace('T',' ')
-                #temp = temp.replace('z',' UTC')
-                temp = temp.strip('z')
-                early = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
-                if early.second >= 30:
-                    early = early + timedelta(seconds=60-early.second)
-                else:
-                    early = datetime(early.year, early.month, early.day, early.hour, early.minute, 0, tzinfo=from_zone)
-                
-                date_new.append(early)
-        else:
-            for temp in date:
-                temp = temp.replace('/','-')
-                temp = temp.replace('T',' ')
-                temp = temp.replace('z',' UTC')
-                date_new.append(temp)
-        
-        date = [] #Limpio la variable
-
-        df['created_at'] = date_new #Asigno mi fecha corregida
-
-        # Ahora solo queda almacenar el dataframe en el diccionario
-        data_frames[ii] = df
-        """
     return data_frames
 
 def conversor_datetime_string(date, key):
@@ -511,57 +474,6 @@ def Fix_data(data_online, csv_data, PMType, holes, key):
 
         # Se actualizan los datos de online ya corregidos.
         df_online[ii] = df
-
-        """
-        for jj in csv_data_dic[ii].keys():
-            df_c = csv_data_dic[ii][jj] # Itera con los archivos csv del sensor x, diversos dias
-            sensor_holes = holes[f'Sensor {ii[-1]}'] #Corregir lo de sensor ii, no aceptara sensores mayores al 9
-            for kk in sensor_holes.keys():
-
-                start = conversor_datetime_string([kk, sensor_holes[kk]], key=2)
-                init = start[0]
-                end = start[1]
-
-                date = df_c['created_at'] 
-
-                # Encuentra en csv, donde esta init y end.
-                row = df_c.index[(((date-init) < timedelta(seconds=120)) & ((init-date) < timedelta(seconds=120)))].tolist()
-
-                row_end = df_c.index[(((date-end) < timedelta(seconds=120)) & ((end-date) < timedelta(seconds=120)))].tolist()
-
-                # Seleccionar el trozo de información entre row y row_end, no se incluyen
-                chunk = df_c.loc[row[0]+1:row_end[0]-1]
-
-                # Creo lista entre inicio y fin, con separación de dos minutos, esto corrige las fechas
-                #seconds = (end-init).seconds + (end-init).days*24*60*60 - 2*60
-                #dates = [init + timedelta(seconds=d) for d in range(seconds + 1) if((d%120 == 0) & (d!=0))]
-                #chunk['created_at'] = dates
-
-                # Que pasa si online tiene un hueco de 12:00 a 14:01?, chunck tendra los datos de 12:02
-                # 12:04, ..., 13:58. Va a existir un problema...
-                
-                # Puedo modificar el 14:01 para que se redonde a 14:00 o 14:02, pero esto me obligara a modificar
-                # todos los datos posteriores a este...
-
-                # Limpiamos la data?
-
-                # Unimos
-                df = pd.concat([df, chunk])
-
-                # Sort the data
-                df = df.sort_values(by=['created_at'])
-
-                # Reset the index
-                df.reset_index(inplace=True, drop=True)
-
-        # Se actualizan los datos de online ya corregidos.
-        df_online[ii] = df
-        """
-    """
-
-    Limpiar data, existen errores por esto...
-
-    """
 
     return df_online
 
@@ -710,20 +622,4 @@ def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limi
 
     if value['Historico']:
         pass
-    pass
-
-    # Esto para tener un dataframe bonito una vez todos los sensores, tienen
-    # la misma cantidad de datos.
-    """df = pd.DataFrame([key for key in raw_data.keys()], columns=['Name'])
-
-    df['id'] = [value['id'] for value in clients.values()]
-
-    df['email'] = [value['email'] for value in clients.values()]
-
-    df['gender'] = [value['gender'] for value in clients.values()]
-
-    df['ip_address'] = [value['ip_address'] for value in clients.values()]
-
-    df['money'] = [value['money'] for value in clients.values()]
-
-    df"""
+    

@@ -20,7 +20,6 @@ if __name__ == "__main__":
                 numsen = int(value['NumSen'])
                 start = value['Start'] + '%20' + value['Start_hour'] + ':00'
                 end = value['End'] + '%20' + value['End_hour'] + ':00'
-                #gui.saving_data(window)
             
             if event == 'Continue':
                 window, event, indx = save.sensors_in_field(window, numsen)
@@ -44,8 +43,7 @@ if __name__ == "__main__":
             if event == 'Finalizar':
                 gui.shutdown(window)
 
-        
-    else:
+    elif event == 'Plot':
         # Saca datos online o por csv y los procesa para graficarlos.
         window, event = gui.gui_graph_creation()
 
@@ -155,14 +153,9 @@ if __name__ == "__main__":
                     #start = value['Start'] + '%20' + value['Start_hour'] + ':00'
                     #end = value['End'] + '%20' + value['End_hour'] + ':00'
 
-                if event == 'Save or Graph':
-                    # Gui que pregunta si queremos guardar o solo graficar el csv.
-                    pass
-
                 # Creamos una gui para que cargue sus archivos en orden ascendente???
-
                 if event == 'Extraction':
-                    sorted_index = list(indx.values()).sort()
+                    # sorted_index = list(indx.values()).sort()
                     # Key == 1, fechas en datetime
                     # Key != 1, fechas en string.
                     window, event, value = gui.csv_files(sorted_index, days, key=1)
@@ -170,3 +163,6 @@ if __name__ == "__main__":
 
         else:
             gui.shutdown(window)
+    
+    else:
+        gui.shutdown(window)

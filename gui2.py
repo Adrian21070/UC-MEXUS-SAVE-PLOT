@@ -36,6 +36,7 @@ PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
 # Fuentes para la interfaz
 font = ('Times New Roman', 16)
 font2 = ('Times New Roman', 12)
+font3 = ('Times New Roman', 14)
 
 # Zonas horarias
 Local_H = tz.tzlocal()
@@ -248,7 +249,7 @@ def holes_warning(window,holes,num_csv):
     
     # Notificar con una ventana que existen huecos
     layout = [[sg.Text('Existen sensores con huecos de información',font=font), sg.Text(f'(YYYY-MM-DD HH-MM-SS)')],
-                    [sg.Text('Los sensores son:')]]
+                [sg.Text('Los sensores son:', font = font3)]]
     for ii in num_csv.keys():
         k = list(holes[ii].keys())
         v = list(holes[ii].values())
@@ -257,7 +258,8 @@ def holes_warning(window,holes,num_csv):
         v = [m.replace(tzinfo=Local_H) for m in v] #Lo pongo en local, no utc
 
         # Transformo a string los elementos de tiempo.
-        holes_text = [[sg.Text(f'{ii} presenta un hueco desde')]]
+        #holes_text = [[sg.Text(f'{ii} presenta un hueco desde')]]
+        holes_text = []
 
         for jj in range(len(k)):
             utc_k = k[jj].astimezone(Utc).strftime('%Y-%m-%d, %X')
@@ -265,9 +267,9 @@ def holes_warning(window,holes,num_csv):
             k2 = k[jj].strftime('%Y-%m-%d, %X')
             v2 = v[jj].strftime('%Y-%m-%d, %X')
 
-            holes_text.append([sg.Text(f'{k2} hasta {v2}, timezone: Local.')])
-            holes_text.append([sg.Text(f'{utc_k} hasta {utc_v}, timezone: UTC')])
-        layout.append([sg.Frame('',holes_text)])
+            holes_text.append([sg.Text(f'{k2}  hasta  {v2}, timezone: Local.')])
+            holes_text.append([sg.Text(f'{utc_k}  hasta  {utc_v}, timezone: UTC')])
+        layout.append([sg.Frame(f'{ii} presenta un hueco desde',holes_text)])
     layout.append([sg.Button('Solucionar errores',key='Fix_errors')])
     lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
 
@@ -279,7 +281,7 @@ def holes_warning(window,holes,num_csv):
 
 def csv_online(window, num_holes_per_sensor, holes):
     # Solicita archivos csv
-    layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SXX_YYYYMMDD:')]]
+    layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SXX_YYYYMMDD:', font = font)]]
     for ii in num_holes_per_sensor.keys():
         k = list(holes[ii].keys())
         v = list(holes[ii].values())
@@ -329,6 +331,12 @@ def csv_online(window, num_holes_per_sensor, holes):
 
 def csv_files(indx, days, key=0):
     # Solicita archivos csv
+
+    layout = [[sg.Text('Seleccione la carpeta donde se encuentras los archivos csv', font=font)],
+            [sg.Text(f'Ubicación de la carpeta: '), sg.Input(), sg.FolderBrowse()],
+            [sg.Button('Extraer'), sg.Button('Exit')]]
+
+
     layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SXX_YYYYMMDD:')]]
     for ii in indx:
         lay = []

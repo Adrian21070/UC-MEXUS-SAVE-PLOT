@@ -121,16 +121,19 @@ CSV_dict = {"UTCDateTime":"created_at",
 # Fuentes para la interfaz
 font = ('Times New Roman', 16)
 font2 = ('Times New Roman', 12)
+font3 = ('Times New Roman', 14)
 
 def sensor_info(window):
     # Primero solicita el número de sensores a guardar e intervalo de tiempo
     # de la medición.
-    layout = [[sg.Text('Datos acerca del número de sensores y el intervalo de medición')],
-                [sg.Text('Numero de sensores:'), sg.Input(key='NumSen')],
-                [sg.CalendarButton('Dia de inicio de la medición',target='Start', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='Start')],
+    layout = [[sg.Text('Datos acerca del número de sensores y el intervalo de medición', font=font)],
+                [sg.Text('Favor de introducir el dia y hora en formato UTC.', font=font3)],
+                [sg.Text('Numero de sensores:', size=(25,1)), sg.Input(key='NumSen')],
+                [sg.CalendarButton('Dia de inicio de la medición',target='Start', size=(25,1), format='20%y-%m-%d',font=font2), sg.Input(key='Start')],
                 [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_hour')],
-                [sg.CalendarButton('Dia del fin de la medición',target='End', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='End')],
+                [sg.CalendarButton('Dia del fin de la medición',target='End', size=(25,1), format='20%y-%m-%d',font=font2), sg.Input(key='End')],
                 [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_hour')],
+                [sg.Text('')],
                 [sg.Button('Continue'), sg.Button('Return'), sg.Button('Exit')]]
     
     window.close()
@@ -165,11 +168,12 @@ def sensors_in_field(window, numsen):
     if lay:
         layout.append(lay)
         lay = []
-    lay = [[sg.Text('Carretera', font=('Times New Roman', 24), justification='center', expand_x=True)],
-            [sg.Frame('Disposición de los sensores', layout)],
+    lay = [[sg.Text('Introduce el número de identificación de los sensores que se encuentran en el campo.', font=font, justification='center', expand_x=True, expand_y=True)],
+            [sg.Frame('Disposición de los sensores', layout, element_justification='center', expand_x=True)],
             [sg.Button('Continue',key='Next'),sg.Button('Return',key='sensor_info'),sg.Button('Exit')]]
+    
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', [[sg.Column(lay, element_justification='center')]], font=font2, size=(720,480), grab_anywhere=True)
     event, indx = window.read()
 
     return window, event, indx
@@ -291,7 +295,7 @@ def fix_save(window, num_csv_per_sensor, holes, data):
     return window, data
 
 def save(window, data, indx, start, end):
-    layout = [[sg.Text('¿Donde desea guardar los datos?')],
+    layout = [[sg.Text('¿Donde desea guardar los datos?', font=font)],
             [sg.Text(f'Ubicación de creación de carpeta: '), sg.Input(), sg.FolderBrowse()],
             [sg.Button('Guardar'), sg.Button('Exit')]]
 
@@ -333,28 +337,22 @@ def save(window, data, indx, start, end):
                 # Convierto created_at a string
                 chunk['created_at'] = Func.conversor_datetime_string(chunk['created_at'], key=3)
 
-                fecha = start.strftime("%Y%m%d")
+                fecha = start.strftime("%Y_%m_%d")
                 dir = f'S{ii}_' + fecha
 
                 # Dirección del csv del sensor x
                 csv_path = os.path.join(path_new,dir)
-            
-                it = 0
-                #while True:
-                    #it += 1
+
                 if not os.path.exists(csv_path):
                     chunk.to_csv(csv_path+'.csv', index=False)
-                        #break
-                    #else:
-                        #csv_path = os.path.join(path_new,dir)
-                        #csv_path = csv_path + f'_{it}'
+
             else:
                 continue
 
         start = start + timedelta(days=1)
     
     layout = [[sg.Text('Se termino de almacenar la información.', font=font)],
-            [sg.Button('Finalizar'), sg.Button('Realizar otro guardado', key='Sensor_info')]]
+            [sg.Button('Finalizar'), sg.Button('Realizar otro guardado', key='sensor_info')]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font=font2, size=(720,480))
@@ -362,7 +360,6 @@ def save(window, data, indx, start, end):
 
     return window, event
 
-    
 def shutdown(window):
     window.close()
     sys.exit()
