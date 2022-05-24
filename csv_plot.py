@@ -84,6 +84,8 @@ def sensors_info(window):
                 [sg.Text('Num. Filas de Sensores', size =(25, 1)), sg.InputText(key='Rows')],
                 [sg.Text('Distancia entre Columnas', size =(25, 1)), sg.InputText(key='Col_dis')],
                 [sg.Text('Distancia entre Filas', size =(25, 1)), sg.InputText(key='Row_dis')],
+                [sg.Text('Distancia respecto a la carretera', size=(25,1)), sg.InputText(key='Y0')],
+                [sg.Text('Distancia lateral a otras vias', size=(25,1)), sg.InputText(key='X0')],
                 [sg.Button("Next",key='SensorDistribution'), sg.Button('Return',key='TypeData'), sg.Button('Exit')]]
             
     window.close()
@@ -95,7 +97,7 @@ def sensors_info(window):
     
     return window, event, value
 
-def distribution(window,num_sen,rows,columns):
+def distribution(window,num_sen,rows,columns,row_dist,col_dist,x0,y0):
     # Solicita como se distribuyeron los sensores en el campo.
 
     # Creación de un grid para la interfaz
@@ -112,20 +114,57 @@ def distribution(window,num_sen,rows,columns):
                 [sg.Frame('Disposición de los sensores', [[sg.Input(coordenadas[f'{row},{col}'],
                 key=f'{row},{col}', size=(5,1)) for col in range(columns)]
                 for row in range(rows)])],
-                [sg.Button('Next',key='Date_hour'),sg.Button('Return',key='Sensor_info'),sg.Button('Exit')]]
+                [sg.Button('Next'),sg.Button('Return',key='Sensor_info'),sg.Button('Exit')]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
-    event, value = window.read()
-
-    # Matriz de coordenadas
-    # Calculo de X y Y
-    """ Añade esto antes que nada """
+    event, indx = window.read()
 
     if 'Exit' in event:
         shutdown(window)
 
-    return window, event, value
+    # Calculo de X y Y
+    x = np.array(list(range(0,columns)))*col_dist + x0
+    y = np.array(list(range(0,rows)))*row_dist + y0
+    x_axis = []
+    y_axis = []
+
+    # Matriz de coordenadas
+    layout = [[sg.Text('Carretera', font=('Times New Roman', 24), justification='center', expand_x=True)],
+                [sg.Frame('Coordenadas de los sensores', [[sg.Input(f'{col},{row}',
+                key=(col,row), size=(5,1)) for col in x]
+                for row in y])],
+                [sg.Button('Next',key='Date_hour'),sg.Button('Return',key='Sensor_info'),sg.Button('Exit')]]
+    
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+    event, value = window.read()
+
+    if 'Exit' in event:
+        shutdown(window)
+
+    for ii in value.values():
+        ii = eval(ii)
+        x_axis.append(ii[0])
+        y_axis.append(ii[1])
+
+    x_axis = np.array(x_axis)
+    y_axis = np.array(y_axis)
+
+    """ X y Y deben ser matrices, no vectores """
+
+    indx = dict(zip(list(value.values()), list(indx.values())))
+
+    for jj in indx.keys():
+        num = int(indx[jj])
+        if num > 99:
+            continue
+        elif num >= 10 and num <= 99:
+            indx[jj] = f'0{indx[jj]}'
+        else:
+            indx[jj] = f'00{indx[jj]}'
+
+    return window, event, indx, x_axis, y_axis
 
 def date_hour(window, key=0):
     layout = [[sg.Text('Selección de fecha y hora de las mediciones',font=font)],
@@ -227,22 +266,22 @@ def data_average(data, minimum, maximum, delta, PMType, begin, final):
         minimum.append(min(new_data[ii][PMType]))
 
     limites = [min(minimum), max(maximum)]
-    return new_data, limites
+    return new_data, limites, PMType
 
-def graph(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites):
-    if event == 'Graficar':
-        Func.graphs(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, value, PMType, indx, limites)
-        
-        # Preguntamos si queremos modificar algo de las graficas, regresamos al inicio de esta función.
-        layout = [[sg.Text('Si requiere modificar algo de las graficas de nuevo.')],
-                    [sg.Text('Favor de seleccionar "Repetir graficado"')],
-                    [sg.Button('Repetir graficado'), sg.Button('No volver a graficar')]]
-        window.close()
-        window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
-        event, value = window.read()
-        if event == 'Repetir graficado':
-            event = 'Graphs'
+def graph(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites, value):
+    PMType = [PMType]
+    Func.graphs(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, value, PMType, indx, limites)
+    
+    # Preguntamos si queremos modificar algo de las graficas, regresamos al inicio de esta función.
+    layout = [[sg.Text('Si requiere modificar algo de las graficas de nuevo.')],
+                [sg.Text('Favor de seleccionar "Repetir graficado"')],
+                [sg.Button('Repetir graficado'), sg.Button('No volver a graficar')]]
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+    event, value = window.read()
 
+    if event == 'Repetir graficado':
+        event = 'Graphs'
         return window, event, value
 
     else:

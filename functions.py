@@ -564,8 +564,8 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     size_scatter = [100 for n in range(len(x_axis))]
     ax1.scatter3D(x_axis, y_axis, z_axis, s=size_scatter, c=z_axis, facecolors=fcolors, cmap='inferno')
 
-    x_final = int((columns-1)*lateral_length)
-    y_final = int((rows-1)*depth_length)
+    x_final = max(x_axis)
+    y_final = max(y_axis)
     gridx,gridy,gridz0 = Interpol(x_axis,y_axis,z_axis,x_final,y_final)
     ax1.plot_surface(gridx, gridy, gridz0,cmap=cm.inferno, linewidth=0, antialiased=False)
 
@@ -648,8 +648,8 @@ def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limi
         frames = len(z[f'Sensor {indx[0]}']['created_at'])
         frame_rate = length*60000/frames
 
-        #animate(7,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites)
-        #plt.show()
+        animate(7,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites)
+        plt.show()
         ani = animation.FuncAnimation(fig,animate,interval=frame_rate,
                 fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites),
                 frames=frames, repeat=True)

@@ -145,10 +145,12 @@ if __name__ == "__main__":
                     col_dist = int(value['Col_dis'])
                     row_dist = int(value['Row_dis'])
                     num_sen = int(value['NumSen'])
+                    x0 = int(value['X0'])
+                    y0 = int(value['Y0'])
 
                 if event == 'SensorDistribution':
                     # Solicitamos la distribución de los sensores.
-                    window, event, indx = Csv.distribution(window,num_sen,rows,columns)
+                    window, event, indx, x_axis, y_axis = Csv.distribution(window,num_sen,rows,columns,row_dist,col_dist,x0,y0)
 
                 if event == 'Date_hour':
                     # Solicitamos al usuario los rangos de fecha de las mediciones
@@ -165,10 +167,10 @@ if __name__ == "__main__":
                     window, value = Csv.graph_domain(window)
 
                     # Se preparan los datos
-                    data, limites = Csv.data_average(csv_data, minimum, maximum, value['delta'], PMType, start, end)
+                    data, limites, PMType2 = Csv.data_average(csv_data, minimum, maximum, value['delta'], PMType, start, end)
 
                     # Se grafica
-                    Csv.graph(window, x_axis, y_axis, data, columns, rows, row_dist, col_dist, PMType, indx, limites):
+                    window, event, value = Csv.graph(window, x_axis, y_axis, data, columns, rows, row_dist, col_dist, PMType2, indx, limites, value)
 
         else:
             gui.shutdown(window)
