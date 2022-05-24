@@ -141,7 +141,7 @@ def sensor_info(window):
     event, value = window.read()
     
     if 'Exit' in event:
-        shutdown()
+        shutdown(window)
 
     elif 'Return' in event:
         event = 'init'
@@ -175,6 +175,15 @@ def sensors_in_field(window, numsen):
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', [[sg.Column(lay, element_justification='center')]], font=font2, size=(720,480), grab_anywhere=True)
     event, indx = window.read()
+
+    for jj in indx.keys():
+        num = int(indx[jj])
+        if num > 99:
+            continue
+        elif num >= 10 and num <= 99:
+            indx[jj] = f'0{indx[jj]}'
+        else:
+            indx[jj] = f'00{indx[jj]}'
 
     return window, event, indx
 
@@ -241,7 +250,15 @@ def total_extraction(indx, start, end):
             time_utc = time_utc.astimezone(tz.tzlocal())
             time.append(time_utc)
         df['created_at'] = time
-        total_data[f'Sensor {ii}'] = df
+        
+        if ii >= 100:
+            num = ii
+        elif ii >= 10 and ii < 100:
+            num = f'0{ii}'
+        else:
+            num = f'00{ii}'
+
+        total_data[f'Sensor {num}'] = df
     
     return total_data
 

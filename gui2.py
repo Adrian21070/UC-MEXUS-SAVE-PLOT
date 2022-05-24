@@ -1,6 +1,7 @@
 import functions as Func
 import PySimpleGUI as sg
 import sys
+import os
 from pytz import utc
 from datetime import datetime
 from dateutil import tz
@@ -63,12 +64,12 @@ def save_or_graph():
     
     return window, event
     
-def gui_graph_creation():
+def gui_graph_creation(window):
     # Creacion de la interfaz
     layout = [[sg.Text('Seleccione de donde desea sacar los datos', font = font)],
-           [sg.Button('Online'),sg.Button('Archivo CSV'),
+           [sg.Button('Online'),sg.Button('Archivo CSV', key='CSV'),
             sg.Button('Exit',key='Exit')]]
-
+    window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
     event, value = window.read()
     
@@ -329,52 +330,29 @@ def csv_online(window, num_holes_per_sensor, holes):
 
     return window, value
 
-def csv_files(indx, days, key=0):
+#indx, days, key=0
+def csv_files(window):
     # Solicita archivos csv
 
     layout = [[sg.Text('Seleccione la carpeta donde se encuentras los archivos csv', font=font)],
             [sg.Text(f'Ubicación de la carpeta: '), sg.Input(), sg.FolderBrowse()],
-            [sg.Button('Extraer'), sg.Button('Exit')]]
-
-
-    layout = [[sg.Text('Introduce los archivos solicitados con el nombre del tipo SXX_YYYYMMDD:')]]
-    for ii in indx:
-        lay = []
-        for jj in days:
-            lay.append([sg.Text(f'Archivo del dia {jj}'), sg.Input(), sg.FileBrowse()])
-        layout.append([sg.Frame(f'Sensor {ii}', lay)])
-
-    layout.append([sg.Button('Continue'), sg.Button('Return'), sg.Button('Exit')])
-    lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
-    window.close()
-    window = sg.Window('Proyecto UC-MEXUS', lay, font=font2, size=(720,480))
-    event, value = window.read()
+            [sg.Button('Extraer',key='TypeData'), sg.Button('Exit')]]
 
     if 'Exit' in event:
         shutdown(window)
 
-    elif 'Return' in event:
-        event = 'Date_hour'
-        return window, event, value
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font=font2, size=(720,480))
+    event, value = window.read()
 
-    # Selecciono unicamente las direcciones no repetidas.
-    val = [value[a] for a in value.keys() if ('Browse' in str(a))]
+    data = Func.open_csv(value)
+    data_sorted = {}
+    indx_sort = sorted(data.items())
 
-    # Lo transformo en un diccionario, para facilitar ciertas cosas posteriores
-    value = {}
-    iter = 0
-    for ii in num_holes_per_sensor.keys():
-        value[ii] = []
-        for jj in range(len(val)):
-            if jj == num_holes_per_sensor[ii]:
-                break
-            value[ii].append(val[iter])
-            iter += 1
-
-    # Creo dataframes de los csv
-    csv_data = Func.csv_extraction(value, key)
-
-    return window, event, csv_data
+    for ii in indx_sort:
+        data_sorted[ii[0]] = ii[1]
+        
+    return window, event, data_sorted
 
 def fixing(value, z_axis, PMType, holes, minimum_dates, maximum_dates, key):
     csv_data = Func.csv_extraction(value, key=1)

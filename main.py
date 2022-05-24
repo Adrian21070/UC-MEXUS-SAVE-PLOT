@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     elif event == 'Plot':
         # Saca datos online o por csv y los procesa para graficarlos.
-        window, event = gui.gui_graph_creation()
+        window, event = gui.gui_graph_creation(window)
 
         # Comprobamos si se obtendran datos de online o csv.
         if event == 'Online':
@@ -116,7 +116,7 @@ if __name__ == "__main__":
                     pass
 
         elif event == 'CSV':
-            event = 'TypeData'
+            event = 'Extraction'
             while True:
                 if event == 'TypeData':
                     # Pregunta que tipo de dato quiere analizar
@@ -153,12 +153,9 @@ if __name__ == "__main__":
                     #start = value['Start'] + '%20' + value['Start_hour'] + ':00'
                     #end = value['End'] + '%20' + value['End_hour'] + ':00'
 
-                # Creamos una gui para que cargue sus archivos en orden ascendente???
                 if event == 'Extraction':
                     # sorted_index = list(indx.values()).sort()
-                    # Key == 1, fechas en datetime
-                    # Key != 1, fechas en string.
-                    window, event, value = gui.csv_files(sorted_index, days, key=1)
+                    window, event, value = gui.csv_files(window)
                     csv_data = value
 
         else:

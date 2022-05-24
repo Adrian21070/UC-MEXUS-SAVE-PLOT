@@ -1,5 +1,5 @@
 # Librerias
-import csv
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.animation as animation
@@ -134,7 +134,7 @@ def Data_extraction(rows, columns, lateral_length, depth_length, PMType, indx, s
 
     return x_axis, y_axis, z_axis, dict_of_dates_minimum, dict_of_dates_maximum
 
-def Data_extraction_save_data(indx, start, end):
+"""def Data_extraction_save_data(indx, start, end):
     for ii in indx.values():
         sensor_id = sensors[f'Sensor {ii}']
         TSobject = Thingspeak(read_api_key=sensor_id[0], channel_id=sensor_id[1])
@@ -146,7 +146,38 @@ def Data_extraction_save_data(indx, start, end):
             temp = data[jj]['created_at'].strip('Z').replace('T', ' ')
             data[jj]['created_at'] = temp
             
-    pass
+    pass"""
+
+def open_csv(value):
+    # Leo los archivos dentro de la carpeta.
+    data = {}
+    it = 1
+    with os.scandir(value['Browse']) as ficheros:
+        # Ficheros right now has directories with csv inside
+        for fichero in ficheros:
+            dir = value['Browse'] + '/' + fichero.name
+            if it == 1:
+                with os.scandir(dir) as files:
+                    for file in files:
+                        #file should have the name as SXXX_YYYY_MM_DD
+                        name = file.name
+                        df = pd.read_csv(dir + '/' + name)
+                        data[f'Sensor {name[1:4]}'] = df
+                it += 1
+            else:
+                with os.scandir(dir) as files:
+                    for file in files:
+                        #file should have the name as SXXX_YYYY_MM_DD
+                        name = file.name
+                        df = pd.read_csv(dir + '/' + name)
+                        data[f'Sensor {name[1:4]}'] = pd.concat([data[f'Sensor {name[1:4]}'], df])
+
+                        # Sort the data
+                        data[f'Sensor {name[1:4]}'] = data[f'Sensor {name[1:4]}'].sort_values(by=['created_at'])
+
+                        # Reset the index
+                        data[f'Sensor {name[1:4]}'].reset_index(inplace=True, drop=True)
+    return data
 
 def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
     """
