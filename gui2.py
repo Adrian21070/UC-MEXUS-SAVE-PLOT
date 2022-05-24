@@ -7,6 +7,7 @@ from datetime import datetime
 from dateutil import tz
 
 
+
 # Diccionarios utiles para los nombres de columnas y datos
 
 # Diccionario para seleccionar el tipo de material
@@ -48,10 +49,10 @@ sg.theme('DarkAmber')
 
 # Columnas de interfaz reutilizables.
 col1=[[sg.Text('Selecciona los datos a analizar')],
-        [sg.Checkbox('PM 1.0 CF', default=False, key="PM 1.0 CF")], 
-        [sg.Checkbox('PM 2.5 CF', default=False, key ="PM 2.5 CF")],
-        [sg.Checkbox('PM 10.0 CF', default=False, key ="PM 10.0 CF")],
-        [sg.Checkbox('PM 2.5 ATM', default=False, key ="PM 2.5 ATM")]]
+        [sg.Radio('Canal A', "Canal", default=True, key='Channel_A'), sg.Radio('Canal B', "Canal", default=False, key='Channel_B')],
+        [sg.Radio('PM 1.0 ATM', 'PM', default=False, key="PM 1.0 ATM"), sg.Radio('PM 2.5 ATM', 'PM', default=False, key="PM 2.5 ATM")],
+        [sg.Radio('PM 10.0 ATM', 'PM', default=False, key="PM 10.0 ATM"), sg.Radio('PM 1.0 CF', 'PM', default=False, key="PM 1.0 CF")],
+        [sg.Radio('PM 2.5 CF', 'PM', default=False, key="PM 2.5 CF"), sg.Radio('PM 10.0 CF', 'PM', default=False, key="PM 10.0 CF")]]
 
 def save_or_graph():
     layout = [[sg.Text('Favor de seleccionar lo que desea realizar:')],
@@ -146,8 +147,20 @@ def data_type(window):
 
     if 'Exit' in event:
         shutdown(window)
-    
-    return window, event, value
+
+    PMType = {}
+
+    if value['Channel_B']:
+        for ii in value.keys():
+            if value[ii] and ii != 'Channel_B':
+                PMType[ii + ' B'] = True
+
+    else:
+        for ii in value.keys():
+            if value[ii] and ii != 'Channel_A':
+                PMType[ii] = True
+
+    return window, event, PMType
 
 def sensors_info(window):
     # Solicita información de los sensores
@@ -218,7 +231,7 @@ def date_hour(window, key=0):
         # Paso las fechas a datetime y saco los dias entre ambas fechas en utc.
         start = datetime.strptime(value['Start'], '%Y-%m-%d').replace(tzinfo=tz.tzutc())
         end = datetime.strptime(value['End'], '%Y-%m-%d').replace(tzinfo=tz.tzutc())
-        days = [ii for ii in range(start, end+1, 1)]
+        days = [ii for ii in range(start.day, end.day+1, 1)]
         return window, event, value, days
 
     else:
@@ -330,7 +343,6 @@ def csv_online(window, num_holes_per_sensor, holes):
 
     return window, value
 
-#indx, days, key=0
 def csv_files(window):
     # Solicita archivos csv
 
@@ -338,12 +350,12 @@ def csv_files(window):
             [sg.Text(f'Ubicación de la carpeta: '), sg.Input(), sg.FolderBrowse()],
             [sg.Button('Extraer',key='TypeData'), sg.Button('Exit')]]
 
-    if 'Exit' in event:
-        shutdown(window)
-
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font=font2, size=(720,480))
     event, value = window.read()
+
+    if 'Exit' in event:
+        shutdown(window)
 
     data = Func.open_csv(value)
     data_sorted = {}

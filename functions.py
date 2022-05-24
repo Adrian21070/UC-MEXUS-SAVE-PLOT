@@ -152,6 +152,8 @@ def open_csv(value):
     # Leo los archivos dentro de la carpeta.
     data = {}
     it = 1
+    minimum = {}
+    maximum = {}
     with os.scandir(value['Browse']) as ficheros:
         # Ficheros right now has directories with csv inside
         for fichero in ficheros:
@@ -161,15 +163,23 @@ def open_csv(value):
                     for file in files:
                         #file should have the name as SXXX_YYYY_MM_DD
                         name = file.name
+                        # Abro el archivo
                         df = pd.read_csv(dir + '/' + name)
+                        # Paso a datetime las fechas.
+                        df['created_at'] = conversor_datetime_string(df['created_at'], key=0)
+
                         data[f'Sensor {name[1:4]}'] = df
                 it += 1
             else:
                 with os.scandir(dir) as files:
                     for file in files:
-                        #file should have the name as SXXX_YYYY_MM_DD
+                        # file should have the name as SXXX_YYYY_MM_DD
                         name = file.name
+                        # Abro el archivo
                         df = pd.read_csv(dir + '/' + name)
+                        # Paso a datetime las fechas
+                        df['created_at'] = conversor_datetime_string(df['created_at'], key=0)
+
                         data[f'Sensor {name[1:4]}'] = pd.concat([data[f'Sensor {name[1:4]}'], df])
 
                         # Sort the data
@@ -177,7 +187,16 @@ def open_csv(value):
 
                         # Reset the index
                         data[f'Sensor {name[1:4]}'].reset_index(inplace=True, drop=True)
-    return data
+    
+    # Obtengo los minimos y maximos de cada sensor.
+    for ii in data.keys():
+        df = data[ii]
+        date = df['created_at']
+
+        maximum[ii] = date.iloc[-1]
+        minimum[ii] = date.iloc[0]
+
+    return data, minimum, maximum
 
 def redondeo_fecha_y_datos_de_interes(data, from_zone, to_zone, PMType):
     """

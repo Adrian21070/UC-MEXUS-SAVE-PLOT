@@ -1,5 +1,6 @@
 # Librerias
 import sys
+import csv_plot as Csv
 import gui2 as gui
 import functions as Func
 import save_data as save
@@ -118,9 +119,14 @@ if __name__ == "__main__":
         elif event == 'CSV':
             event = 'Extraction'
             while True:
+                if event == 'Extraction':
+                    window, event, value, minimum, maximum = Csv.csv_files(window)
+                    csv_data = value
+                    value = []
+
                 if event == 'TypeData':
                     # Pregunta que tipo de dato quiere analizar
-                    window, event, value = gui.data_type(window)
+                    window, event, value = Csv.data_type(window)
                     PMType = value
 
                 if event == 'Return':
@@ -130,7 +136,7 @@ if __name__ == "__main__":
                 if event == 'Sensor_info':
                     # Pedimos al usuario información sobre el número de sensores,
                     # distancia entre ellos, etc.
-                    window, event, value = gui.sensors_info(window)
+                    window, event, value = Csv.sensors_info(window)
                     if event != 'SensorDistribution':
                         continue
                     # Almacenamos los datos importantes de esto
@@ -142,21 +148,27 @@ if __name__ == "__main__":
 
                 if event == 'SensorDistribution':
                     # Solicitamos la distribución de los sensores.
-                    window, event, indx = gui.distribution(window,num_sen,rows,columns)
+                    window, event, indx = Csv.distribution(window,num_sen,rows,columns)
 
                 if event == 'Date_hour':
                     # Solicitamos al usuario los rangos de fecha de las mediciones
-                    window, event, value, days = gui.date_hour(window, key=1)
+                    window, event, value, days = Csv.date_hour(window, key=1)
                     if event != 'Extraction':
                         continue
-                    event = 'Save or Graph'
-                    #start = value['Start'] + '%20' + value['Start_hour'] + ':00'
-                    #end = value['End'] + '%20' + value['End_hour'] + ':00'
+                    event = 'Graph'
 
-                if event == 'Extraction':
-                    # sorted_index = list(indx.values()).sort()
-                    window, event, value = gui.csv_files(window)
-                    csv_data = value
+                    start = value['Start'] + ' ' + value['Start_hour'] 
+                    end = value['End'] + ' ' + value['End_hour']
+
+                if event == 'Graph':
+                    # Se preguntan cosas de las graficas
+                    window, value = Csv.graph_domain(window)
+
+                    # Se preparan los datos
+                    data, limites = Csv.data_average(csv_data, minimum, maximum, value['delta'], PMType, start, end)
+
+                    # Se grafica
+                    Csv.graph(window, x_axis, y_axis, data, columns, rows, row_dist, col_dist, PMType, indx, limites):
 
         else:
             gui.shutdown(window)
