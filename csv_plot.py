@@ -148,8 +148,8 @@ def distribution(window,num_sen,rows,columns,row_dist,col_dist,x0,y0):
         x_axis.append(ii[0])
         y_axis.append(ii[1])
 
-    x_axis = np.array(x_axis)
-    y_axis = np.array(y_axis)
+    x_axis = np.array([x_axis])
+    y_axis = np.array([y_axis])
 
     """ X y Y deben ser matrices, no vectores """
 
@@ -275,13 +275,13 @@ def graph(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMT
     # Preguntamos si queremos modificar algo de las graficas, regresamos al inicio de esta función.
     layout = [[sg.Text('Si requiere modificar algo de las graficas de nuevo.')],
                 [sg.Text('Favor de seleccionar "Repetir graficado"')],
-                [sg.Button('Repetir graficado'), sg.Button('No volver a graficar')]]
+                [sg.Button('Repetir graficado'), sg.Button('Finalizar programa')]]
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
     event, value = window.read()
 
     if event == 'Repetir graficado':
-        event = 'Graphs'
+        event = 'Graph'
         return window, event, value
 
     else:

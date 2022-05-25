@@ -176,6 +176,9 @@ def sensors_in_field(window, numsen):
     window = sg.Window('Proyecto UC-MEXUS', [[sg.Column(lay, element_justification='center')]], font=font2, size=(720,480), grab_anywhere=True)
     event, indx = window.read()
 
+    if 'Exit' in event:
+        shutdown(window)
+
     for jj in indx.keys():
         num = int(indx[jj])
         if num > 99:
