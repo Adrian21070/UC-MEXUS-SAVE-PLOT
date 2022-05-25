@@ -29,7 +29,7 @@ def gen(path):
     return im
 
 im = []
-for ii in range(50):
+for ii in range(20):
     im.append(gen_frame('Imagenes\\'+f'demo{ii}.png'))
     
 #im = [frame.convert('PA') for frame in im]

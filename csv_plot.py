@@ -250,7 +250,7 @@ def data_average(data, minimum, maximum, delta, PMType, begin, final):
             rows = df.loc[((date >= start) & (date < end))]
 
             # Calculamos promedios
-            prom = [start.astimezone(tz.tzlocal()).strftime("%Y/%m/%d, %H:%M")+' -> '+end.astimezone(tz.tzlocal()).strftime("%Y/%m/%d, %H:%M")]
+            prom = [start.astimezone(tz.tzlocal()).strftime("%Y/%m/%d, %H:%M") + ' (hora de inicio)']
             prom.append(round(np.mean(rows[PMType]),4))
 
             new_data[ii].loc[jj] = prom
@@ -270,7 +270,7 @@ def data_average(data, minimum, maximum, delta, PMType, begin, final):
 
 def graph(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites, value):
     PMType = [PMType]
-    Func.graphs(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, value, PMType, indx, limites)
+    Func.graphs(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, value, PMType, indx, limites, value['delta'])
     
     # Preguntamos si queremos modificar algo de las graficas, regresamos al inicio de esta función.
     layout = [[sg.Text('Si requiere modificar algo de las graficas de nuevo.')],
