@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-
+"""
 x = np.arange(0,10,1)
 y = 2*x
 
@@ -66,4 +66,61 @@ plt.subplots_adjust(top=0.8)
 
 plt.show()
 
+x = 1
+"""
+t = np.arange(0,10,1)
+x = np.cos(t)
+y = np.sin(t)
+z = x*y
+
+fig = plt.figure()
+ax1 = fig.add_subplot(1, 1, 1, projection='3d')
+
+ax1.scatter(x, y, z, s=40, c='r')
+
+#axis labels
+ax1.set_ylabel('Profundidad',
+              fontsize=11,
+              fontfamily="Times New Roman")
+
+ax1.set_xlabel('Carretera',
+              fontsize=11,
+              fontfamily="Times New Roman")
+
+ax1.set_xticks(x)
+ax1.set_yticks(y)
+ax1.set_zticks(z)
+
+ax1.tick_params(axis='both',
+               labelsize=9)
+
+#subtitle
+ax1.set_title(f'Promedio cada {15} minutos\n'+'2022/04/07, 20:15 (hora de inicio)',
+             x=0.5,
+             y=0.89,
+             transform=fig.transFigure,
+             fontsize=11,
+             fontfamily="Times New Roman")
+
+ax1.set_title(f'Max {1.75}, Min {0.1}',
+             x=0.5,
+             y=0.05,
+             transform=fig.transFigure,
+             fontsize=11,
+             fontfamily="Times New Roman")
+
+#superior title
+plt.suptitle('Concentración ' + 'PM2.5_ATM_ug/m3'.replace('_','').replace('ATM','').strip('ug/m3'),
+             x=0.5,
+             y=0.92,
+             transform=fig.transFigure,
+             fontsize=14,
+             fontweight="regular",
+             fontfamily="Times New Roman")
+ax1.view_init(25, -130)
+#ax1.grid(False)
+ax1.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+ax1.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+ax1.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+plt.show()
 x = 1
