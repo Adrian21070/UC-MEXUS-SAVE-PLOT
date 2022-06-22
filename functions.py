@@ -527,7 +527,7 @@ def Fix_data(data_online, csv_data, PMType, holes, key):
 
     return df_online
 
-def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx,limites):
+def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx,limites,fig,prom):
     z_axis = []  
 
     # Se obtiene la lista de las fechas de cada medición
@@ -544,7 +544,8 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     maximum = round(max(z_axis),2)
     average = round(np.mean(z_axis),2)
     #textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3  Promedio: "+str(average)+" ug/m3"
-    textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3"
+    #textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3"
+    textstr = "Min: "+str(minimum)+" ug/m3   Max: "+str(maximum)+" ug/m3"
 
     ax1.clear()
     ax1.annotate(textstr,
@@ -553,11 +554,11 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
             textcoords='offset points',
             size=10, ha='center', va='bottom')
     
-    ax1.annotate(df['created_at'][i],
-            xy=(0.5, 0.8), xytext=(0, 10),
-            xycoords=('axes fraction', 'figure fraction'),
-            textcoords='offset points',
-            size=10, ha='center', va='bottom')
+    #ax1.annotate(df['created_at'][i],
+    #        xy=(0.5, 0.8), xytext=(0, 10),
+    #        xycoords=('axes fraction', 'figure fraction'),
+    #        textcoords='offset points',
+    #        size=10, ha='center', va='bottom')
 
     scamap = plt.cm.ScalarMappable(cmap='inferno')
     fcolors = scamap.to_rgba(maximum)
@@ -571,19 +572,64 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
 
     gridx,gridy,gridz0 = Interpol(x_axis,y_axis,z_axis,x_final,y_final,x_min,y_min)
     ax1.plot_surface(gridx, gridy, gridz0,cmap=cm.inferno, linewidth=0, antialiased=False)
-    ax1.set_facecolor('w')
-    ax1.set_xlabel('Carretera (m)')
-    ax1.set_ylabel('Profundidad (m)')
-    #ax1.zaxis.set_rotate_label(False)
-    ax1.set_zlabel('ug/m3', rotation = 180)
+
+    # Plot style
+    ax1.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax1.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    ax1.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+
+    #axis labels
+    ax1.set_ylabel('Profundidad (m)',
+                fontsize=11,
+                fontfamily="Times New Roman")
+
+    ax1.set_xlabel('Carretera (m)',
+                fontsize=11,
+                fontfamily="Times New Roman")
+
+    ax1.set_zlabel('ug/m3',
+                fontsize=11,
+                rotation = 180,
+                fontfamily="Times New Roman")
+
     ax1.set_xlim3d(x_min, x_final)
     ax1.set_xticks(np.arange(x_min, x_final+lateral_length, lateral_length))
     ax1.invert_xaxis()
+
     ax1.set_ylim3d(y_min, y_final)
     ax1.set_yticks(np.arange(y_min, y_final+depth_length, depth_length))
+
     ax1.set_zlim3d(0, limites[1])
-    ax1.view_init(25, -130)
-    plt.title(PMType[0])
+
+    ax1.tick_params(axis='both',
+                labelsize=9)
+
+    #subtitle
+    ax1.set_title(f'Promedio cada {round(prom*60)} minutos\n'+df['created_at'][i],
+             x=0.5,
+             y=0.87,
+             transform=fig.transFigure,
+             fontsize=12,
+             fontfamily="Times New Roman")
+
+    #superior title
+    plt.suptitle('Concentración ' + 'PM2.5_ATM_ug/m3'.replace('_','').replace('ATM','').strip('ug/m3'),
+             x=0.5,
+             y=0.92,
+             transform=fig.transFigure,
+             fontsize=14,
+             fontweight="regular",
+             fontfamily="Times New Roman")
+
+
+    #ax1.set_facecolor('w')
+    #ax1.set_xlabel('Carretera (m)')
+    #ax1.set_ylabel('Profundidad (m)')
+    #ax1.zaxis.set_rotate_label(False)
+    
+
+    ax1.view_init(15, -135)
+    #plt.title(PMType[0])
 
 def Interpol(x,y,z,xfinal,yfinal,xmin,ymin):
     points = np.concatenate((x.T, y.T), axis=1)
@@ -695,38 +741,44 @@ def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limi
         frames = len(z[f'Sensor {indx[0]}']['created_at'])
         frame_rate = length*60000/frames
 
-        #animate(7,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites)
+        #animate(7,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites, fig, prom)
         #plt.show()
         ani = animation.FuncAnimation(fig,animate,interval=frame_rate,
-                fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites),
+                fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites,fig,prom),
                 frames=frames, repeat=True)
-        ani.save('4.gif',writer='imagemagick', fps=frames/(length*60))
+        ani.save('2D_surface.gif',writer='imagemagick', fps=frames/(length*60))
         plt.show()
+
+        if True:
+            os.makedirs('2D_surface', exist_ok=True)
+            fig2 = plt.figure()
+            ax2 = fig2.add_subplot(111, projection='3d')
+            for ii in range(frames):
+                animate(ii,z,x,y,ax2,columns,rows,col_dist,row_dist, PMType, indx, limites, fig2, prom)
+                plt.savefig('2D_surface\\'+f'Frame{ii}.png', transparent=True)
         
     if value['LateralAvg']:
-        fig, ax1 = plt.subplots(1,1,dpi=100)
+        fig3, ax3 = plt.subplots(1,1,dpi=100)
         #fig = plt.figure()
         #ax1 = fig.add_axes((0.1, 0.17, 0.8, 0.72))
         #fig, ax1 = plt.subplots()
         frames = len(z[f'Sensor {indx[0]}']['created_at'])
         frame_rate = length*60000/frames
-        #animate_1D(6, z, y, PMType, row_dist, ax1, columns, rows, indx, limites,1.0, prom, fig)
+        #animate_1D(6, z, y, PMType, row_dist, ax3, columns, rows, indx, limites,1.0, prom, fig3)
         #plt.show()
         
-        anim = animation.FuncAnimation(fig, animate_1D, interval=frame_rate,
-                fargs=(z,y,PMType,row_dist,ax1,columns,rows,indx,limites,1.0, prom, fig),
+        anim = animation.FuncAnimation(fig3, animate_1D, interval=frame_rate,
+                fargs=(z,y,PMType,row_dist,ax3,columns,rows,indx,limites,1.0, prom, fig3),
                 frames=frames, repeat=True)
         anim.save('Lateral_avg2.gif',writer='imagemagick', fps=frames/(length*60))
         plt.show()
 
         if True:
-            os.makedirs('Imagenes', exist_ok=True)
-            fig2, ax2 = plt.subplots(1,1,dpi=100)
-            #fig2 = plt.figure()
-            #ax2 = fig2.add_axes((0.1, 0.17, 0.8, 0.72))
+            os.makedirs('Lateral_avg', exist_ok=True)
+            fig4, ax4 = plt.subplots(1,1,dpi=100)
             for ii in range(frames):
-                animate_1D(ii, z, y, PMType, row_dist, ax2, columns, rows, indx, limites,0.0, prom, fig2)
-                plt.savefig('Imagenes\\'+f'demo{ii}.png', transparent=True)
+                animate_1D(ii, z, y, PMType, row_dist, ax4, columns, rows, indx, limites,0.0, prom, fig4)
+                plt.savefig('Lateral_avg\\'+f'Frame{ii}.png', transparent=True)
 
     if value['Historico']:
         pass

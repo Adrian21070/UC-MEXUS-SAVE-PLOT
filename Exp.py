@@ -102,12 +102,12 @@ ax1.set_title(f'Promedio cada {15} minutos\n'+'2022/04/07, 20:15 (hora de inicio
              fontsize=11,
              fontfamily="Times New Roman")
 
-ax1.set_title(f'Max {1.75}, Min {0.1}',
-             x=0.5,
-             y=0.05,
-             transform=fig.transFigure,
-             fontsize=11,
-             fontfamily="Times New Roman")
+#ax1.set_title(f'Max {1.75}, Min {0.1}',
+#             x=0.5,
+#             y=0.05,
+#             transform=fig.transFigure,
+#             fontsize=11,
+#             fontfamily="Times New Roman")
 
 #superior title
 plt.suptitle('Concentración ' + 'PM2.5_ATM_ug/m3'.replace('_','').replace('ATM','').strip('ug/m3'),
@@ -122,5 +122,13 @@ ax1.view_init(25, -130)
 ax1.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 ax1.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 ax1.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+textstr = "Max: "+str(15)+" ug/m3  Min: "+str(10)+" ug/m3"
+
+ax1.annotate(textstr,
+        xy=(0.5, 0), xytext=(0, 10),
+        xycoords=('axes fraction', 'figure fraction'),
+        textcoords='offset points',
+        size=11, ha='center', va='bottom',
+        font='Times New Roman')
 plt.show()
 x = 1
