@@ -239,6 +239,7 @@ def open_csv(window, value):
         df = data[ii]
         date = df['created_at']
 
+        # En formato datetime utc.
         maximum[ii] = date.iloc[-1]
         minimum[ii] = date.iloc[0]
 
@@ -777,7 +778,7 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
 def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limites, prom):
     indx = list(indx.values())
     prom = float(prom)
-    length = float(value['Length'])
+    length = float(value['Length']) #minutes
     if value['Animation3D']:
         #fig,ax = plt.subplots()
         fig = plt.figure()

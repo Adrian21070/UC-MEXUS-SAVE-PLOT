@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
-import functions as Func
-import gui2 as gui
+import plots as Func
+import main_gui as gui
 import pandas as pd
 import sys
 import os
@@ -130,9 +130,9 @@ CSV_dict = {"UTCDateTime":"created_at",
             "p_5_0_um_b":">=5.0_B_um/dl", "p_10_0_um_b":">=10.0_B_um/dl"}
 
 # Fuentes para la interfaz
-font = ('Times New Roman', 16)
+font = ('Times New Roman', 14)
 font2 = ('Times New Roman', 12)
-font3 = ('Times New Roman', 14)
+font3 = ('Times New Roman', 18)
 
 def sensor_info(window):
     # Primero solicita el número de sensores a guardar e intervalo de tiempo
@@ -140,9 +140,9 @@ def sensor_info(window):
     layout = [[sg.Text('Datos acerca del número de sensores y el intervalo de medición\n', font=font)],
                 [sg.Text('Favor de introducir el dia y hora en formato UTC.', font=font3)],
                 [sg.CalendarButton('Dia de inicio de la medición',target='Start', size=(25,1), format='20%y-%m-%d',font=font2), sg.Input(key='Start')],
-                [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_hour')],
+                [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText('00:00',key='Start_hour')],
                 [sg.CalendarButton('Dia del fin de la medición',target='End', size=(25,1), format='20%y-%m-%d',font=font2), sg.Input(key='End')],
-                [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_hour')],
+                [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText('23:59',key='End_hour')],
                 [sg.Text('')],
                 [sg.Text('Nota: El programa tiene registrado las llaves y ids de 30 sensores,\nsi desea trabajar con más sensores, favor de seleccionar el recuadro:')],
                 [sg.Checkbox('Cargar llaves y Ids', default=False, key='Cargar')],
@@ -230,12 +230,12 @@ def sensors_in_field(window):
         layout.append(lay)
         lay = []
 
-    frame = [[sg.Frame('Sensores a monitorizar', layout, element_justification='center', expand_x=True)]]
+    frame = [[sg.Frame('Sensores a descargar', layout, element_justification='center', expand_x=True)]]
 
-    lay = [[sg.Text('Favor de indicar los sensores a monitorizar\n', justification='center', font=('Times New Roman', 20), expand_x=True)],
+    lay = [[sg.Text('Favor de indicar los sensores a descargar\n', justification='center', font=('Times New Roman', 20), expand_x=True)],
             [sg.Text('Escribe el número de identificación de los sensores en los recuadros (Ejemplo: 1, 6, 23).')],
-            [sg.Text('En el recuadro se despliegan todos los sensores disponibles a monitorizar, si no requiere')],
-            [sg.Text('verificar alguno de ellos, deje en blanco su recuadro.')],
+            [sg.Text('En el recuadro se despliegan todos los sensores, si no requiere')],
+            [sg.Text('alguno de ellos, deje en blanco su recuadro.')],
             [sg.Column(frame, scrollable=True, expand_y=True, justification='center')],
             [sg.Button('Continue',key='Next'),sg.Button('Exit')]]
     
@@ -436,6 +436,7 @@ def holes_verification(window, data, indx):
                     # sizes tiene como llave el inicio del hueco y como value el final.
                     sizes[f'Sensor {ii}'].update({time[jj]:time[jj+1]})
 
+
                     if temp == 0:
                         temp += 1
                         num_holes_per_sensor[f'Sensor {ii}'] = temp
@@ -461,7 +462,7 @@ def holes_verification(window, data, indx):
 
     try:
         # Si existen huecos, se notifica.
-        if sizes:
+        if num_holes_per_sensor:
             window, event = gui.holes_warning(window,sizes,num_holes_per_sensor)
             return window, event, sizes, num_holes_per_sensor
 

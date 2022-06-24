@@ -1,4 +1,21 @@
+import plots as Func
+import PySimpleGUI as sg
+import sys
+from pytz import utc
+from datetime import datetime
+from dateutil import tz
 
+# Fuentes para la interfaz
+font = ('Times New Roman', 16)
+font2 = ('Times New Roman', 12)
+font3 = ('Times New Roman', 18)
+
+# Zonas horarias
+Local_H = tz.tzlocal()
+Utc = tz.gettz('UTC')
+
+# Diseño de la interfaz. 
+sg.theme('DarkAmber')
 
 def save_or_graph():
     layout = [[sg.Text('Favor de seleccionar lo que desea realizar:')],
@@ -13,7 +30,7 @@ def save_or_graph():
 
 def gui_graph_creation(window):
     # Creacion de la interfaz
-    layout = [[sg.Text('Seleccione de donde desea sacar los datos', font = font)],
+    layout = [[sg.Text('Seleccione de donde desea sacar los datos', font = font3)],
            [sg.Button('Online'),sg.Button('Archivo CSV', key='CSV'),
             sg.Button('Exit',key='Exit')]]
     window.close()
@@ -26,7 +43,7 @@ def holes_warning(window,holes,num_csv):
     
     # Notificar con una ventana que existen huecos
     layout = [[sg.Text('Existen sensores con huecos de información',font=font), sg.Text(f'(YYYY-MM-DD HH-MM-SS)')],
-                [sg.Text('Los sensores son:', font = font3)]]
+                [sg.Text('Los sensores son:', font = font2)]]
     for ii in num_csv.keys():
         k = list(holes[ii].keys())
         v = list(holes[ii].values())
@@ -46,7 +63,7 @@ def holes_warning(window,holes,num_csv):
 
             holes_text.append([sg.Text(f'{k2}  hasta  {v2}, timezone: Local.')])
             holes_text.append([sg.Text(f'{utc_k}  hasta  {utc_v}, timezone: UTC')])
-        layout.append([sg.Frame(f'{ii} presenta un hueco desde',holes_text)])
+        layout.append([sg.Frame(f'{ii} presenta un hueco desde',holes_text),sg.Text('')])
     layout.append([sg.Button('Solucionar errores',key='Fix_errors')])
     lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
 

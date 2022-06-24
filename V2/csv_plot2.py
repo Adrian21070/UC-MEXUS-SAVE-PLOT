@@ -10,9 +10,9 @@ from datetime import datetime, timedelta
 from dateutil import tz
 
 # Fuentes para la interfaz
-font = ('Times New Roman', 16)
+font = ('Times New Roman', 14)
 font2 = ('Times New Roman', 12)
-font3 = ('Times New Roman', 14)
+font3 = ('Times New Roman', 18)
 
 # Columnas de interfaz reutilizables.
 col1=[[sg.Text('Selecciona los datos a analizar')],
@@ -31,12 +31,12 @@ PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
 def csv_files(window):
     # Solicita archivos csv
 
-    layout = [[sg.Text('Seleccione la carpeta donde se encuentras los archivos csv', font=font)],
+    layout = [[sg.Text('Seleccione la carpeta donde se encuentras los archivos csv', font=font3)],
             [sg.Text(f'Ubicación de la carpeta: '), sg.Input(), sg.FolderBrowse()],
             [sg.Button('Extraer',key='TypeData'), sg.Button('Exit')]]
 
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', layout, font=font2, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480))
     event, value = window.read()
 
     if 'Exit' in event:
@@ -49,7 +49,7 @@ def csv_files(window):
 
     data_sorted = {}
     indx_sort = sorted(data.items())
-
+    del data
     for ii in indx_sort:
         data_sorted[ii[0]] = ii[1]
         
@@ -58,7 +58,7 @@ def csv_files(window):
 def data_type(window):
     # Se pregunta el tipo de dato que quiere analizar.
     layout = [col1, [sg.Button('Next', key='Sensor_info'), sg.Button('Return',key='Extraction'), sg.Button('Exit')]]
-
+    # Puedo hacerlo frame y poner todo en el centro mas estetico
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
     event, value = window.read()
@@ -82,10 +82,35 @@ def data_type(window):
 
     return window, event, PMType
 
-def sensors_info(window):
+def sensors_info(names, window):
+    # Obtengo sus nombres
+    indx = []
+    try:
+        # Para que esto funcione, los archivos deben llamarse SXXX_20XX_YY_ZZ o SXXX_20XXYYZZ
+        for ii in names:
+            indx.append(ii[-3:])
+            aa = int(ii[-3:]) # Si esto falla, entonces no tenian los nombres correctos.
+
+        del aa
+    except:
+        layout = [[sg.Text('Error al leer un archivo', font=('Times New Roman',18))],
+                [sg.Text(f'Se tuvo problemas al leer el archivo {ii}.')],
+                [sg.Text('El nombre del archivo no es el correcto, debe tener la forma')],
+                [sg.Text('SXXX_YYYY_MM_DD')],
+                [sg.Button('Return', key='Extraction'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+
+        return window, event, value, indx, True
+
     # Solicita información de los sensores
-    layout = [[sg.Text('Datos acerca del número de sensores y su disposición',font=font)],
-                [sg.Text('Num. de Sensores', size =(25, 1)), sg.InputText(key='NumSen')],
+    layout = [[sg.Text('Datos acerca de la medición en campo',font=font3, justification='center', expand_x=True)],
+                [sg.Text(f'Cuenta con {len(indx)} sensores a disposición.')],
+                [sg.Text('Favor de seleccionar el número de columnas y filas utilizadas en el campo.\n')],
                 [sg.Text('Num. Columnas de Sensores', size =(25, 1)), sg.InputText(key='Columns')],
                 [sg.Text('Num. Filas de Sensores', size =(25, 1)), sg.InputText(key='Rows')],
                 [sg.Text('Distancia entre Columnas', size =(25, 1)), sg.InputText(key='Col_dis')],
@@ -95,40 +120,152 @@ def sensors_info(window):
                 [sg.Button("Next",key='SensorDistribution'), sg.Button('Return',key='TypeData'), sg.Button('Exit')]]
             
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
     event, value = window.read()
 
     if 'Exit' in event:
         shutdown(window)
-    
-    return window, event, value
 
-def distribution(window,num_sen,rows,columns,row_dist,col_dist,x0,y0):
+    try:
+        a = int(value['Columns'])
+        a1 = int(value['Rows'])
+        a2 = float(value['Col_dis'])
+        a3 = float(value['Row_dis'])
+        a4 = float(value['Y0'])
+        a5 = float(value['X0'])
+
+        del a, a1, a2, a3, a4, a5
+        return window, event, value, indx, False
+
+    except:
+        layout = [[sg.Text('Favor de introducir unicamente números en los campos', font=('Times New Roman',18))],
+                [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        return window, event, value, indx, True
+
+def distribution(window,num_sen,rows,columns):
     # Solicita como se distribuyeron los sensores en el campo.
 
     # Creación de un grid para la interfaz
-    chain = list(range(1,num_sen+1))
-    coordenadas = {}
+    chain = num_sen
+    lay = []
+    layout = []
     it = 0
     
-    for i in range(rows):
-        for j in range(columns):
-            coordenadas[f'{i},{j}'] = chain[it]
-            it += 1
+    try:
+        for i in range(rows):
+            for j in range(columns):
+                lay.append(sg.Input(chain[it], key=f'{chain[it]}',size=(5,1)))
+                #coordenadas[f'{i},{j}'] = chain[it]
+                it += 1
+            layout.append(lay)
+            lay = []
+    except:
+        layout = [[sg.Text('Fallo en el número de filas y columnas', font=('Times New Roman',18))],
+                [sg.Text(f'El número de filas y columnas no cubren a los {len(num_sen)} sensores')],
+                [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        event = 'Sensor_info'
+        return window, event, value, indx, False
 
-    layout = [[sg.Text('Carretera', font=('Times New Roman', 24), justification='center', expand_x=True)],
-                [sg.Frame('Disposición de los sensores', [[sg.Input(coordenadas[f'{row},{col}'],
-                key=f'{row},{col}', size=(5,1)) for col in range(columns)]
-                for row in range(rows)])],
-                [sg.Button('Next'),sg.Button('Return',key='Sensor_info'),sg.Button('Exit')]]
+    if it < len(num_sen):
+        event = 'Sensor_info'
+        return window, event, num_sen, False
+
+    frame = [[sg.Frame('Disposicion de los sensores', layout, element_justification='center', expand_x=True)]]
+    
+    del layout, lay
+
+    layout = [[sg.Text('Carretera', justification='center', font=('Times New Roman', 24), expand_x=True)],
+            [sg.Column(frame, scrollable=True, expand_y=True, justification='center')],
+        #    [sg.Column(frame, scrollable=True, justification='center')],
+            [sg.Text('Escribe el número de identificación de los sensores en los recuadros (Ejemplo: 1, 6, 23).')],
+            [sg.Text('En el recuadro se despliegan todos los sensores disponibles, si no requiere verificar')],
+            [sg.Text('alguno de ellos, deje en blanco su recuadro. Tambien puede cambiarlos de posición.')],
+            [sg.Button('Continue',key='Coordenadas'),sg.Button('Return',key='Sensor_info'),sg.Button('Exit')],
+            [sg.Text('\n')]]
 
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
     event, indx = window.read()
 
     if 'Exit' in event:
         shutdown(window)
+    if event != 'Coordenadas':
+        return window, event, indx, False
 
+    # Extraigo los valores dados por el usuario y quito los repetidos.
+    result = []
+    indx = list(indx.values())
+
+    # Quito los espacios vacios.
+    if '' in indx:
+        indx.remove('')
+
+    for item in indx:
+        if item not in result:
+            result.append(item)
+
+    indx = result
+    del result
+    
+    # Hago una prueba para evitar que el usuario rompa el código.
+    try:
+        num = []
+        # Los paso de string a enteros.
+        for jj in range(len(indx)):
+            num.append(int(indx[jj]))
+
+        # Compruebo que los numeros esten dentro de los numeros dados por el usuario o del 1 a 30.
+        llave = False
+
+        for ii in indx:
+            if ii in num_sen:
+                pass
+
+            else:
+                llave = True
+                # Si no se encuentra en el rango, se levanta un error y se pide ingresar de nuevo los datos.
+                layout = [[sg.Text('Favor de introducir únicamente números enteros que estén',font=('Times New Roman', 18))],
+                [sg.Text('entre el 1 y 30, o entre los números de los archivos csv cargados.',font=('Times New Roman', 18))],
+                [sg.Button('Return'), sg.Button('Exit')]]
+                window.close()
+                window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+                event, value = window.read()
+                if event in ('Exit', sg.WIN_CLOSED):
+                    window.close()
+                    sys.exit()
+                break
+
+        if llave:
+            return window, event, num_sen, True
+
+        return window, event, indx, False
+
+    except:
+        layout = [[sg.Text('Favor de introducir únicamente números enteros que estén')],
+                [sg.Text('entre 1 y 30, o entre los números de los archivos csv cargados.')],
+                [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=('Times New Roman', 18), size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+
+        return window, event, num_sen, True
+
+def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx):
     # Calculo de X y Y
     x = np.array(list(range(0,columns)))*col_dist + x0
     y = np.array(list(range(0,rows)))*row_dist + y0
@@ -138,9 +275,9 @@ def distribution(window,num_sen,rows,columns,row_dist,col_dist,x0,y0):
     # Matriz de coordenadas
     layout = [[sg.Text('Carretera', font=('Times New Roman', 24), justification='center', expand_x=True)],
                 [sg.Frame('Coordenadas de los sensores', [[sg.Input(f'{col},{row}',
-                key=(col,row), size=(5,1)) for col in x]
+                key=(col,row), size=(6,1)) for col in x]
                 for row in y])],
-                [sg.Button('Next',key='Date_hour'),sg.Button('Return',key='Sensor_info'),sg.Button('Exit')]]
+                [sg.Button('Continue',key='Date_hour'),sg.Button('Return',key='SensorDistribution'),sg.Button('Exit')]]
     
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
@@ -148,38 +285,60 @@ def distribution(window,num_sen,rows,columns,row_dist,col_dist,x0,y0):
 
     if 'Exit' in event:
         shutdown(window)
+    elif event != 'Date_hour':
+        return window, event, indx, 0, 0
 
-    for ii in value.values():
-        ii = eval(ii)
-        x_axis.append(ii[0])
-        y_axis.append(ii[1])
+    try:
+        for ii in value.values():
+            ii = eval(ii)
+            x_axis.append(ii[0])
+            y_axis.append(ii[1])
 
-    x_axis = np.array([x_axis])
-    y_axis = np.array([y_axis])
+        x_axis = np.array([x_axis])
+        y_axis = np.array([y_axis])
+    except:
+        layout = [[sg.Text('Favor de introducir únicamente números en las coordenadas')],
+                [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=('Times New Roman', 18), size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        
+        event = 'Coordenadas'
+        return window, event, indx, 0, 0
 
     """ X y Y deben ser matrices, no vectores """
 
-    indx = dict(zip(list(value.values()), list(indx.values())))
+    new_indx = dict(zip(list(value.values()), indx))
 
-    for jj in indx.keys():
-        num = int(indx[jj])
+    """ Esta de mas al parecer
+    for jj in new_indx.keys():
+        num = int(new_indx[jj])
         if num > 99:
             continue
         elif num >= 10 and num <= 99:
-            indx[jj] = f'0{indx[jj]}'
+            new_indx[jj] = f'0{new_indx[jj]}'
         else:
-            indx[jj] = f'00{indx[jj]}'
+            new_indx[jj] = f'00{new_indx[jj]}'
+    """
 
-    return window, event, indx, x_axis, y_axis
+    return window, event, new_indx, x_axis, y_axis
 
-def date_hour(window, key=0):
-    layout = [[sg.Text('Selección de fecha y hora de las mediciones',font=font)],
-                [sg.CalendarButton('Dia de inicio de la medición',target='Start', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='Start')],
-                [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_hour')],
+def date_hour(window, maximum, minimum, key=0):
+    start = min(minimum.values()).strftime('%Y-%m-%d')
+    end = max(maximum.values()).strftime('%Y-%m-%d')
+    start_hr = min(minimum.values()).strftime('%H:%M')
+    end_hr = max(maximum.values()).strftime('%H:%M')
+
+    layout = [[sg.Text('Selección de fecha y hora de las mediciones\n',font=font3, justification='center', expand_x=True)],
+                [sg.CalendarButton('Dia de inicio de la medición',target='Start', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(start,key='Start')],
+                [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(start_hr,key='Start_hour')],
                 [sg.Text('')],
-                [sg.CalendarButton('Dia del fin de la medición',target='End', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(key='End')],
-                [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_hour')],
-                [sg.Button("Next",key='Extraction'), sg.Button('Return',key='SensorDistribution'),sg.Button('Exit')]]
+                [sg.CalendarButton('Dia del fin de la medición',target='End', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(end,key='End')],
+                [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(end_hr,key='End_hour')],
+                [sg.Button("Continue",key='Graph'), sg.Button('Return',key='Sensor_info'),sg.Button('Exit')]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
@@ -187,6 +346,8 @@ def date_hour(window, key=0):
 
     if 'Exit' in event:
         shutdown(window)
+    elif event != 'Graph':
+        return window, event, value, 0
 
     if key == 1:
         # Paso las fechas a datetime y saco los dias entre ambas fechas en utc.
@@ -196,19 +357,19 @@ def date_hour(window, key=0):
         return window, event, value, days
 
     else:
-        return window, event, value
+        return window, event, value, 0
 
 def graph_domain(window):
     # Se pregunta que graficas quiere realizar
-    layout = [[sg.Text('Favor de seleccionar que graficas desea obtener')],
+    layout = [[sg.Text('Favor de seleccionar que graficas desea obtener', font=font3)],
             [sg.Checkbox('Animación 3D (superficie)', default=False, key='Animation3D')],
             [sg.Checkbox('Lateral average', default=False, key='LateralAvg')],
             [sg.Checkbox('Registro historico de filas', default=False, key='Historico')],
-            [sg.Text('Tiempo de duración animación (Min.)', size =(25, 1)), sg.InputText(key='Length')],
-            [sg.Text('Promedios de los datos en horas (1=60min)', size =(25, 1)), sg.InputText(key='delta')],
+            [sg.Text('Tiempo de duración animación (Min.)', size =(30, 1)), sg.InputText(key='Length')],
+            [sg.Text('Promedios de los datos en horas (1=60min)', size =(30, 1)), sg.InputText(key='delta')],
             [sg.Button('Graficar'), sg.Button('Exit')]]
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
     event, value = window.read()
 
     if 'Exit' in event:
