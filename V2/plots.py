@@ -7,7 +7,7 @@ import PySimpleGUI as sg
 import pandas as pd
 import math
 
-from matplotlib import cm
+from matplotlib import cm, style
 from datetime import datetime, timedelta
 from dateutil import tz
 from scipy import interpolate
@@ -574,8 +574,10 @@ def Fix_data(data_online, csv_data, PMType, holes, key):
 
     return df_online
 
-def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx,limites,fig,prom):
-    z_axis = []  
+def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx,limites,fig,prom, animation3d):
+    z_axis = []
+    styles = animation3d
+    del animation3d
 
     # Se obtiene la lista de las fechas de cada medición
     #time = list(measurements[f'S{indx[0]}']['created_at'].keys())
@@ -599,7 +601,7 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
             xy=(0.5, 0), xytext=(0, 10),
             xycoords=('axes fraction', 'figure fraction'),
             textcoords='offset points',
-            size=10, ha='center', va='bottom')
+            size=styles['Label_size'], ha='center', va='bottom')
     
     #ax1.annotate(df['created_at'][i],
     #        xy=(0.5, 0.8), xytext=(0, 10),
@@ -607,10 +609,11 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     #        textcoords='offset points',
     #        size=10, ha='center', va='bottom')
 
-    scamap = plt.cm.ScalarMappable(cmap='inferno')
-    fcolors = scamap.to_rgba(maximum)
-    size_scatter = [100 for n in range(len(x_axis))]
-    ax1.scatter3D(x_axis, y_axis, z_axis, s=size_scatter, c=z_axis, facecolors=fcolors, cmap='inferno')
+    if styles['Marker'] != 'No marker':
+        scamap = plt.cm.ScalarMappable(cmap='inferno')
+        fcolors = scamap.to_rgba(maximum)
+        size_scatter = [100 for n in range(len(x_axis))]
+        ax1.scatter3D(x_axis, y_axis, z_axis, s=size_scatter, c=z_axis, facecolors=fcolors, cmap='inferno')
 
     x_final = max(max(x_axis))
     y_final = max(max(y_axis))
@@ -627,15 +630,15 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
 
     #axis labels
     ax1.set_ylabel('Profundidad (m)',
-                fontsize=11,
+                fontsize=styles['Label_size'],
                 fontfamily="Times New Roman")
 
     ax1.set_xlabel('Carretera (m)',
-                fontsize=11,
+                fontsize=styles['Label_size'],
                 fontfamily="Times New Roman")
 
     ax1.set_zlabel('ug/m3',
-                fontsize=11,
+                fontsize=styles['Label_size'],
                 rotation = 180,
                 fontfamily="Times New Roman")
 
@@ -649,14 +652,14 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     ax1.set_zlim3d(0, limites[1])
 
     ax1.tick_params(axis='both',
-                labelsize=9)
+                labelsize=styles['Label_size']-2)
 
     #subtitle
     ax1.set_title(f'Promedio cada {round(prom*60)} minutos\n'+df['created_at'][i],
              x=0.5,
              y=0.87,
              transform=fig.transFigure,
-             fontsize=12,
+             fontsize=styles['Subtitle_size'],
              fontfamily="Times New Roman")
 
     #superior title
@@ -664,7 +667,7 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
              x=0.5,
              y=0.92,
              transform=fig.transFigure,
-             fontsize=14,
+             fontsize=styles['Title_size'],
              fontweight="regular",
              fontfamily="Times New Roman")
 
@@ -675,7 +678,7 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     #ax1.zaxis.set_rotate_label(False)
     
 
-    ax1.view_init(15, -135)
+    ax1.view_init(styles['Polar'], styles['Azimutal'])
     #plt.title(PMType[0])
 
 def Interpol(x,y,z,xfinal,yfinal,xmin,ymin):
@@ -684,10 +687,12 @@ def Interpol(x,y,z,xfinal,yfinal,xmin,ymin):
     grid_z0 = griddata(points, z, (grid_x, grid_y), method='cubic')
     return grid_x, grid_y, grid_z0
 
-def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx, limites, alpha, prom, fig):
+def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx, limites, alpha, prom, fig, lateral_avg):
     # Solo importa y_axis, profundidad
     z_axis = []
     y_axis = np.arange(min(min(y_axis)), max(max(y_axis))+depth, depth)
+    styles = lateral_avg
+    del lateral_avg
     #y_axis = [value*depth for value in range(rows)]
     # Creando lista con los datos ii
     for jj in indx:
@@ -711,13 +716,14 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     
     # Realiza el plot
     ax1.clear()
-    ax1.scatter(y_axis, filas, s=40, c='r')
+    if styles['Marker'] != 'No marker':
+        ax1.scatter(y_axis, filas, s=40, c='r')
 
     # Interpolación
     #f = interpolate.interp1d(y_axis, filas, kind='cubic')
     f = interpolate.interp1d(y_axis, filas, kind='quadratic')
     x = np.arange(min(y_axis), max(y_axis), 0.1)
-    ax1.plot(x, f(x), '--', linewidth=2)
+    ax1.plot(x, f(x), styles['LineStyle'], linewidth=styles['LineSize'])
 
     #ax1.annotate(df['created_at'][i],
     #    xy=(0.5, 0), xytext=(0, 10),
@@ -727,11 +733,11 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
 
     #axis labels
     ax1.set_xlabel('Profundidad (m)',
-                  fontsize=12,
+                  fontsize=styles['Label_size'],
                   fontfamily="Times New Roman")
 
     ax1.set_ylabel('Valor promedio (ug/m3)',
-                  fontsize=12,
+                  fontsize=styles['Label_size'],
                   fontfamily="Times New Roman")
 
     ax1.set_xticks(y_axis, axis = 0)
@@ -739,14 +745,14 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     #ax1.set_xticks(np.concatenate([[0], y_axis], axis = 0))
 
     ax1.tick_params(axis='both',
-                   labelsize=10)
+                   labelsize=styles['Label_size']-2)
 
     #subtitle
     ax1.set_title(f'Promedio cada {round(prom*60)} minutos\n'+df['created_at'][i],
                  x=0.5,
                  y=0.83,
                  transform=fig.transFigure,
-                 fontsize=14,
+                 fontsize=styles['Subtitle_size'],
                  fontfamily="Times New Roman")
 
     #superior title
@@ -754,7 +760,7 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
                  x=0.5,
                  y=0.95,
                  transform=fig.transFigure,
-                 fontsize=16,
+                 fontsize=styles['Title_size'],
                  fontweight="regular",
                  fontfamily="Times New Roman")
 
@@ -763,7 +769,7 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     #ax1.set_xlabel('Profundidad (m)')
     #ax1.set_ylabel('Valor promedio (ug/m3)')
 
-    ax1.legend(['Promedio', 'Interpolación cuadrática'], loc='upper right', framealpha=alpha, fontsize=10, prop={'family': 'Times New Roman'})
+    ax1.legend(['Promedio', 'Interpolación cuadrática'], loc='upper right', framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': 'Times New Roman'})
 
     #ax1.set_xticks(np.concatenate([[0], y_axis], axis = 0), fontsize=11)
     #ax1.yticks(fontsize=11)
@@ -775,23 +781,22 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     #                'size': 14})
     #plt.title(PMType[0])
 
-def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limites, prom):
+def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limites, prom, Surface, lateral_avg, historico):
     indx = list(indx.values())
     prom = float(prom)
     length = float(value['Length']) #minutes
+
     if value['Animation3D']:
-        #fig,ax = plt.subplots()
         fig = plt.figure()
         ax1 = fig.add_subplot(111, projection='3d')
-        #ax1 = plt.axes(projection='3d')
-        
+
         frames = len(z[f'Sensor {indx[0]}']['created_at'])
         frame_rate = length*60000/frames
 
-        #animate(7,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites, fig, prom)
+        #animate(7,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites, fig, prom, Surface)
         #plt.show()
         ani = animation.FuncAnimation(fig,animate,interval=frame_rate,
-                fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites,fig,prom),
+                fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites,fig,prom,Surface),
                 frames=frames, repeat=True)
         ani.save('2D_surface.gif',writer='imagemagick', fps=frames/(length*60))
         plt.show()
@@ -801,7 +806,7 @@ def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limi
             fig2 = plt.figure()
             ax2 = fig2.add_subplot(111, projection='3d')
             for ii in range(frames):
-                animate(ii,z,x,y,ax2,columns,rows,col_dist,row_dist, PMType, indx, limites, fig2, prom)
+                animate(ii,z,x,y,ax2,columns,rows,col_dist,row_dist, PMType, indx, limites, fig2, prom, Surface)
                 plt.savefig('2D_surface\\'+f'Frame{ii}.png', transparent=True)
         
     if value['LateralAvg']:
@@ -811,11 +816,11 @@ def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limi
         #fig, ax1 = plt.subplots()
         frames = len(z[f'Sensor {indx[0]}']['created_at'])
         frame_rate = length*60000/frames
-        #animate_1D(6, z, y, PMType, row_dist, ax3, columns, rows, indx, limites,1.0, prom, fig3)
+        #animate_1D(6, z, y, PMType, row_dist, ax3, columns, rows, indx, limites,1.0, prom, fig3, lateral_avg)
         #plt.show()
         
         anim = animation.FuncAnimation(fig3, animate_1D, interval=frame_rate,
-                fargs=(z,y,PMType,row_dist,ax3,columns,rows,indx,limites,1.0, prom, fig3),
+                fargs=(z,y,PMType,row_dist,ax3,columns,rows,indx,limites,1.0, prom, fig3, lateral_avg),
                 frames=frames, repeat=True)
         anim.save('Lateral_avg2.gif',writer='imagemagick', fps=frames/(length*60))
         plt.show()
@@ -824,7 +829,7 @@ def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limi
             os.makedirs('Lateral_avg', exist_ok=True)
             fig4, ax4 = plt.subplots(1,1,dpi=100)
             for ii in range(frames):
-                animate_1D(ii, z, y, PMType, row_dist, ax4, columns, rows, indx, limites,0.0, prom, fig4)
+                animate_1D(ii, z, y, PMType, row_dist, ax4, columns, rows, indx, limites,0.0, prom, fig4, lateral_avg)
                 plt.savefig('Lateral_avg\\'+f'Frame{ii}.png', transparent=True)
 
     if value['Historico']:
