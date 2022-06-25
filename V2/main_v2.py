@@ -159,16 +159,17 @@ if __name__ == '__main__':
                 if event == 'Date_hour':
                     # Solicitamos al usuario los rangos de fecha de las mediciones a graficar
                     window, event, value, days = Csv.date_hour(window, maximum, minimum, key=1)
-                    if event != 'Graph':
+                    if event != 'Styles':
                         continue
 
                     start = value['Start'] + ' ' + value['Start_hour'] 
                     end = value['End'] + ' ' + value['End_hour']
 
-                if event == 'Graph':
+                if event == 'Styles':
                     # Se preguntan cosas de las graficas
-                    window, value, animation3d, lateral_avg, historico = Csv.graph_domain(window, graph_selection, value_anim, PMType)
+                    window, event, surface, lateral_avg, historico = Csv.graph_domain(window, graph_selection, value_anim, PMType)
 
+                if event == 'Average':
                     """
                     Que me debe regresar graph_domain...
                     Si la imagen solicitada es estatica, entonces data_average no recibira un value['delta'], ya que no existe,
@@ -179,7 +180,9 @@ if __name__ == '__main__':
                     """
 
                     # Se preparan los datos
-                    data, limites, PMType2 = Csv.data_average(csv_data, minimum, maximum, value['delta'], PMType, start, end)
+                    new_data_anim, limites_anim, new_data_est, limites_est, PMType = Csv.data_average(csv_data, minimum, maximum, value_anim, graph_selection, PMType, start, end)
+                    #data, limites, PMType2 = Csv.data_average(csv_data, minimum, maximum, value_anim, PMType, start, end)
+                    event = 'Visualization'
 
                     """
                     Aparentemente a graph, debo darle los parametros que obtuve de graph_domain, el tipo de fuente, colores etc...
@@ -192,12 +195,36 @@ if __name__ == '__main__':
                     Mejor primero creas el gif y lo abres desde pysimplegui, así te evitas algunos problemas...
 
                     Con esto practicamente acabaste, solo te falta modificar tamaños en toda la gui.
+
+                    Faltan try-except??? Ni idea.
+
+                    Tipos de fuente tambien en los graficos aaaaaaaaaaaaa  (Listo)
                     """
+                if event == 'Visualization':
+                    if new_data_anim:
+                        # Realiza la animación y la guarda.
+                        if (graph_selection['Surface'] and graph_selection['An_superficie']):
+                            #Animación superficie
+                            Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, surface, 'Surface')
+
+                        if (graph_selection['LateralAvg'] and graph_selection['An_lateral']):
+                            Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, lateral_avg, 'LateralAvg')
+
+                    if new_data_est:
+                        # Realiza la grafica y la guarda
+                        if (graph_selection['Surface'] and graph_selection['Es_superficie']):
+                            #Animación superficie
+                            Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, surface, 'Surface')
+
+                        if (graph_selection['LateralAvg'] and graph_selection['Es_lateral']):
+                            Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, lateral_avg, 'LateralAvg')
+
+                        pass
 
                     # Se grafica
-                    window, event, value = Csv.graph(window, x_axis, y_axis, data, columns, rows, row_dist, col_dist, PMType2, indx, limites, value, animation3d, lateral_avg, historico)
+                    #window, event, value = Csv.graph(window, x_axis, y_axis, data, columns, rows, row_dist, col_dist, PMType2, indx, limites, value, historico)
 
-                    del data
+                    del new_data_anim, new_data_est, limites_anim, limites_est
 
         else:
             gui.shutdown(window)

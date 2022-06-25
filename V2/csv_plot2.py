@@ -194,7 +194,7 @@ def distribution(window,num_sen,rows,columns):
             [sg.Text('En el recuadro se despliegan todos los sensores disponibles, si no requiere verificar')],
             [sg.Text('alguno de ellos, deje en blanco su recuadro. Tambien puede cambiarlos de posición.')],
             [sg.Button('Continue',key='Coordenadas'),sg.Button('Return',key='Sensor_info'),sg.Button('Exit')],
-            [sg.Text('\n')]]
+            [sg.Text('',size=(1,1),font=('Times New Roman', 1))]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
@@ -278,7 +278,7 @@ def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx):
                 [sg.Frame('Coordenadas de los sensores', [[sg.Input(f'{col},{row}',
                 key=(col,row), size=(6,1)) for col in x]
                 for row in y])],
-                [sg.Button('Continue',key='Date_hour'),sg.Button('Return',key='SensorDistribution'),sg.Button('Exit')]]
+                [sg.Button('Continue',key='Tipo_de_grafico'),sg.Button('Return',key='SensorDistribution'),sg.Button('Exit')]]
     
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
@@ -286,7 +286,7 @@ def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx):
 
     if 'Exit' in event:
         shutdown(window)
-    elif event != 'Date_hour':
+    elif event != 'Tipo_de_grafico':
         return window, event, indx, 0, 0
 
     try:
@@ -375,7 +375,7 @@ def date_hour(window, maximum, minimum, key=0):
                 [sg.Text('')],
                 [sg.CalendarButton('Dia del final',target='End', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(end,key='End')],
                 [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(end_hr,key='End_hour')],
-                [sg.Button("Continue",key='Graph'), sg.Button('Return',key='Tipo_de_grafico'),sg.Button('Exit')]]
+                [sg.Button("Continue",key='Styles'), sg.Button('Return',key='Tipo_de_grafico'),sg.Button('Exit')]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
@@ -414,7 +414,8 @@ def graph_domain(window, value, value_anim, PMType):
             # Para animación
             layout = [[sg.Text('Animación de la superficie', font = font3, justification='center', expand_x=True)],
                     [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
-                    [sg.Text('Modifica el formato de la superficie animada.')],
+                    [sg.Text('Modifica el formato de la superficie animada.'), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
+                    [sg.Text('Tipo de fuente: ', size=(33,1)), sg.Combo(['Times New Roman', 'Calibri'],default_value='Times New Roman',key='Font')],
                     [sg.Text('Tamaño de letra para el titulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=14,key='Title_size')],
                     [sg.Text('Tamaño de letra para el subtitulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=12,key='Subtitle_size')],
                     [sg.Text('Tamaño de letra para los ejes: ',size=(33,1)), sg.Combo([8, 9, 10, 11, 12],default_value=11,key='Label_size')],
@@ -424,26 +425,25 @@ def graph_domain(window, value, value_anim, PMType):
                     [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
                     [sg.Text('Nombre del gif resultante: ',size=(33,1)), sg.Input('Superficie.gif', key='Name')],
                     [sg.Text('Selecciona donde guardar',size=(33,1)),sg.Input(size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
-                    [sg.Button('Continue'), sg.Button('Exit')]]
+                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
             window.close()
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
             event, animation3d = window.read()
 
             if 'Exit' in event:
                 shutdown(window)
-            elif event != 'Graph':
-                return 
+            elif event != 'Average':
+                return window, event, animation3d, lateral_avg, historico
 
             # Pasamos los datos a simbolos que entienda matplotlib
             animation3d['Marker'] = marker[animation3d['Marker']]
 
         else:
             # Para una figura estatica
-            layout = [[sg.Text('Superficie', font = font3, justification='center', expand_x=True)],
-                    [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
-                    [sg.Text('Modifica el formato de la superficie.',size=(29,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
+            frame = [[sg.Text('Modifica el formato de la superficie.',size=(29,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
                     [sg.Text('Contenido del titulo: ',size=(29,1)), sg.InputText('Concentración PM 2.5', key='Title_content')],
                     [sg.Text('Contenido del subtitulo: ',size=(29,1)), sg.InputText('Promedio desde XX hasta YY', key='Subtitle_content')],
+                    [sg.Text('Tipo de fuente: ', size=(29,1)), sg.Combo(['Times New Roman', 'Calibri'],default_value='Times New Roman',key='Font')],
                     [sg.Text('Tamaño de letra para el titulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=14,key='Title_size')],
                     [sg.Text('Tamaño de letra para el subtitulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=12,key='Subtitle_size')],
                     [sg.Text('Tamaño de letra para los ejes: ',size=(29,1)), sg.Combo([8, 9, 10, 11, 12],default_value=11,key='Label_size')],
@@ -453,7 +453,11 @@ def graph_domain(window, value, value_anim, PMType):
                     [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
                     [sg.Text('Nombre de la imagen resultante: ',size=(29,1)), sg.Input('Superficie.png', key='Name')],
                     [sg.Text('Selecciona donde guardar',size=(29,1)),sg.Input(size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
-                    [sg.Button('Continue'), sg.Button('Exit')]]
+                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+            
+            layout = [[sg.Text('Superficie', font = font3, justification='center', expand_x=True)],
+                    [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                    [sg.Column(frame, expand_y=True, scrollable=True, vertical_scroll_only=True)]]
 
             window.close()
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
@@ -461,8 +465,8 @@ def graph_domain(window, value, value_anim, PMType):
 
             if 'Exit' in event:
                 shutdown(window)
-            elif event != 'Graph':
-                return 
+            elif event != 'Average':
+                return window, event, animation3d, lateral_avg, historico
 
             # Pasamos los datos a simbolos que entienda matplotlib
             animation3d['Marker'] = marker[animation3d['Marker']]
@@ -472,7 +476,8 @@ def graph_domain(window, value, value_anim, PMType):
         if value['An_lateral']:
             # Para animación
             frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
-                    [sg.Text('Modifica el formato de la gráfica lateral.',size=(30,1))],
+                    [sg.Text('Modifica el formato de la gráfica lateral.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
+                    [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri'],default_value='Times New Roman',key='Font')],
                     [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
                     [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
                     [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
@@ -483,10 +488,10 @@ def graph_domain(window, value, value_anim, PMType):
                     [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
                     [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input('Lateral.gif', key='Name')],
                     [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
-                    [sg.Button('Continue'), sg.Button('Exit')]]
+                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
 
             layout = [[sg.Text('Promedio lateral', font = font3, justification='center', expand_x=True)],
-                    [sg.Column(frame, expand_y=True)]]
+                    [sg.Column(frame, expand_y=True, scrollable=True, vertical_scroll_only=True)]]
 
             window.close()
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
@@ -494,8 +499,8 @@ def graph_domain(window, value, value_anim, PMType):
 
             if 'Exit' in event:
                 shutdown(window)
-            elif event != 'Graph':
-                return 
+            elif event != 'Average':
+                return window, event, animation3d, lateral_avg, historico
 
             # Pasamos los datos a simbolos que entienda matplotlib
             lateral_avg['Marker'] = marker[lateral_avg['Marker']]
@@ -509,6 +514,7 @@ def graph_domain(window, value, value_anim, PMType):
                     [sg.Text('Modifica el formato de la gráfica lateral.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
                     [sg.Text('Contenido del titulo: ',size=(30,1)), sg.InputText('Concentración PM 2.5', key='Title_content')],
                     [sg.Text('Contenido del subtitulo: ',size=(30,1)), sg.InputText('Promedio desde XX hasta YY', key='Subtitle_content')],
+                    [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri'],default_value='Times New Roman',key='Font')],
                     [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
                     [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
                     [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
@@ -519,7 +525,7 @@ def graph_domain(window, value, value_anim, PMType):
                     [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
                     [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input('Lateral.png', key='Name')],
                     [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
-                    [sg.Button('Continue'), sg.Button('Exit')]]
+                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
 
             layout = [[sg.Text('Promedio lateral', font = font3, justification='center', expand_x=True)],
                     [sg.Column(frame, expand_y=True, scrollable=True, vertical_scroll_only=True)]]
@@ -530,8 +536,8 @@ def graph_domain(window, value, value_anim, PMType):
 
             if 'Exit' in event:
                 shutdown(window)
-            elif event != 'Graph':
-                return 
+            elif event != 'Average':
+                window, event, animation3d, lateral_avg, historico
 
             # Pasamos los datos a simbolos que entienda matplotlib
             lateral_avg['Marker'] = marker[lateral_avg['Marker']]
@@ -541,21 +547,15 @@ def graph_domain(window, value, value_anim, PMType):
     
     if value['Historico']:
         pass
-    
 
-    """
-    Que debo regresar??? Sigo pensando esto.
-    """
+    return window, event, animation3d, lateral_avg, historico
 
-    return window, value, animation3d, lateral_avg, historico
-
-def data_average(data, minimum, maximum, delta, PMType, begin, final):
+def data_average(data, minimum, maximum, anim, value, PMType, begin, final):
     begin = datetime.strptime(begin, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
     final = datetime.strptime(final, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
 
-    new_data = {}
+    
     PMType = PA_Onl[list(PMType.keys())[0]]
-    delta = float(delta)
     first_start = max(minimum.values())
     final_end = min(maximum.values())
 
@@ -566,8 +566,23 @@ def data_average(data, minimum, maximum, delta, PMType, begin, final):
         final_end = final
 
     dif = final_end - first_start
-
     seconds = dif.seconds + dif.days*24*60*60
+
+    ### El usuario pudo pedir una animada y una estatica, por lo que pueden haber mas de dos grupos de datos finales..
+    new_data_anim = limites_anim = new_data_est = limites_est = []
+
+    if (value['Surface'] and value['An_superficie']) or (value['LateralAvg'] and value['An_lateral']):
+        delta = float(anim['delta'])
+        new_data_anim, limites_anim, PMType = average(data, delta, PMType, first_start, final_end, seconds)
+
+    if (value['Surface'] and value['Es_superficie']) or (value['LateralAvg'] and value['Es_lateral']) or (value['Historico']):
+        delta = seconds/3600
+        new_data_est, limites_est, PMType = average(data, delta, PMType, first_start, final_end, seconds)
+
+    return new_data_anim, limites_anim, new_data_est, limites_est, PMType
+
+def average(data, delta, PMType, first_start, final_end, seconds):
+    new_data = {}
     cycles = math.ceil(seconds/(delta*60*60))
     
     maximum = []
@@ -607,22 +622,34 @@ def data_average(data, minimum, maximum, delta, PMType, begin, final):
     limites = [min(minimum), max(maximum)]
     return new_data, limites, PMType
 
-def graph(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites, value, animation3d, lateral_avg, historico):
-    
+def graph(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites, graph_selection, value_anim, styles, selection):
     PMType = [PMType]
-    Func.graphs(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, value, PMType, indx, limites, value['delta'], animation3d, lateral_avg, historico)
+    if selection == 'Surface':
+        Func.surface(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, styles)
     
+    if selection == 'LateralAvg':
+        Func.lateral_avg(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, graph_selection, PMType, indx, limites, value_anim, styles)
+
+    if selection == 'historico':
+        Func.historico(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, graph_selection, PMType, indx, limites, value_anim, styles)
+    #Func.graphs(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, value, PMType, indx, limites, value['delta'], animation3d, lateral_avg, historico)
+    
+    window, event = gui_final(window)
+
+    return window, event
+
+def gui_final(window):
     # Preguntamos si queremos modificar algo de las graficas, regresamos al inicio de esta función.
     layout = [[sg.Text('Si requiere modificar algo de las graficas de nuevo.')],
                 [sg.Text('Favor de seleccionar "Repetir graficado"')],
                 [sg.Button('Repetir graficado'), sg.Button('Finalizar programa')]]
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
-    event, value = window.read()
+    event = window.read()
 
     if event == 'Repetir graficado':
         event = 'Graph'
-        return window, event, value
+        return window, event
 
     else:
         shutdown(window)
