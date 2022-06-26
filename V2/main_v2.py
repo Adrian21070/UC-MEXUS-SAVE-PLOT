@@ -36,6 +36,8 @@ if __name__ == '__main__':
             Aquí falta hacer la corrección lineal si el usuario desea, checar que la GUI este bonita,
             y que lea un folder en lugar de multiples archivos para los huecos de información...
             indicandole al usuario que el folder debe tener unicamente los archivos que tienen huecos.
+
+            Returns tambien.
             """
 
 
@@ -170,24 +172,12 @@ if __name__ == '__main__':
                     window, event, surface, lateral_avg, historico = Csv.graph_domain(window, graph_selection, value_anim, PMType)
 
                 if event == 'Average':
-                    """
-                    Que me debe regresar graph_domain...
-                    Si la imagen solicitada es estatica, entonces data_average no recibira un value['delta'], ya que no existe,
-                    simplemente tomara todos los datos en el rango de fecha solicitado despues de hacer una matriz cuadrada, que lo hace data_average ya.
-                    los promedia y genera un solo dato por cada sensor...
-
-                    Ahora, si es animación, delta viene encapsulado en value_anim, debo darle este dato a data_average.
-                    """
-
                     # Se preparan los datos
                     new_data_anim, limites_anim, new_data_est, limites_est, PMType = Csv.data_average(csv_data, minimum, maximum, value_anim, graph_selection, PMType, start, end)
                     #data, limites, PMType2 = Csv.data_average(csv_data, minimum, maximum, value_anim, PMType, start, end)
                     event = 'Visualization'
 
                     """
-                    Aparentemente a graph, debo darle los parametros que obtuve de graph_domain, el tipo de fuente, colores etc...
-                    Ahora, debo hacer que se activen diversas funciones ahí en Graph, dependiendo si es estatica, animación.
-                    Debo crear más def o con puros ifs bastara??
                     Estara bien dar un preview de la grafica resultante para animación con el formato que me dio el usuario? y preguntarle
                     si esta conforme con eso???, esto ahorrara tiempo para el...
 
@@ -197,8 +187,6 @@ if __name__ == '__main__':
                     Con esto practicamente acabaste, solo te falta modificar tamaños en toda la gui.
 
                     Faltan try-except??? Ni idea.
-
-                    Tipos de fuente tambien en los graficos aaaaaaaaaaaaa  (Listo)
                     """
                 if event == 'Visualization':
                     if new_data_anim:
@@ -208,21 +196,21 @@ if __name__ == '__main__':
                             Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, surface, 'Surface')
 
                         if (graph_selection['LateralAvg'] and graph_selection['An_lateral']):
+                            #Animación promedio lateral
                             Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, lateral_avg, 'LateralAvg')
 
                     if new_data_est:
                         # Realiza la grafica y la guarda
                         if (graph_selection['Surface'] and graph_selection['Es_superficie']):
-                            #Animación superficie
-                            Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, surface, 'Surface')
+                            #Superficie estatica
+                            Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, surface, 'Surface')
 
                         if (graph_selection['LateralAvg'] and graph_selection['Es_lateral']):
-                            Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, lateral_avg, 'LateralAvg')
+                            #Lateral estatica
+                            Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, lateral_avg, 'LateralAvg')
 
-                        pass
+                        #Historico
 
-                    # Se grafica
-                    #window, event, value = Csv.graph(window, x_axis, y_axis, data, columns, rows, row_dist, col_dist, PMType2, indx, limites, value, historico)
 
                     del new_data_anim, new_data_est, limites_anim, limites_est
 

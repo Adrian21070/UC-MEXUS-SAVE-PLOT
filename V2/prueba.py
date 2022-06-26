@@ -1,5 +1,4 @@
 import PySimpleGUI as sg
-from matplotlib import markers
 import matplotlib.pyplot as plt
 
 """
@@ -42,19 +41,22 @@ layout = [[sg.Text('Superficie', font = font3, justification='center', expand_x=
                     [sg.Button('Continue'), sg.Button('Exit')]]
 
 frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
-                    [sg.Text('Modifica el formato de la gráfica lateral.',size=(30,1))],
-                    [sg.Text('Tipo de fuente: ', size=(29,1)), sg.Combo(['Times New Roman', 'Calibri'],default_value='Times New Roman',key='Font')],
+                    [sg.Text('Formato de la gráfica lateral animada.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=False, key='Recorrer')],
+                    [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font')],
+                    [sg.Text('Contenido del eje x: ',size=(30,1)), sg.InputText('profundidad (m)', key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italics', 'bold'], default_value='normal',key='Xstyle')],
+                    [sg.Text('Contenido del eje y: ',size=(30,1)), sg.InputText('Valor promedio (ug/m3)', key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italics', 'bold'], default_value='normal',key='Ystyle')],
                     [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
                     [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
                     [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
                     [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
+                    [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=40,key='MarkerSize')],
                     [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Rojo',key='MarkerColor')], 
                     [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value='Dashed --',key='LineStyle')],
                     [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=2,key='LineSize')],
                     [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
                     [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input('Lateral.gif', key='Name')],
                     [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
-                    [sg.Button('Continue'), sg.Button('Exit')]]
+                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
 
 """
 frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],

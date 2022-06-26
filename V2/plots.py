@@ -6,7 +6,7 @@ import matplotlib.animation as animation
 import PySimpleGUI as sg
 import pandas as pd
 import math
-
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import cm, style
 from datetime import datetime, timedelta
 from dateutil import tz
@@ -601,7 +601,7 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
         scamap = plt.cm.ScalarMappable(cmap='inferno')
         fcolors = scamap.to_rgba(maximum)
         size_scatter = [100 for n in range(len(x_axis))]
-        ax1.scatter3D(x_axis, y_axis, z_axis, styles['Marker'], s=size_scatter, c=z_axis, facecolors=fcolors, cmap='inferno')
+        ax1.scatter3D(x_axis, y_axis, z_axis, marker=styles['Marker'], s=size_scatter, c=z_axis, facecolors=fcolors, cmap='inferno')
 
     x_final = max(max(x_axis))
     y_final = max(max(y_axis))
@@ -617,15 +617,15 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     ax1.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
     #axis labels
-    ax1.set_ylabel('Profundidad (m)',
+    ax1.set_ylabel(styles['ylabel_content'],
                 fontsize=styles['Label_size'],
                 fontfamily=styles['Font'])
 
-    ax1.set_xlabel('Carretera (m)',
+    ax1.set_xlabel(styles['xlabel_content'],
                 fontsize=styles['Label_size'],
                 fontfamily=styles['Font'])
 
-    ax1.set_zlabel('ug/m3',
+    ax1.set_zlabel(styles['zlabel_content'],
                 fontsize=styles['Label_size'],
                 rotation = 180,
                 fontfamily=styles['Font'])
@@ -650,15 +650,25 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
              transform=fig.transFigure,
              fontsize=styles['Subtitle_size'],
              fontfamily=styles['Font'])
-
-        #superior title
-        plt.suptitle(styles['Title_content'],
-             x=0.5,
-             y=0.92,
-             transform=fig.transFigure,
-             fontsize=styles['Title_size'],
-             fontweight="regular",
-             fontfamily=styles['Font'])
+        
+        if styles['Bold']:
+            #superior title
+            plt.suptitle(styles['Title_content'],
+                 x=0.5,
+                 y=0.92,
+                 transform=fig.transFigure,
+                 fontsize=styles['Title_size'],
+                 fontweight="bold",
+                 fontfamily=styles['Font'])
+        else:
+            #superior title
+            plt.suptitle(styles['Title_content'],
+                 x=0.5,
+                 y=0.92,
+                 transform=fig.transFigure,
+                 fontsize=styles['Title_size'],
+                 fontweight="regular",
+                 fontfamily=styles['Font'])
         
     else:
         #subtitle
@@ -669,14 +679,24 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
              fontsize=styles['Subtitle_size'],
              fontfamily=styles['Font'])
 
-        #superior title
-        plt.suptitle('Concentración ' + 'PM2.5_ATM_ug/m3'.replace('_','').replace('ATM','').strip('ug/m3'),
-             x=0.5,
-             y=0.92,
-             transform=fig.transFigure,
-             fontsize=styles['Title_size'],
-             fontweight="regular",
-             fontfamily=styles['Font'])
+        if styles['Bold']:
+            #superior title
+            plt.suptitle('Concentración ' + 'PM2.5_ATM_ug/m3'.replace('_','').replace('ATM','').strip('ug/m3'),
+                 x=0.5,
+                 y=0.92,
+                 transform=fig.transFigure,
+                 fontsize=styles['Title_size'],
+                 fontweight="bold",
+                 fontfamily=styles['Font'])
+        else:
+            #superior title
+            plt.suptitle('Concentración ' + 'PM2.5_ATM_ug/m3'.replace('_','').replace('ATM','').strip('ug/m3'),
+                 x=0.5,
+                 y=0.92,
+                 transform=fig.transFigure,
+                 fontsize=styles['Title_size'],
+                 fontweight="regular",
+                 fontfamily=styles['Font'])
 
     #ax1.set_facecolor('w')
     #ax1.set_xlabel('Carretera (m)')
@@ -722,7 +742,7 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     # Realiza el plot
     ax1.clear()
     if styles['Marker'] != 'No marker':
-        ax1.scatter(y_axis, filas, styles['Marker'], s=40, c=styles['MarkerColor'])
+        ax1.scatter(y_axis, filas, s=styles['MarkerSize'], marker=styles['Marker'], c=styles['MarkerColor'])
 
     # Interpolación
     #f = interpolate.interp1d(y_axis, filas, kind='cubic')
@@ -737,13 +757,15 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     #    size=10, ha='center', va='bottom')
 
     #axis labels
-    ax1.set_xlabel('Profundidad (m)',
+    ax1.set_xlabel(styles['xlabel_content'],
                   fontsize=styles['Label_size'],
-                  fontfamily=styles['Font'])
+                  fontfamily=styles['Font'],
+                  fontstyle=styles['Xstyle'])
 
-    ax1.set_ylabel('Valor promedio (ug/m3)',
+    ax1.set_ylabel(styles['ylabel_content'],
                   fontsize=styles['Label_size'],
-                  fontfamily=styles['Font'])
+                  fontfamily=styles['Font'],
+                  fontstyle=styles['Ystyle'])
 
     ax1.set_xticks(y_axis, axis = 0)
 
@@ -759,16 +781,29 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
                      y=0.83,
                      transform=fig.transFigure,
                      fontsize=styles['Subtitle_size'],
-                     fontfamily="Times New Roman")
-    
-        #superior title
-        plt.suptitle(styles['Title_content'],
-                     x=0.5,
-                     y=0.95,
-                     transform=fig.transFigure,
-                     fontsize=styles['Title_size'],
-                     fontweight="regular",
-                     fontfamily="Times New Roman")
+                     fontfamily=styles['Font'],
+                     fontstyle=styles['Substyle'])
+        
+        if styles['Bold']:
+            #superior title
+            plt.suptitle(styles['Title_content'],
+                         x=0.5,
+                         y=0.95,
+                         transform=fig.transFigure,
+                         fontsize=styles['Title_size'],
+                         fontweight="bold",
+                         fontfamily=styles['Font'],
+                         fontstyle=styles['Titlestyle'])
+        else:    
+            #superior title
+            plt.suptitle(styles['Title_content'],
+                         x=0.5,
+                         y=0.95,
+                         transform=fig.transFigure,
+                         fontsize=styles['Title_size'],
+                         fontweight="regular",
+                         fontfamily=styles['Font'],
+                         fontstyle=styles['Titlestyle'])
 
     else:
         #subtitle
@@ -777,16 +812,29 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
                      y=0.83,
                      transform=fig.transFigure,
                      fontsize=styles['Subtitle_size'],
-                     fontfamily="Times New Roman")
-
-        #superior title
-        plt.suptitle('Concentración ' + PMType[0].replace('_','').replace('ATM','').strip('ug/m3'),
-                     x=0.5,
-                     y=0.95,
-                     transform=fig.transFigure,
-                     fontsize=styles['Title_size'],
-                     fontweight="regular",
-                     fontfamily="Times New Roman")
+                     fontfamily=styles['Font'],
+                     fontstyle=styles['Substyle'])
+        
+        if styles['Bold']:
+            #superior title
+            plt.suptitle('Concentración ' + PMType[0].replace('_','').replace('ATM','').strip('ug/m3'),
+                         x=0.5,
+                         y=0.95,
+                         transform=fig.transFigure,
+                         fontsize=styles['Title_size'],
+                         fontweight="bold",
+                         fontfamily=styles['Font'],
+                         fontstyle=styles['Titlestyle'])
+        else:
+            #superior title
+            plt.suptitle('Concentración ' + PMType[0].replace('_','').replace('ATM','').strip('ug/m3'),
+                         x=0.5,
+                         y=0.95,
+                         transform=fig.transFigure,
+                         fontsize=styles['Title_size'],
+                         fontweight="regular",
+                         fontfamily=styles['Font'],
+                         fontstyle=styles['Titlestyle'])
 
     #ax1.set_xlabel('Profundidad (m)')
     #ax1.set_ylabel('Valor promedio (ug/m3)')
@@ -805,66 +853,15 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     #ax1.set_xticks(np.concatenate([[0], y_axis], axis = 0), fontsize=11)
     #ax1.yticks(fontsize=11)
 
-    ax1.axis([0, max(y_axis)+0.5, 0, limites[1]])
+    if styles['Recorrer']:
+        ax1.axis([min(y_axis)-0.1, max(y_axis)+0.5, 0, limites[1]])
+    else:
+        ax1.axis([0, max(y_axis)+0.5, 0, limites[1]])
     plt.subplots_adjust(top=0.8)
     #plt.title(PMType[0].replace('_','').replace('ATM','').strip('ug/m3'), 
     #      fontdict={'family': 'Times New Roman', 
     #                'size': 14})
     #plt.title(PMType[0])
-
-def graphs(x, y, z, columns, rows, row_dist, col_dist, value, PMType, indx, limites, prom, Surface, lateral_avg, historico):
-    indx = list(indx.values())
-    prom = float(prom)
-    length = float(value['Length']) #minutes
-
-    if value['Animation3D']:
-        fig = plt.figure()
-        ax1 = fig.add_subplot(111, projection='3d')
-
-        frames = len(z[f'Sensor {indx[0]}']['created_at'])
-        frame_rate = length*60000/frames
-
-        #animate(7,z,x,y,ax1,columns,rows,col_dist,row_dist, PMType, indx, limites, fig, prom, Surface)
-        #plt.show()
-        ani = animation.FuncAnimation(fig,animate,interval=frame_rate,
-                fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites,fig,prom,Surface),
-                frames=frames, repeat=True)
-        ani.save('2D_surface.gif',writer='imagemagick', fps=frames/(length*60))
-        plt.show()
-
-        if True:
-            os.makedirs('2D_surface', exist_ok=True)
-            fig2 = plt.figure()
-            ax2 = fig2.add_subplot(111, projection='3d')
-            for ii in range(frames):
-                animate(ii,z,x,y,ax2,columns,rows,col_dist,row_dist, PMType, indx, limites, fig2, prom, Surface)
-                plt.savefig('2D_surface\\'+f'Frame{ii}.png', transparent=True)
-        
-    if value['LateralAvg']:
-        fig3, ax3 = plt.subplots(1,1,dpi=100)
-        #fig = plt.figure()
-        #ax1 = fig.add_axes((0.1, 0.17, 0.8, 0.72))
-        #fig, ax1 = plt.subplots()
-        frames = len(z[f'Sensor {indx[0]}']['created_at'])
-        frame_rate = length*60000/frames
-        #animate_1D(6, z, y, PMType, row_dist, ax3, columns, rows, indx, limites,1.0, prom, fig3, lateral_avg)
-        #plt.show()
-        
-        anim = animation.FuncAnimation(fig3, animate_1D, interval=frame_rate,
-                fargs=(z,y,PMType,row_dist,ax3,columns,rows,indx,limites,1.0, prom, fig3, lateral_avg),
-                frames=frames, repeat=True)
-        anim.save('Lateral_avg2.gif',writer='imagemagick', fps=frames/(length*60))
-        plt.show()
-
-        if True:
-            os.makedirs('Lateral_avg', exist_ok=True)
-            fig4, ax4 = plt.subplots(1,1,dpi=100)
-            for ii in range(frames):
-                animate_1D(ii, z, y, PMType, row_dist, ax4, columns, rows, indx, limites,0.0, prom, fig4, lateral_avg)
-                plt.savefig('Lateral_avg\\'+f'Frame{ii}.png', transparent=True)
-
-    if value['Historico']:
-        pass
 
 def surface(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, Surface):
     # Value_anim viene información sobre periodo, y duración de la animación
@@ -929,10 +926,11 @@ def surface(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim
 
 def lateral_avg(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, lateral):
     indx = list(indx.values())
-    prom = float(value_anim['delta']) #Delta
-    length = float(value_anim['Length']) #Minutes
-
+    
     if graph_selection['An_lateral']:
+        prom = float(value_anim['delta']) #Delta
+        length = float(value_anim['Length']) #Minutes
+
         fig3, ax3 = plt.subplots(1,1,dpi=100)
         frames = len(z[f'Sensor {indx[0]}']['created_at'])
         frame_rate = length*60000/frames
@@ -967,17 +965,29 @@ def lateral_avg(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_
                     plt.savefig(path, transparent=False)
 
     else:
-        fig3, ax3 = plt.subplots(1,1,dpi=100)
-        animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites,0.0, 0, fig3, lateral)
+        window = sg.Window(title='Frecuencia',
+                       layout=[[sg.Canvas(key='canvas', size=(720,480))]],
+                        finalize=True, size=(720,480))
+        # Obtención del canvas
+        canvas = window['canvas'].TKCanvas
+        fig3, ax3 = plt.subplots(1, 1, dpi=100, figsize=(7,5))
+        figure_canvas_agg = FigureCanvasTkAgg(fig3, canvas)
+        figure_canvas_agg.draw()
+        figure_canvas_agg.get_tk_widget().pack(side='right', expand=1)
+
         if '.png' in lateral['Name']:
             path = os.path.join(lateral['Lateral_folder'], lateral['Name'])
         else:
             path = os.path.join(lateral['Lateral_folder'], lateral['Name']+'.png')
         
         if lateral['Fondo']:
-            plt.savefig(path, transparent=True)
+            animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 0.0, 0, fig3, lateral)
+            figure_canvas_agg.draw()
+            fig3.savefig(path, transparent=True)
         else:
-            plt.savefig(path, transparent=False)
+            animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 1.0, 0, fig3, lateral)
+            figure_canvas_agg.draw()
+            fig3.savefig(path, transparent=False)
 
 def historico():
     pass
