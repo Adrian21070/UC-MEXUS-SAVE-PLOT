@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 
 #g1 = sg.DEFAULT_BASE64_LOADING_GIF
-g1 = r'D:\Sensores//82em.gif'
+g1 = r'E:\sd\DATA//g1IZ.gif'
 while True:
     if not sg.popup_animated(g1, message='Right Click To Exit GIF Windows That Follow\nLeft click to move to next one', no_titlebar=False, time_between_frames=100, text_color='black'):
         break

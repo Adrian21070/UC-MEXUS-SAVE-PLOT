@@ -3,21 +3,29 @@ import save_data2 as save
 import csv_plot2 as Csv
 
 """
-Holes verification, tamaño de hueco en segundos, modificable por el usuario?
+Holes verification, tamaño de hueco en segundos, modificable por el usuario? (Pendiente)
 
-Sensors_info, debo preguntar de que lado se encuentra la avenida laterial???
+Sensors_info, debo preguntar de que lado se encuentra la avenida laterial??? (Pendiente)
 
 Incluir un popup al momento de pasar por extracción de datos, tarda mucho ya que son muchos campos.
-Esto relajara al usuario de que si se esta ejecutando algo.
+Esto relajara al usuario de que si se esta ejecutando algo. (Pendiente)
 
-Datatype  Puedo hacerlo frame y poner todo en el centro mas estetico
+Datatype Puedo hacerlo frame y poner todo en el centro mas estetico
 
 Como compruebo que los csv que me dan para reparar huecos si son los adecuados??? Funcion fix_save.
+(Sensores sin bateria)
 """
 
 """
-Cosas a modificar -> Para que el usuario modifique los titulos de grafica, archivo csv_plot, linea: 420
+
+
+(Guardar en memoria los estilos que dio el usuario.)
+
+
+
+
 """
+
 
 
 if __name__ == '__main__':
@@ -30,8 +38,6 @@ if __name__ == '__main__':
         while True:
             # Saca datos online y los revisa para guardarlos en csv...
 
-
-
             """
             Aquí falta hacer la corrección lineal si el usuario desea, checar que la GUI este bonita,
             y que lea un folder en lugar de multiples archivos para los huecos de información...
@@ -39,8 +45,6 @@ if __name__ == '__main__':
 
             Returns tambien.
             """
-
-
 
             if event == 'sensor_info':
                 window, event, value = save.sensor_info(window)
@@ -116,9 +120,6 @@ if __name__ == '__main__':
                         pass
                     else:
                         PMType = value
-                
-                # No seria mas eficiente si desde typeData filtramos los datos relevantes para el usuario?
-                # Creo que el usuario puede pedir hacer graficas con otro tipo de dato cuando este en la zona de graficado...
 
                 if event == 'Return':
                     pass
@@ -179,12 +180,9 @@ if __name__ == '__main__':
 
                     """
                     Estara bien dar un preview de la grafica resultante para animación con el formato que me dio el usuario? y preguntarle
-                    si esta conforme con eso???, esto ahorrara tiempo para el...
+                    si esta conforme con eso???, esto ahorrara tiempo para el... (Pendiente)
 
-                    Debes checar como desplegar una grafica en pysimplegui y no muestres la animación en formato de plt.
-                    Mejor primero creas el gif y lo abres desde pysimplegui, así te evitas algunos problemas...
-
-                    Con esto practicamente acabaste, solo te falta modificar tamaños en toda la gui.
+                    Solo te falta modificar tamaños en toda la gui.
 
                     Faltan try-except??? Ni idea.
                     """
@@ -209,7 +207,7 @@ if __name__ == '__main__':
                             #Lateral estatica
                             Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, lateral_avg, 'LateralAvg')
 
-                        #Historico
+                        #Historico # (Construccion)
 
 
                     del new_data_anim, new_data_est, limites_anim, limites_est
