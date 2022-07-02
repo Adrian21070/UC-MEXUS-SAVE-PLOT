@@ -55,8 +55,8 @@ frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
                     [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=2,key='LineSize')],
                     [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
                     [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input('Lateral.gif', key='Name')],
-                    [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
-                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+                    [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()]]
+                    
 
 """
 frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
@@ -74,7 +74,8 @@ frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
         [sg.Button('Continue'), sg.Button('Exit')]]
 """
 layout = [[sg.Text('Superficie', font = font3, justification='center', expand_x=True)],
-        [sg.Column(frame, expand_y=True, scrollable=True, vertical_scroll_only=True)]]
+        [sg.Column(frame, expand_y=True, scrollable=True, vertical_scroll_only=True)],
+        [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
 
 
 window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))

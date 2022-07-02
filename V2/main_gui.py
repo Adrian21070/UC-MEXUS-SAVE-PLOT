@@ -1,6 +1,7 @@
 import plots as Func
 import PySimpleGUI as sg
 import sys
+import os
 from pytz import utc
 from datetime import datetime
 from dateutil import tz
@@ -42,8 +43,7 @@ def gui_graph_creation(window):
 def holes_warning(window,holes,num_csv):
     
     # Notificar con una ventana que existen huecos
-    layout = [[sg.Text('Existen sensores con huecos de información',font=font), sg.Text(f'(YYYY-MM-DD HH-MM-SS)')],
-                [sg.Text('Los sensores son:', font = font2)]]
+    layout = []
     for ii in num_csv.keys():
         k = list(holes[ii].keys())
         v = list(holes[ii].values())
@@ -64,14 +64,146 @@ def holes_warning(window,holes,num_csv):
             holes_text.append([sg.Text(f'{k2}  hasta  {v2}, timezone: Local.')])
             holes_text.append([sg.Text(f'{utc_k}  hasta  {utc_v}, timezone: UTC')])
         layout.append([sg.Frame(f'{ii} presenta un hueco desde',holes_text),sg.Text('')])
-    layout.append([sg.Button('Solucionar errores',key='Fix_errors')])
-    lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
+        layout.append([sg.Text('',size=(1,1),font=('Times New Roman',1))])
+
+    frame = [[sg.Frame('', layout, element_justification='center', expand_x=True)]]
+
+    lay = [[sg.Text('Existen sensores con huecos de información',font=font), sg.Text(f'(YYYY-MM-DD HH-MM-SS)')],
+            [sg.Text('Los sensores son:', font = font)],
+            [sg.Button('Solucionar errores',key='Fix_errors'), sg.Button('No arreglar'), sg.Button('Exit')],
+            [sg.Text('',size=(1,1), font=('Times New Roman',1))],
+            [sg.Column(frame, scrollable=True, vertical_scroll_only=True, expand_x=True, expand_y=False)]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
     event, value = window.read()
-
+    if event == None:
+        event = 'Fix_errors'
+    elif event == 'Exit':
+        sys.exit()
     return window, event
+
+def csv_online2(window, num_holes_per_sensor, holes):
+    # Solicitar un folder con los archivos del dia tal.
+    layout = [[sg.Text('Seleccione la carpeta donde se encuentran los archivos csv', font=font3)],
+                [sg.Text('El nombre de las carpetas es irrelevante, pero asegurate de que los archivos tengan')],
+                [sg.Text('este formato (SXXX_YYYY_MM_DD_sd.csv)')]]
+    dates = {}
+    fechas = {}
+
+    for ii in num_holes_per_sensor.keys():
+        k = list(holes[ii].keys())
+        v = list(holes[ii].values())
+        fechas[ii] = []
+        days = []
+        for jj in range(len(k)): # Para revisar todos los huecos que tenga el sensor
+            day = k[jj].day
+            day2 = v[jj].day
+            if (day in days):
+                pass
+            else:
+                days.append(day)
+                fechas[ii].append(k[jj].strftime("%Y_%m_%d"))
+            if (day2 in days):
+                pass
+            else:
+                days.append(day2)
+                fechas[ii].append(k[jj].strftime("%Y_%m_%d"))
+        # days termina teniendo los dias que existieron huecos por parte del sensor
+        for jj in days:
+            if jj in dates:
+                dates[jj].append(ii)
+            else:
+                dates.update({jj:[]})
+                dates[jj].append(ii)
+
+    # Ordeno el diccionario
+    dates = dict(sorted(dates.items(), key=lambda x: x[0]))
+    dates = dict(sorted(dates.items(), key=lambda x: x[1]))
+
+    for ii in dates.keys():
+        lay = []
+        lay.append([sg.Text(f'Carpeta con los archivos del dia {ii} para los sensores:')])
+        num = 5
+        n = len(dates[ii])//num
+
+        start = 0
+        if n > 0:
+            end = num
+        else:
+            end = len(dates[ii])
+
+        if len(dates[ii]) % num == 0:
+            # No hace salto de linea extra
+            for jj in range(n):
+                lay.append([sg.Text(' '.join(dates[ii][start:end]))])
+                start = end
+                if end+num > len(dates[ii]):
+                    end = len(dates[ii])
+                else:
+                    end += num
+
+        else:
+            for jj in range(n+1):
+                lay.append([sg.Text(', '.join(dates[ii][start:end]))])
+                start = end
+                if end+num > len(dates[ii]):
+                    end = len(dates[ii])
+                else:
+                    end += num
+
+        lay.append([sg.Text('Ubicación de la carpeta: '),sg.Input(), sg.FolderBrowse()])
+
+        layout.append([sg.Frame('', lay)])
+        layout.append([sg.Text('\n', size=(1,1), font=('Times New Roman', 1))])
+    
+    layout.append([sg.Button('Fix data'), sg.Button('Exit')])
+    lay = [[sg.Column(layout, scrollable=True, vertical_scroll_only=True,expand_y=True, expand_x=True)]]
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', lay, font=font2, size=(720,480))
+    event, value = window.read()
+
+    if 'Exit' in event:
+        shutdown(window)
+
+    # Quito los repetidos.
+    val = [value[a] for a in value.keys() if ('Browse' in str(a))]
+    # Ordenado de menor a mayor en cuestión de dias.
+
+    # Asignar esos directorios a su lugar correspondiente
+    # Lo transformo en un diccionario, para facilitar ciertas cosas posteriores
+    value = {}
+    it = 0
+    for ii in num_holes_per_sensor.keys():
+        value[ii] = []
+        cont = 0
+        for jj in dates.keys():
+            if ii in dates[jj]:
+                try:
+                    # Entro al folder y busco el archivo correspondiente al sensor X
+                    with os.scandir(val[cont]) as ficheros:
+                        # ficheros tiene los archivos csv del dia x
+                        try:
+                            for fichero in ficheros:
+                                for fecha in fechas[ii]:
+                                    if fichero.name == 'S'+ii[-3:] + '_' + fecha + '_sd.csv':
+                                        dir = val[cont] + '/' + fichero.name
+                                        value[ii].append(dir)
+                                        it += 1
+                                        break
+                                if it>0:
+                                    break
+                            if not value[ii]:
+                                raise ValueError("No CSV")
+                        except:
+                            pass # Avisar que no se encontro el archivo del sensor tal...
+                except:
+                    pass # Problemas al abrir el folder
+
+            cont += 1
+            it = 0
+
+    return window, value
 
 def csv_online(window, num_holes_per_sensor, holes):
     # Solicita archivos csv
@@ -115,7 +247,7 @@ def csv_online(window, num_holes_per_sensor, holes):
     for ii in num_holes_per_sensor.keys():
         value[ii] = []
         for jj in range(len(val)):
-            if jj == num_holes_per_sensor[ii]:
+            if jj == num_holes_per_sensor[ii]: #Comprueba que no se haya sobrepasado el numero de archivos que debe tener.
                 break
             value[ii].append(val[iter])
             iter += 1

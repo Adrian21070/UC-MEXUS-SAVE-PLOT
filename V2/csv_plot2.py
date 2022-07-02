@@ -32,7 +32,7 @@ PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
 def csv_files(window):
     # Solicita archivos csv
 
-    layout = [[sg.Text('Seleccione la carpeta donde se encuentras los archivos csv', font=font3)],
+    layout = [[sg.Text('Seleccione la carpeta donde se encuentran los archivos csv', font=font3)],
             [sg.Text(f'Ubicación de la carpeta: '), sg.Input(), sg.FolderBrowse()],
             [sg.Button('Extraer',key='TypeData'), sg.Button('Exit')]]
 
@@ -327,55 +327,172 @@ def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx):
 
     return window, event, new_indx, x_axis, y_axis
 
-def type_graph(window):
-    # Se pregunta que graficas quiere realizar
-    layout = [[sg.Text('Favor de seleccionar que graficas desea obtener', font=font3)],
-            [sg.Checkbox('Superficie', default=False, key='Surface'), sg.Radio('Animación', "Superficie", default=True, key='An_superficie'), sg.Radio('Estática', "Superficie", default=False, key='Es_superficie')],
-            [sg.Checkbox('Lateral average', default=False, key='LateralAvg'), sg.Radio('Animación', "Lateral", default=True, key='An_lateral'), sg.Radio('Estática', "Lateral", default=False, key='Es_lateral')],
-            [sg.Checkbox('Registro historico de filas', default=False, key='Historico')],
-            [sg.Button('Continue',key='Date_hour'), sg.Button('Return',key='Sensor_info'), sg.Button('Exit')]]
+def type_graph(window, memory):
+    if memory:
+        # Se pregunta que graficas quiere realizar
+        layout = [[sg.Text('Favor de seleccionar que graficas desea obtener', font=font3)],
+                [sg.Checkbox('Superficie', default=memory['Superficie'], key='Surface'), sg.Radio('Animación', "Superficie", default=memory['Superficie_Anim'], key='An_superficie'), sg.Radio('Estática', "Superficie", default=memory['Superficie_Est'], key='Es_superficie')],
+                [sg.Checkbox('Lateral average', default=memory['LateralAvg'], key='LateralAvg'), sg.Radio('Animación', "Lateral", default=memory['LateralAvg_Anim'], key='An_lateral'), sg.Radio('Estática', "Lateral", default=memory['LateralAvg_Est'], key='Es_lateral')],
+                [sg.Checkbox('Registro historico de filas', default=memory['Historico'], key='Historico')],
+                [sg.Button('Continue',key='Date_hour'), sg.Button('Return',key='Sensor_info'), sg.Button('Exit')]]
+
+    else:
+        # Se pregunta que graficas quiere realizar
+        layout = [[sg.Text('Favor de seleccionar que graficas desea obtener', font=font3)],
+                [sg.Radio('Superficie', 'Type', default=True, key='Surface'), sg.Radio('Animación', "Superficie", default=True, key='An_superficie'), sg.Radio('Estática', "Superficie", default=False, key='Es_superficie')],
+                [sg.Radio('Lateral average', 'Type', default=False, key='LateralAvg'), sg.Radio('Animación', "Lateral", default=True, key='An_lateral'), sg.Radio('Estática', "Lateral", default=False, key='Es_lateral')],
+                [sg.Radio('Registro historico de filas', 'Type', default=False, key='Historico')],
+                [sg.Button('Continue',key='Date_hour'), sg.Button('Return',key='Sensor_info'), sg.Button('Exit')]]
+
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
     event, value = window.read()
 
     if 'Exit' in event:
         shutdown(window)
+    elif 'Sensor_info' in event:
+        return window, value, event, False, memory
 
+    # Se guarda en memoria los datos del usuario.
+    memory['Superficie'] = value['Surface']
+    memory['Superficie_Anim'] = value['An_superficie']
+    memory['Superficie_Est'] = value['Es_superficie']
+    memory['LateralAvg'] = value['LateralAvg']
+    memory['LateralAvg_Anim'] = value['An_lateral']
+    memory['LateralAvg_Est'] = value['Es_lateral']
+    memory['Historico'] = value['Historico']
 
     if (value['Surface'] and value['An_superficie']) or (value['LateralAvg'] and value['An_lateral']):
-        layout = [[sg.Text('Datos para la animación\n', font=font3, justification='center', expand_x=True)],
-                [sg.Text('Tiempo de duración animación (Min.)', size =(35, 1)), sg.InputText(key='Length')],
-                [sg.Text('Promedios de los datos en horas (1=60min)', size =(35, 1)), sg.InputText(key='delta')],
-                [sg.Button('Continue',key='Date_hour'), sg.Button('Return', key='Tipo_de_grafico'), sg.Button('Exit')]]
+        if 'Anim_Length' in memory:
+            layout = [[sg.Text('Datos para la animación\n', font=font3, justification='center', expand_x=True)],
+                    [sg.Text('Tiempo de duración animación (Min.)', size =(35, 1)), sg.InputText(memory['Anim_length'], key='Length')],
+                    [sg.Text('Promedios de los datos en horas (1=60min)', size =(35, 1)), sg.InputText(memory['Anim_delta'], key='delta')],
+                    [sg.Button('Continue',key='Date_hour'), sg.Button('Return', key='Tipo_de_grafico'), sg.Button('Exit')]]
+        
+        else:
+            layout = [[sg.Text('Datos para la animación\n', font=font3, justification='center', expand_x=True)],
+                    [sg.Text('Tiempo de duración animación (Min.)', size =(35, 1)), sg.InputText(key='Length')],
+                    [sg.Text('Promedios de los datos en horas (1=60min)', size =(35, 1)), sg.InputText(key='delta')],
+                    [sg.Button('Continue',key='Date_hour'), sg.Button('Return', key='Tipo_de_grafico'), sg.Button('Exit')]]
+        
         window.close()
         window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
         event, value_anim = window.read()
 
         if 'Exit' in event:
             shutdown(window)
+
+        if (not value_anim['Length']) or (not value_anim['delta']):
+            # Se pide que ingrese datos validos
+            layout = [[sg.Text('Favor de no dejar campos vacíos', font=font3)],
+                    [sg.Button('Return'), sg.Button('Exit')]]
+            window.close()
+            window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+            event, value = window.read()
+            if event in ('Exit', sg.WIN_CLOSED):
+                window.close()
+                sys.exit()
+
+            return window, value, event, False, memory
         
-        return window, value, event, value_anim
+        try:
+            float(value_anim['delta'])
+            float(value_anim['Length'])
+        except:
+            # Se pide que ingrese datos validos
+            layout = [[sg.Text('Favor de introducir únicamente números en los campos', font=font3)],
+                    [sg.Button('Return'), sg.Button('Exit')]]
+            window.close()
+            window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+            event, value = window.read()
+            if event in ('Exit', sg.WIN_CLOSED):
+                window.close()
+                sys.exit()
 
-    if (value['Surface'] and value['Es_superficie']) or (value['LateralAvg'] and value['Es_lateral']) or (value['Historico']):
+            return window, value, event, False, memory
+
+        # Se guarda en memoria los datos del usuario.
+        memory['Anim_length'] = value_anim['Length']
+        memory['Anim_delta'] = value_anim['delta']
         
-        pass
+        return window, value, event, value_anim, memory
 
-    return window, value, event, False
+    if ((value['Historico'])):
+        if 'Anim_delta' in memory:
+            layout = [[sg.Text('Datos para el gráfico\n', font=font3, justification='center', expand_x=True)],
+                    [sg.Text('Promedios de los datos en horas (1=60min)', size =(35, 1)), sg.InputText(memory['Anim_delta'], key='delta')],
+                    [sg.Button('Continue',key='Date_hour'), sg.Button('Return', key='Tipo_de_grafico'), sg.Button('Exit')]]
+        
+        else:
+            layout = [[sg.Text('Datos para el gráfico\n', font=font3, justification='center', expand_x=True)],
+                    [sg.Text('Promedios de los datos en horas (1=60min)', size =(35, 1)), sg.InputText(key='delta')],
+                    [sg.Button('Continue',key='Date_hour'), sg.Button('Return', key='Tipo_de_grafico'), sg.Button('Exit')]]
+        
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
+        event, value_anim = window.read()
 
+        if 'Exit' in event:
+            shutdown(window)
 
-def date_hour(window, maximum, minimum, key=0):
+        if (not value_anim['delta']):
+            # Se pide que ingrese datos validos
+            layout = [[sg.Text('Favor de no dejar campos vacíos', font=font3)],
+                    [sg.Button('Return'), sg.Button('Exit')]]
+            window.close()
+            window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+            event, value = window.read()
+            if event in ('Exit', sg.WIN_CLOSED):
+                window.close()
+                sys.exit()
+
+            return window, value, event, False, memory
+        
+        try:
+            float(value_anim['delta'])
+        except:
+            # Se pide que ingrese datos validos
+            layout = [[sg.Text('Favor de introducir únicamente números en los campos', font=font3)],
+                    [sg.Button('Return'), sg.Button('Exit')]]
+            window.close()
+            window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+            event, value = window.read()
+            if event in ('Exit', sg.WIN_CLOSED):
+                window.close()
+                sys.exit()
+
+            return window, value, event, False, memory
+
+        # Se guarda en memoria los datos del usuario.
+        memory['Anim_delta'] = value_anim['delta']
+        
+        return window, value, event, value_anim, memory
+
+    return window, value, event, False, memory
+
+def date_hour(window, maximum, minimum, memory, key=0):
     start = min(minimum.values()).strftime('%Y-%m-%d')
     end = max(maximum.values()).strftime('%Y-%m-%d')
     start_hr = min(minimum.values()).strftime('%H:%M')
     end_hr = max(maximum.values()).strftime('%H:%M')
 
-    layout = [[sg.Text('Selección de fecha y hora de las mediciones a mostrar\n',font=font3, justification='center', expand_x=True)],
-                [sg.CalendarButton('Dia de inicio',target='Start', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(start,key='Start')],
-                [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(start_hr,key='Start_hour')],
-                [sg.Text('')],
-                [sg.CalendarButton('Dia del final',target='End', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(end,key='End')],
-                [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(end_hr,key='End_hour')],
-                [sg.Button("Continue",key='Styles'), sg.Button('Return',key='Tipo_de_grafico'),sg.Button('Exit')]]
+    if 'Start_day' in memory:
+        layout = [[sg.Text('Selección de fecha y hora de las mediciones a mostrar (UTC)\n',font=font3, justification='center', expand_x=True)],
+                    [sg.CalendarButton('Dia de inicio',target='Start', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(memory['Start_day'],key='Start')],
+                    [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(memory['Start_hour'],key='Start_hour')],
+                    [sg.Text('')],
+                    [sg.CalendarButton('Dia final',target='End', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(memory['End_day'],key='End')],
+                    [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(memory['End_hour'],key='End_hour')],
+                    [sg.Button("Continue",key='Styles'), sg.Button('Return',key='Tipo_de_grafico'),sg.Button('Exit')]]
+
+    else:
+        layout = [[sg.Text('Selección de fecha y hora de las mediciones a mostrar (UTC)\n',font=font3, justification='center', expand_x=True)],
+                    [sg.CalendarButton('Dia de inicio',target='Start', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(start,key='Start')],
+                    [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(start_hr,key='Start_hour')],
+                    [sg.Text('')],
+                    [sg.CalendarButton('Dia final',target='End', size=(24,1), format='20%y-%m-%d',font=font2), sg.Input(end,key='End')],
+                    [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(end_hr,key='End_hour')],
+                    [sg.Button("Continue",key='Styles'), sg.Button('Return',key='Tipo_de_grafico'),sg.Button('Exit')]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
@@ -383,20 +500,71 @@ def date_hour(window, maximum, minimum, key=0):
 
     if 'Exit' in event:
         shutdown(window)
-    elif event != 'Graph':
-        return window, event, value, 0
+    elif event != 'Styles':
+        return window, event, value, 0, memory, False
+
+    # Me aseguro que no esten vacios.
+    if (not value['Start']) or (not value['End']) or (not value['Start_hour']) or (not value['End_hour']):
+        layout = [[sg.Text('Favor de no dejar los espacios en blanco', justification='center', font=('Times New Roman', 18))],
+            [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        return window, event, value, 0, memory, True # Mantengo el bucle
+    
+    start = value['Start'] + ' ' + value['Start_hour']
+    end = value['End'] + ' ' + value['End_hour']
+
+    # Compruebo que las horas esten bien
+    try:
+        start = datetime.strptime(start, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
+        end = datetime.strptime(end, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
+    except:
+        layout = [[sg.Text('Favor de introducir de manera correcta las horas (hh:mm)', justification='center', font=('Times New Roman', 18))],
+                [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        return window, event, value, 0, memory, True # Mantengo el bucle
+
+    delta = end - start
+    delta = delta.days*24*60*60 + delta.seconds
+
+    # Al menos debe haber una diferencia de 2 minutos entre inicio y fin de las fechas.
+    if delta < 120:
+        layout = [[sg.Text('La fecha de inicio debe ser por lo menos dos minutos menor a la final', justification='center', font=font3)],
+            [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        return window, event, value, 0, memory, True # Mantengo el bucle
+    
+    # Guardo en memoria los datos del usuario
+    memory['Start_day'] = value['Start']
+    memory['Start_hour'] = value['Start_hour']
+    memory['End_day'] = value['End']
+    memory['End_hour'] = value['End_hour']
 
     if key == 1:
         # Paso las fechas a datetime y saco los dias entre ambas fechas en utc.
         start = datetime.strptime(value['Start'], '%Y-%m-%d').replace(tzinfo=tz.tzutc())
         end = datetime.strptime(value['End'], '%Y-%m-%d').replace(tzinfo=tz.tzutc())
         days = [ii for ii in range(start.day, end.day+1, 1)]
-        return window, event, value, days
+        return window, event, value, days, memory, False
 
     else:
-        return window, event, value, 0
+        return window, event, value, 0, memory, False
 
-def graph_domain(window, value, value_anim, PMType):
+def graph_domain(window, value, value_anim, PMType, memory):
     ### Se realizan ventanas para preguntar cosas sobre el diseño de las imagenes.
     ### Tipo de linea, colores, titulos, ticks, tamaño ...
 
@@ -412,21 +580,41 @@ def graph_domain(window, value, value_anim, PMType):
 
         if value['An_superficie']:
             # Para animación
-            frame = [[sg.Text('Modifica el formato de la superficie animada.'), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
-                    [sg.Text('Tipo de fuente: ', size=(33,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
-                    [sg.Text('Contenido del eje X: ',size=(33,1)), sg.InputText('Carretera (m)', key='xlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
-                    [sg.Text('Contenido del eje Y: ',size=(33,1)), sg.InputText('Profundidad (m)', key='ylabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
-                    [sg.Text('Contenido del eje Z: ',size=(33,1)), sg.InputText('ug/m3', key='zlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Zstyle')],
-                    [sg.Text('Tamaño de letra para el titulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=14,key='Title_size')],
-                    [sg.Text('Tamaño de letra para el subtitulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=12,key='Subtitle_size')],
-                    [sg.Text('Tamaño de letra para los ejes: ',size=(33,1)), sg.Combo([8, 9, 10, 11, 12],default_value=11,key='Label_size')],
-                    [sg.Text('Tipo de marcador a mostrar: ',size=(33,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
-                    [sg.Text('Ángulo polar', size=(33,1)), sg.Text('Ángulo azimutal', size=(30,1))],
-                    [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=15, size=(25.7,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=-135,size=(27,20))],
-                    [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
-                    [sg.Text('Nombre del gif resultante: ',size=(33,1)), sg.Input('Superficie.gif', key='Name', size=(30,1))],
-                    [sg.Text('Selecciona donde guardar',size=(33,1)),sg.Input(size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
-                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+            if 'Surface_anim_font' in memory:
+                frame = [[sg.Text('Modifica el formato de la superficie animada.'), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
+                        [sg.Text('Tipo de fuente: ', size=(33,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value=memory['Surface_anim_font'],key='Font'), sg.Checkbox('Bold title',default=memory['Surface_anim_Bold'],key='Bold')],
+                        [sg.Text('Contenido del eje X: ',size=(33,1)), sg.InputText(memory['Surface_anim_xlabel_cont'], key='xlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_anim_xlabel_style'],key='Xstyle')],
+                        [sg.Text('Contenido del eje Y: ',size=(33,1)), sg.InputText(memory['Surface_anim_ylabel_cont'], key='ylabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_anim_ylabel_style'],key='Ystyle')],
+                        [sg.Text('Contenido del eje Z: ',size=(33,1)), sg.InputText(memory['Surface_anim_zlabel_cont'], key='zlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_anim_zlabel_style'],key='Zstyle')],
+                        
+                        [sg.Text('Tamaño de letra para el titulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=memory['Surface_anim_title_size'],key='Title_size')],
+                        [sg.Text('Tamaño de letra para el subtitulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=memory['Surface_anim_subtitle_size'],key='Subtitle_size')],
+                        [sg.Text('Tamaño de letra para los ejes: ',size=(33,1)), sg.Combo([8, 9, 10, 11, 12],default_value=memory['Surface_anim_label_size'],key='Label_size')],
+                        [sg.Text('Tipo de marcador a mostrar: ',size=(33,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Surface_anim_marker'],key='Marker')],
+                        [sg.Text('Ángulo polar', size=(33,1)), sg.Text('Ángulo azimutal', size=(30,1))],
+                        [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=memory['Surface_anim_polar'], size=(25.7,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=memory['Surface_anim_azimutal'],size=(27,20))],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        [sg.Text('Nombre del gif resultante: ',size=(33,1)), sg.Input(memory['Surface_anim_filename'], key='Name', size=(30,1))],
+                        [sg.Text('Selecciona donde guardar',size=(33,1)),sg.Input(memory['Surface_anim_folder'],size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
+                        [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+
+            else:
+                frame = [[sg.Text('Modifica el formato de la superficie animada.'), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
+                        [sg.Text('Tipo de fuente: ', size=(33,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
+                        [sg.Text('Contenido del eje X: ',size=(33,1)), sg.InputText('Carretera (m)', key='xlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
+                        [sg.Text('Contenido del eje Y: ',size=(33,1)), sg.InputText('Profundidad (m)', key='ylabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
+                        [sg.Text('Contenido del eje Z: ',size=(33,1)), sg.InputText('ug/m3', key='zlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Zstyle')],
+
+                        [sg.Text('Tamaño de letra para el titulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=14,key='Title_size')],
+                        [sg.Text('Tamaño de letra para el subtitulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=12,key='Subtitle_size')],
+                        [sg.Text('Tamaño de letra para los ejes: ',size=(33,1)), sg.Combo([8, 9, 10, 11, 12],default_value=11,key='Label_size')],
+                        [sg.Text('Tipo de marcador a mostrar: ',size=(33,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
+                        [sg.Text('Ángulo polar', size=(33,1)), sg.Text('Ángulo azimutal', size=(30,1))],
+                        [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=15, size=(25.7,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=-135,size=(27,20))],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        [sg.Text('Nombre del gif resultante: ',size=(33,1)), sg.Input('Superficie.gif', key='Name', size=(30,1))],
+                        [sg.Text('Selecciona donde guardar',size=(33,1)),sg.Input(size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
+                        [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
 
             layout = [[sg.Text('Animación de la superficie', font = font3, justification='center', expand_x=True)],
                     [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
@@ -439,30 +627,62 @@ def graph_domain(window, value, value_anim, PMType):
             if 'Exit' in event:
                 shutdown(window)
             elif event != 'Average':
-                return window, event, animation3d, lateral_avg, historico
+                return window, event, animation3d, lateral_avg, historico, memory
+
+            # Guardamos en memoria los datos
+            memory['Surface_anim_font'] = animation3d['Font'],                  memory['Surface_anim_Bold'] = animation3d['Bold']
+            memory['Surface_anim_xlabel_cont'] = animation3d['xlabel_content'], memory['Surface_anim_xlabel_style'] = animation3d['Xstyle']
+            memory['Surface_anim_ylabel_cont'] = animation3d['ylabel_content'], memory['Surface_anim_ylabel_style'] = animation3d['Ystyle']
+            memory['Surface_anim_zlabel_cont'] = animation3d['zlabel_content'], memory['Surface_anim_zlabel_style'] = animation3d['Zstyle']
+
+            memory['Surface_anim_title_size'] = animation3d['Title_size'],      memory['Surface_anim_subtitle_size'] = animation3d['Subtitle_size']
+            memory['Surface_anim_label_size'] = animation3d['Label_size'],      memory['Surface_anim_marker'] = animation3d['Marker']
+            memory['Surface_anim_polar'] = animation3d['Polar'],                memory['Surface_anim_azimutal'] = animation3d['Azimutal']
+            memory['Surface_anim_filename'] = animation3d['Name'],              memory['Surface_anim_folder'] = animation3d['Surf_folder']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             animation3d['Marker'] = marker[animation3d['Marker']]
 
         else:
             # Para una figura estatica
-            frame = [[sg.Text('Modifica el formato de la superficie.',size=(29,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
-                    [sg.Text('Tipo de fuente: ', size=(29,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
-                    [sg.Text('Contenido del titulo: ',size=(29,1)), sg.InputText('Concentración PM 2.5', key='Title_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Titlestyle')],
-                    [sg.Text('Contenido del subtitulo: ',size=(29,1)), sg.InputText('Promedio desde XX hasta YY', key='Subtitle_content',size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Substyle')],
-                    [sg.Text('Contenido del eje X: ',size=(29,1)), sg.InputText('Carretera (m)', key='xlabel_content',size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
-                    [sg.Text('Contenido del eje Y: ',size=(29,1)), sg.InputText('Profundidad (m)', key='ylabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
-                    [sg.Text('Contenido del eje Z: ',size=(29,1)), sg.InputText('ug/m3', key='zlabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Zstyle')],
-                    [sg.Text('Tamaño de letra para el titulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=14,key='Title_size')],
-                    [sg.Text('Tamaño de letra para el subtitulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=12,key='Subtitle_size')],
-                    [sg.Text('Tamaño de letra para los ejes: ',size=(29,1)), sg.Combo([8, 9, 10, 11, 12],default_value=11,key='Label_size')],
-                    [sg.Text('Tipo de marcador a mostrar: ',size=(29,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
-                    [sg.Text('Ángulo polar (grados)', size=(29,1)), sg.Text('Ángulo azimutal (grados)', size=(30,1))],
-                    [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=15, size=(22.6,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=-135,size=(22.6,20))],
-                    [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
-                    [sg.Text('Nombre de la imagen resultante: ',size=(29,1)), sg.Input('Superficie.png', key='Name', size=(30,1))],
-                    [sg.Text('Selecciona donde guardar',size=(29,1)),sg.Input(size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
-                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+            if 'Surface_est_font' in memory:
+                frame = [[sg.Text('Modifica el formato de la superficie.',size=(29,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
+                        [sg.Text('Tipo de fuente: ', size=(29,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value=memory['Surface_est_font'],key='Font'), sg.Checkbox('Bold title',default=memory['Surface_est_Bold'],key='Bold')],
+                        [sg.Text('Contenido del titulo: ',size=(29,1)), sg.InputText(memory['Surface_est_title_cont'], key='Title_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_title_style'],key='Titlestyle')],
+                        [sg.Text('Contenido del subtitulo: ',size=(29,1)), sg.InputText(memory['Surface_est_subtitle_cont'], key='Subtitle_content',size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_subtitle_style'],key='Substyle')],
+                        [sg.Text('Contenido del eje X: ',size=(29,1)), sg.InputText(memory['Surface_est_xlabel_cont'], key='xlabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_xlabel_style'],key='Xstyle')],
+                        [sg.Text('Contenido del eje Y: ',size=(29,1)), sg.InputText(memory['Surface_est_ylabel_cont'], key='ylabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_ylabel_style'],key='Ystyle')],
+                        [sg.Text('Contenido del eje Z: ',size=(29,1)), sg.InputText(memory['Surface_est_zlabel_cont'], key='zlabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_zlabel_style'],key='Zstyle')],
+
+                        [sg.Text('Tamaño de letra para el titulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=memory['Surface_est_title_size'],key='Title_size')],
+                        [sg.Text('Tamaño de letra para el subtitulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=memory['Surface_est_subtitle_size'],key='Subtitle_size')],
+                        [sg.Text('Tamaño de letra para los ejes: ',size=(29,1)), sg.Combo([8, 9, 10, 11, 12],default_value=memory['Surface_est_label_size'],key='Label_size')],
+                        [sg.Text('Tipo de marcador a mostrar: ',size=(29,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Surface_est_marker'],key='Marker')],
+                        [sg.Text('Ángulo polar (grados)', size=(29,1)), sg.Text('Ángulo azimutal (grados)', size=(30,1))],
+                        [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=memory['Surface_est_polar'], size=(22.6,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=memory['Surface_est_azimutal'],size=(22.6,20))],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        [sg.Text('Nombre de la imagen resultante: ',size=(29,1)), sg.Input(memory['Surface_est_filename'], key='Name', size=(30,1))],
+                        [sg.Text('Selecciona donde guardar',size=(29,1)),sg.Input(memory['Surface_est_folder'], size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
+                        [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+            else:
+                frame = [[sg.Text('Modifica el formato de la superficie.',size=(29,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
+                        [sg.Text('Tipo de fuente: ', size=(29,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
+                        [sg.Text('Contenido del titulo: ',size=(29,1)), sg.InputText('Concentración PM 2.5', key='Title_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Titlestyle')],
+                        [sg.Text('Contenido del subtitulo: ',size=(29,1)), sg.InputText('Promedio desde XX hasta YY', key='Subtitle_content',size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Substyle')],
+                        [sg.Text('Contenido del eje X: ',size=(29,1)), sg.InputText('Carretera (m)', key='xlabel_content',size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
+                        [sg.Text('Contenido del eje Y: ',size=(29,1)), sg.InputText('Profundidad (m)', key='ylabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
+                        [sg.Text('Contenido del eje Z: ',size=(29,1)), sg.InputText('ug/m3', key='zlabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Zstyle')],
+                        
+                        [sg.Text('Tamaño de letra para el titulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=14,key='Title_size')],
+                        [sg.Text('Tamaño de letra para el subtitulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=12,key='Subtitle_size')],
+                        [sg.Text('Tamaño de letra para los ejes: ',size=(29,1)), sg.Combo([8, 9, 10, 11, 12],default_value=11,key='Label_size')],
+                        [sg.Text('Tipo de marcador a mostrar: ',size=(29,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
+                        [sg.Text('Ángulo polar (grados)', size=(29,1)), sg.Text('Ángulo azimutal (grados)', size=(30,1))],
+                        [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=15, size=(22.6,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=-135,size=(22.6,20))],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        [sg.Text('Nombre de la imagen resultante: ',size=(29,1)), sg.Input('Superficie.png', key='Name', size=(30,1))],
+                        [sg.Text('Selecciona donde guardar',size=(29,1)),sg.Input(size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
+                        [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
             
             layout = [[sg.Text('Superficie', font = font3, justification='center', expand_x=True)],
                     [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
@@ -475,7 +695,20 @@ def graph_domain(window, value, value_anim, PMType):
             if 'Exit' in event:
                 shutdown(window)
             elif event != 'Average':
-                return window, event, animation3d, lateral_avg, historico
+                return window, event, animation3d, lateral_avg, historico, memory
+
+            # Guardamos los datos en memoria
+            memory['Surface_est_font'] = animation3d['Font'],                       memory['Surface_est_Bold'] = animation3d['Bold']
+            memory['Surface_est_title_cont'] = animation3d['Title_content'],        memory['Surface_est_title_style'] = animation3d['Titlestyle'],
+            memory['Surface_est_subtitle_cont'] = animation3d['Subtitle_content'],  memory['Surface_est_subtitle_style'] = animation3d['Substyle'],
+            memory['Surface_est_xlabel_cont'] = animation3d['xlabel_content'],      memory['Surface_est_xlabel_style'] = animation3d['Xstyle']
+            memory['Surface_est_ylabel_cont'] = animation3d['ylabel_content'],      memory['Surface_est_ylabel_style'] = animation3d['Ystyle']
+            memory['Surface_est_zlabel_cont'] = animation3d['zlabel_content'],      memory['Surface_est_zlabel_style'] = animation3d['Zstyle']
+
+            memory['Surface_est_title_size'] = animation3d['Title_size'],           memory['Surface_est_subtitle_size'] = animation3d['Subtitle_size']
+            memory['Surface_est_label_size'] = animation3d['Label_size'],           memory['Surface_est_marker'] = animation3d['Marker']
+            memory['Surface_est_polar'] = animation3d['Polar'],                     memory['Surface_est_azimutal'] = animation3d['Azimutal']
+            memory['Surface_est_filename'] = animation3d['Name'],                   memory['Surface_est_folder'] = animation3d['Surf_folder']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             animation3d['Marker'] = marker[animation3d['Marker']]
@@ -484,23 +717,45 @@ def graph_domain(window, value, value_anim, PMType):
 
         if value['An_lateral']:
             # Para animación
-            frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
-                    [sg.Text('Formato de la gráfica lateral animada.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=False, key='Recorrer')],
-                    [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
-                    [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText('profundidad (m)', key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
-                    [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText('Valor promedio (ug/m3)', key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
-                    [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
-                    [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
-                    [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
-                    [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
-                    [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=40,key='MarkerSize')],
-                    [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Rojo',key='MarkerColor')], 
-                    [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value='Dashed --',key='LineStyle')],
-                    [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=2,key='LineSize')],
-                    [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
-                    [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input('Lateral.gif', key='Name')],
-                    [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
-                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+            if 'Lateral_anim_Fondo' in memory:
+                frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        [sg.Text('Formato de la gráfica lateral animada.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=memory['Lateral_anim_Fondo'], key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=memory['Lateral_anim_recorrer'], key='Recorrer')],
+                        [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value=memory['Lateral_anim_font'],key='Font'), sg.Checkbox('Bold title',default=memory['Lateral_anim_Bold'],key='Bold')],
+                        [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText(memory['Lateral_anim_xlabel_cont'], key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_anim_xlabel_style'],key='Xstyle')],
+                        [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText(memory['Lateral_anim_ylabel_cont'], key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_anim_ylabel_style'],key='Ystyle')],
+                        
+                        [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=memory['Lateral_anim_title_size'],key='Title_size')],
+                        [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=memory['Lateral_anim_subtitle_size'],key='Subtitle_size')],
+                        [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=memory['Lateral_anim_label_size'],key='Label_size')],
+
+                        [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Lateral_anim_marker'],key='Marker')],
+                        [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=memory['Lateral_anim_marker_size'],key='MarkerSize')],
+                        [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value=memory['Lateral_anim_marker_color'],key='MarkerColor')], 
+                        [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value=memory['Lateral_anim_line_style'],key='LineStyle')],
+                        [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=memory['Lateral_anim_line_size'],key='LineSize')],
+                        [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value=memory['Lateral_anim_line_color'],key='LineColor')], 
+                        [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input(memory['Lateral_anim_filename'], key='Name')],
+                        [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(memory['Lateral_anim_folder'],key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
+                        [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+
+            else:
+                frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        [sg.Text('Formato de la gráfica lateral animada.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=False, key='Recorrer')],
+                        [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
+                        [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText('profundidad (m)', key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
+                        [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText('Valor promedio (ug/m3)', key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
+                        [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
+                        [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
+                        [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
+                        [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
+                        [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=40,key='MarkerSize')],
+                        [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Rojo',key='MarkerColor')], 
+                        [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value='Dashed --',key='LineStyle')],
+                        [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=2,key='LineSize')],
+                        [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
+                        [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input('Lateral.gif', key='Name')],
+                        [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
+                        [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
 
             layout = [[sg.Text('Promedio lateral', font = font3, justification='center', expand_x=True)],
                     [sg.Column(frame, expand_y=True, scrollable=True, vertical_scroll_only=True)]]
@@ -512,7 +767,22 @@ def graph_domain(window, value, value_anim, PMType):
             if 'Exit' in event:
                 shutdown(window)
             elif event != 'Average':
-                return window, event, animation3d, lateral_avg, historico
+                return window, event, animation3d, lateral_avg, historico, memory
+
+            memory['Lateral_anim_Fondo'] = lateral_avg['Fondo'],                memory['Lateral_anim_recorrer'] = lateral_avg['Recorrer']
+            memory['Lateral_anim_font'] = lateral_avg['Font'],                  memory['Lateral_anim_Bold'] = lateral_avg['Bold']
+
+            memory['Lateral_anim_xlabel_cont'] = lateral_avg['xlabel_content'], memory['Lateral_anim_xlabel_style'] = lateral_avg['Xstyle']
+            memory['Lateral_anim_ylabel_cont'] = lateral_avg['ylabel_content'], memory['Lateral_anim_ylabel_style'] = lateral_avg['Ystyle']
+
+            memory['Lateral_anim_title_size'] = lateral_avg['Title_size'],      memory['Lateral_anim_subtitle_size'] = lateral_avg['Subtitle_size']
+            memory['Lateral_anim_label_size'] = lateral_avg['Label_size'],      memory['Lateral_anim_marker'] = lateral_avg['Marker']
+            memory['Lateral_anim_marker_size']= lateral_avg['MarkerSize'],      memory['Lateral_anim_marker_color'] = lateral_avg['MarkerColor']
+
+            memory['Lateral_anim_line_style'] = lateral_avg['LineStyle'],       memory['Lateral_anim_line_size'] = lateral_avg['LineSize']
+            memory['Lateral_anim_line_color'] = lateral_avg['LineColor']
+            
+            memory['Lateral_anim_filename'] = lateral_avg['Name'],              memory['Lateral_anim_folder'] = lateral_avg['Lateral_folder']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             lateral_avg['Marker'] = marker[lateral_avg['Marker']]
@@ -522,25 +792,51 @@ def graph_domain(window, value, value_anim, PMType):
 
         else:
             # Para una figura estatica
-            frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
-                    [sg.Text('Modifica el formato de la gráfica lateral.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=False, key='Recorrer')],
-                    [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
-                    [sg.Text('Contenido del titulo: ',size=(30,1)), sg.InputText('Concentración PM 2.5', key='Title_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Titlestyle')],
-                    [sg.Text('Contenido del subtitulo: ',size=(30,1)), sg.InputText('Promedio desde XX hasta YY', key='Subtitle_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Substyle')],
-                    [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText('profundidad (m)', key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
-                    [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText('Valor promedio (ug/m3)', key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
-                    [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
-                    [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
-                    [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
-                    [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
-                    [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=40,key='MarkerSize')],
-                    [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Rojo',key='MarkerColor')], 
-                    [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value='Dashed --',key='LineStyle')],
-                    [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=2,key='LineSize')],
-                    [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
-                    [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input('Lateral.png', key='Name', size=(30,1))],
-                    [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
-                    [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+            if '' in memory:
+                frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        [sg.Text('Modifica el formato de la gráfica lateral.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=memory['Lateral_est_Fondo'], key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=memory['Lateral_est_recorrer'], key='Recorrer')],
+                        [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value=memory['Lateral_est_font'],key='Font'), sg.Checkbox('Bold title',default=memory['Lateral_est_Bold'],key='Bold')],
+                        
+                        [sg.Text('Contenido del titulo: ',size=(30,1)), sg.InputText(memory['Lateral_est_title_cont'], key='Title_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_est_title_style'],key='Titlestyle')],
+                        [sg.Text('Contenido del subtitulo: ',size=(30,1)), sg.InputText(memory['Lateral_est_subtitle_cont'], key='Subtitle_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_est_subtitle_style'],key='Substyle')],
+                        [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText(memory['Lateral_est_xlabel_cont'], key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_est_xlabel_style'],key='Xstyle')],
+                        [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText(memory['Lateral_est_ylabel_cont'], key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_est_ylabel_style'],key='Ystyle')],
+                        
+                        [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=memory['Lateral_est_title_size'],key='Title_size')],
+                        [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=memory['Lateral_est_subtitle_size'],key='Subtitle_size')],
+                        [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=memory['Lateral_est_label_size'],key='Label_size')],
+                        [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Lateral_est_marker'],key='Marker')],
+                        
+                        [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=memory['Lateral_est_marker_size'],key='MarkerSize')],
+                        [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value=memory['Lateral_est_marker_color'],key='MarkerColor')], 
+                        [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value=memory['Lateral_est_line_style'],key='LineStyle')],
+                        [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=memory['Lateral_est_line_size'],key='LineSize')],
+                        [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value=memory['Lateral_est_line_color'],key='LineColor')],
+
+                        [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input(memory['Lateral_est_filename'], key='Name', size=(30,1))],
+                        [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(memory['Lateral_est_folder'],key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
+                        [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
+
+            else:
+                frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        [sg.Text('Modifica el formato de la gráfica lateral.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=False, key='Recorrer')],
+                        [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
+                        [sg.Text('Contenido del titulo: ',size=(30,1)), sg.InputText('Concentración PM 2.5', key='Title_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Titlestyle')],
+                        [sg.Text('Contenido del subtitulo: ',size=(30,1)), sg.InputText('Promedio desde XX hasta YY', key='Subtitle_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Substyle')],
+                        [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText('profundidad (m)', key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
+                        [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText('Valor promedio (ug/m3)', key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
+                        [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
+                        [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
+                        [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
+                        [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
+                        [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=40,key='MarkerSize')],
+                        [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Rojo',key='MarkerColor')], 
+                        [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value='Dashed --',key='LineStyle')],
+                        [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=2,key='LineSize')],
+                        [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
+                        [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input('Lateral.png', key='Name', size=(30,1))],
+                        [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
+                        [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
 
             layout = [[sg.Text('Promedio lateral', font = font3, justification='center', expand_x=True)],
                     [sg.Column(frame, expand_y=True, scrollable=True, vertical_scroll_only=True)]]
@@ -552,7 +848,23 @@ def graph_domain(window, value, value_anim, PMType):
             if 'Exit' in event:
                 shutdown(window)
             elif event != 'Average':
-                window, event, animation3d, lateral_avg, historico
+                window, event, animation3d, lateral_avg, historico, memory
+
+            memory['Lateral_est_Fondo'] = lateral_avg['Fondo'],                     memory['Lateral_est_recorrer'] = lateral_avg['Recorrer']
+            memory['Lateral_est_font'] = lateral_avg['Font'],                       memory['Lateral_est_Bold'] = lateral_avg['Bold']
+
+            memory['Lateral_est_title_cont'] = lateral_avg['Title_content'],        memory['Lateral_est_title_style'] = lateral_avg['Titlestyle']
+            memory['Lateral_est_subtitle_cont'] = lateral_avg['Subtitle_content'],  memory['Lateral_est_subtitle_style'] = lateral_avg['Substyle']
+            memory['Lateral_est_xlabel_cont'] = lateral_avg['xlabel_content'],      memory['Lateral_est_xlabel_style'] = lateral_avg['Xstyle']
+            memory['Lateral_est_ylabel_cont'] = lateral_avg['ylabel_content'],      memory['Lateral_est_ylabel_style'] = lateral_avg['Ystyle']
+
+            memory['Lateral_est_title_size'] = lateral_avg['Title_size'],           memory['Lateral_est_subtitle_size'] = lateral_avg['Subtitle_size']
+            memory['Lateral_est_label_size'] = lateral_avg['Label_size'],           memory['Lateral_est_marker'] = lateral_avg['Marker']
+            memory['Lateral_est_marker_size']= lateral_avg['MarkerSize'],           memory['Lateral_est_marker_color'] = lateral_avg['MarkerColor']
+
+            memory['Lateral_est_line_style'] = lateral_avg['LineStyle'],            memory['Lateral_est_line_size'] = lateral_avg['LineSize']
+            memory['Lateral_est_line_color'] = lateral_avg['LineColor']
+            memory['Lateral_est_filename'] = lateral_avg['Name'],                   memory['Lateral_est_folder'] = lateral_avg['Lateral_folder']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             lateral_avg['Marker'] = marker[lateral_avg['Marker']]
@@ -561,15 +873,15 @@ def graph_domain(window, value, value_anim, PMType):
             lateral_avg['LineColor'] = color[lateral_avg['LineColor']]
     
     if value['Historico']:
+        event = 'Average'
         pass
 
-    return window, event, animation3d, lateral_avg, historico
+    return window, event, animation3d, lateral_avg, historico, memory
 
 def data_average(data, minimum, maximum, anim, value, PMType, begin, final):
     begin = datetime.strptime(begin, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
     final = datetime.strptime(final, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
 
-    
     PMType = PA_Onl[list(PMType.keys())[0]]
     first_start = max(minimum.values())
     final_end = min(maximum.values())
@@ -586,11 +898,11 @@ def data_average(data, minimum, maximum, anim, value, PMType, begin, final):
     ### El usuario pudo pedir una animada y una estatica, por lo que pueden haber mas de dos grupos de datos finales..
     new_data_anim = limites_anim = new_data_est = limites_est = []
 
-    if (value['Surface'] and value['An_superficie']) or (value['LateralAvg'] and value['An_lateral']):
+    if (value['Surface'] and value['An_superficie']) or (value['LateralAvg'] and value['An_lateral'] or value['Historico']):
         delta = float(anim['delta'])
         new_data_anim, limites_anim, PMType = average(data, delta, PMType, first_start, final_end, seconds)
 
-    if (value['Surface'] and value['Es_superficie']) or (value['LateralAvg'] and value['Es_lateral']) or (value['Historico']):
+    if (value['Surface'] and value['Es_superficie']) or (value['LateralAvg'] and value['Es_lateral']):
         delta = seconds/3600
         new_data_est, limites_est, PMType = average(data, delta, PMType, first_start, final_end, seconds)
 
@@ -645,8 +957,8 @@ def graph(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMT
     if selection == 'LateralAvg':
         Func.lateral_avg(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, styles)
 
-    if selection == 'historico':
-        Func.historico(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, styles)
+    if selection == 'Historico':
+        Func.historico(y_axis, z_axis, columns, rows, row_dist, graph_selection, PMType, indx, limites, styles)
     #Func.graphs(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, value, PMType, indx, limites, value['delta'], animation3d, lateral_avg, historico)
     
     window, event = gui_final(window)

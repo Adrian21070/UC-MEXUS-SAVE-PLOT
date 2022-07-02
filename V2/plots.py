@@ -750,12 +750,6 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     x = np.arange(min(y_axis), max(y_axis), 0.1)
     ax1.plot(x, f(x), styles['LineStyle'], linewidth=styles['LineSize'], c=styles['LineColor'])
 
-    #ax1.annotate(df['created_at'][i],
-    #    xy=(0.5, 0), xytext=(0, 10),
-    #    xycoords=('axes fraction', 'figure fraction'),
-    #    textcoords='offset points',
-    #    size=10, ha='center', va='bottom')
-
     #axis labels
     ax1.set_xlabel(styles['xlabel_content'],
                   fontsize=styles['Label_size'],
@@ -768,8 +762,6 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
                   fontstyle=styles['Ystyle'])
 
     ax1.set_xticks(y_axis, axis = 0)
-
-    #ax1.set_xticks(np.concatenate([[0], y_axis], axis = 0))
 
     ax1.tick_params(axis='both',
                    labelsize=styles['Label_size']-2)
@@ -850,18 +842,114 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     
     #Si no entra en ninguna, no habra leyenda.
 
-    #ax1.set_xticks(np.concatenate([[0], y_axis], axis = 0), fontsize=11)
-    #ax1.yticks(fontsize=11)
-
     if styles['Recorrer']:
         ax1.axis([min(y_axis)-0.1, max(y_axis)+0.5, 0, limites[1]])
     else:
         ax1.axis([0, max(y_axis)+0.5, 0, limites[1]])
     plt.subplots_adjust(top=0.8)
-    #plt.title(PMType[0].replace('_','').replace('ATM','').strip('ug/m3'), 
-    #      fontdict={'family': 'Times New Roman', 
-    #                'size': 14})
-    #plt.title(PMType[0])
+
+def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig, indx, limites, alpha, prom, styles):
+    """
+    Realiza la grafica de promedio historicos.
+    """
+    # Solo importa y_axis, profundidad
+    z_axis = []
+    y_axis = np.arange(min(min(y_axis)), max(max(y_axis))+depth, depth)
+    
+    datos = {f'Fila {ii}':[] for ii in range(rows)}
+    x_label = []
+
+    # Bucle que toma todos los promedios.
+    for ii in range(len(measurements[f'Sensor {indx[0]}'])):
+        # Creando lista con los datos ii
+        for jj in indx:
+            df = measurements[f'Sensor {jj}']
+            s = df[PMType[0]][ii]
+            z_axis.append(float(s))
+
+        x_label.append(df['created_at'][ii].replace(' (hora de inicio)', ''))
+        # Promedio por filas.
+        # Quiza sea mejor hacer esto con las coordenadas...
+        filas = []
+        kk = 0
+        col = columns
+        for ww in range(rows):
+            sum = z_axis[kk:col]
+            kk = col
+            col = kk + columns
+
+            filas.append(np.mean(sum))
+            datos[f'Fila {ww}'].append(filas[ww])
+        z_axis = []
+    
+    # Realiza el plot
+    ley = []
+    for ii in datos.keys():
+        # Aquí se colocan todos los plots.
+        y_axis = np.linspace(0, len(datos[ii]), len(datos[ii]))
+        
+        if styles['Marker'] != 'No marker':
+            ax1.scatter(y_axis, datos[ii], s=styles['MarkerSize'], marker=styles['Marker'])
+
+        # Interpolación
+        #f = interpolate.interp1d(y_axis, filas, kind='cubic')
+        f = interpolate.interp1d(y_axis, datos[ii], kind='quadratic')
+        x = np.arange(min(y_axis), max(y_axis), 0.1)
+        #ax1.plot(x, f(x))
+        ax1.plot(x, f(x), styles['LineStyle'], linewidth=styles['LineSize'])
+        ley.append(ii)
+
+
+    #axis labels
+    ax1.set_xlabel(styles['xlabel_content'],
+                  fontsize=styles['Label_size'],
+                  fontfamily=styles['Font'],
+                  fontstyle=styles['Xstyle'])
+
+    ax1.set_ylabel(styles['ylabel_content'],
+                  fontsize=styles['Label_size'],
+                  fontfamily=styles['Font'],
+                  fontstyle=styles['Ystyle'])
+    
+    ax1.set_xticks(y_axis, axis = 0)
+
+    ax1.tick_params(axis='both',
+                   labelsize=styles['Label_size']-2)
+    
+    #subtitle
+    ax1.set_title(styles['Subtitle_content'],
+                x=0.5,
+                y=0.83,
+                transform=fig.transFigure,
+                fontsize=styles['Subtitle_size'],
+                fontfamily=styles['Font'],
+                fontstyle=styles['Substyle'])
+        
+    if styles['Bold']:
+        #superior title
+        plt.suptitle(styles['Title_content'],
+                    x=0.5,
+                    y=0.95,
+                    transform=fig.transFigure,
+                    fontsize=styles['Title_size'],
+                    fontweight="bold",
+                    fontfamily=styles['Font'],
+                    fontstyle=styles['Titlestyle'])
+    else:    
+        #superior title
+        plt.suptitle(styles['Title_content'],
+                    x=0.5,
+                    y=0.95,
+                    transform=fig.transFigure,
+                    fontsize=styles['Title_size'],
+                    fontweight="regular",
+                    fontfamily=styles['Font'],
+                    fontstyle=styles['Titlestyle'])
+    
+    # Leyenda
+    ax1.legend(ley, loc='upper right', framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+
+    plt.subplots_adjust(top=0.8)
 
 def surface(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, Surface):
     # Value_anim viene información sobre periodo, y duración de la animación
@@ -950,7 +1038,6 @@ def lateral_avg(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_
             path2 = os.path.join(lateral['Lateral_folder'], lateral['Name']+'_frames')
         
         anim.save(path, writer='imagemagick', fps=frames/(length*60))
-        plt.show()
 
         if True:
             os.makedirs(path2, exist_ok=True)
@@ -965,7 +1052,7 @@ def lateral_avg(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_
                     plt.savefig(path, transparent=False)
 
     else:
-        window = sg.Window(title='Frecuencia',
+        window = sg.Window(title='Promedio lateral',
                        layout=[[sg.Canvas(key='canvas', size=(720,480))]],
                         finalize=True, size=(720,480))
         # Obtención del canvas
@@ -989,5 +1076,32 @@ def lateral_avg(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_
             figure_canvas_agg.draw()
             fig3.savefig(path, transparent=False)
 
-def historico():
-    pass
+def historico(y, z, columns, rows, row_dist, graph_selection, PMType, indx, limites, historico):
+    # Grafico estatico
+    window = sg.Window(title='Promedios históricos',
+                       layout=[[sg.Canvas(key='canvas', size=(720,480))]],
+                        finalize=True, size=(720,480))
+    # Obtención del canvas
+    canvas = window['canvas'].TKCanvas
+    fig3, ax3 = plt.subplots(1, 1, dpi=100, figsize=(7,5))
+    figure_canvas_agg = FigureCanvasTkAgg(fig3, canvas)
+    figure_canvas_agg.draw()
+    figure_canvas_agg.get_tk_widget().pack(side='right', expand=1)
+    indx = list(indx.values())
+    #if '.png' in historico['Name']:
+    #    path = os.path.join(historico['Lateral_folder'], historico['Name'])
+    #else:
+    #    path = os.path.join(historico['Lateral_folder'], historico['Name']+'.png')
+        
+    #if historico['Fondo']:
+        # Sin fondo
+        #historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 0, 0, historico)
+        #animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 0.0, 0, fig3, lateral)
+        #figure_canvas_agg.draw()
+        #fig3.savefig(path, transparent=True)
+    #else:
+        # Con fondo
+    historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 0, 0, historico)
+    #animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 1.0, 0, fig3, lateral)
+    figure_canvas_agg.draw()
+    #fig3.savefig(path, transparent=False)
