@@ -7,7 +7,7 @@ from datetime import datetime
 from dateutil import tz
 
 # Fuentes para la interfaz
-font = ('Times New Roman', 16)
+font = ('Times New Roman', 14)
 font2 = ('Times New Roman', 12)
 font3 = ('Times New Roman', 18)
 
@@ -19,24 +19,14 @@ Utc = tz.gettz('UTC')
 sg.theme('DarkAmber')
 
 def save_or_graph():
-    layout = [[sg.Text('Favor de seleccionar lo que desea realizar:')],
-                [sg.Button('Guardar datos',key='Save_data'), sg.Button('Graficar',key='Plot'), sg.Button('Exit')]]
-    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
+    layout = [[sg.Text('Favor de seleccionar lo que desea realizar:',font=font3, justification='center', expand_x=True)],
+                [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+                [sg.Button('Guardar datos',key='Save_data',), sg.Button('Graficar',key='Plot'), sg.Button('Exit')]]
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480), element_justification='center')
     event, value = window.read()
 
     if 'Exit' in event:
         shutdown(window)
-    
-    return window, event
-
-def gui_graph_creation(window):
-    # Creacion de la interfaz
-    layout = [[sg.Text('Seleccione de donde desea sacar los datos', font = font3)],
-           [sg.Button('Online'),sg.Button('Archivo CSV', key='CSV'),
-            sg.Button('Exit',key='Exit')]]
-    window.close()
-    window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
-    event, value = window.read()
     
     return window, event
 

@@ -707,8 +707,11 @@ def Fix_data(data_online, csv_data, PMType, holes, key):
     return df_online
 
 def save(window, data, indx, start, end):
-    layout = [[sg.Text('¿Donde desea guardar los datos?', font=font3)],
-            [sg.Text(f'Ubicación de creación de carpeta: '), sg.Input(size=(30,1)), sg.FolderBrowse()],
+    layout = [[sg.Text('¿Donde desea guardar los datos?', font=font3, justification='center', expand_x=True)],
+            [sg.Text('',size=(1,1), font=('Times New Roman',1))],
+            [sg.Text(f'Ubicación de creación de carpeta: ',size=(28,1)), sg.Input(size=(30,1)), sg.FolderBrowse()],
+            [sg.Text('Nombre de la carpeta a crear: ', size=(28,1)), sg.InputText('Data',size=(30,1), key='FolderName')],
+            [sg.Text('',size=(1,1), font=('Times New Roman',1))],
             [sg.Button('Guardar'), sg.Button('Exit')]]
 
     window.close()
@@ -719,10 +722,19 @@ def save(window, data, indx, start, end):
         shutdown(window)
     
     parent_id = value['Browse']
-    dir = "Sensors_data"
+    dir = value['FolderName']
 
     # Ubicación principal
     path = os.path.join(parent_id, dir)
+
+    kk = 0
+    while True:
+        if not os.path.exists(path):
+            os.makedirs(path, exists_ok=True)
+            break
+        else:
+            kk += 1
+            path = os.path.join(parent_id, dir+f'_v{kk}')
 
     start = datetime.strptime(start, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
     end = datetime.strptime(end, '%Y-%m-%d').replace(tzinfo=tz.tzutc())

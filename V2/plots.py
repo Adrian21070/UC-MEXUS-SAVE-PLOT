@@ -8,6 +8,7 @@ import pandas as pd
 import math
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib import cm, style
+from matplotlib.lines import Line2D
 from datetime import datetime, timedelta
 from dateutil import tz
 from scipy import interpolate
@@ -832,13 +833,13 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     #ax1.set_ylabel('Valor promedio (ug/m3)')
     if (styles['Marker'] != 'No marker') and (styles['LineStyle'] != 'No line'):
         # Incluye el promedio y interpolación en la leyenda.
-        ax1.legend(['Promedio', 'Interpolación cuadrática'], loc='upper right', framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+        ax1.legend(['Promedio', 'Interpolación cuadrática'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     elif (styles['Marker'] != 'No marker') and (styles['LineStyle'] == 'No line'):
         # Incluye promedio, no interpolación
-        ax1.legend(['Promedio'], loc='upper right', framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+        ax1.legend(['Promedio'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     elif (styles['Marker'] == 'No marker') and (styles['LineStyle'] != 'No line'):
         # Incluye interpolación, no promedio
-        ax1.legend(['Interpolación cuadrática'], loc='upper right', framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+        ax1.legend(['Interpolación cuadrática'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     
     #Si no entra en ninguna, no habra leyenda.
 
@@ -856,8 +857,9 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
     z_axis = []
     y_axis = np.arange(min(min(y_axis)), max(max(y_axis))+depth, depth)
     
-    datos = {f'Fila {ii}':[] for ii in range(rows)}
+    datos = {f'Fila {ii+1}':[] for ii in range(rows)}
     x_label = []
+    pos = []
 
     # Bucle que toma todos los promedios.
     for ii in range(len(measurements[f'Sensor {indx[0]}'])):
@@ -866,8 +868,17 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
             df = measurements[f'Sensor {jj}']
             s = df[PMType[0]][ii]
             z_axis.append(float(s))
+        date = df['created_at'][ii].replace(' (hora de inicio)', '')
+        time = datetime.strptime(date, '%Y/%m/%d, %H:%M')
+        if ii == 0:
+            x_label.append(date)
+            pos.append(ii)
+        else:
+            if time.day != time2.day:
+                x_label.append(date)
+                pos.append(ii)
+        time2 = time
 
-        x_label.append(df['created_at'][ii].replace(' (hora de inicio)', ''))
         # Promedio por filas.
         # Quiza sea mejor hacer esto con las coordenadas...
         filas = []
@@ -879,7 +890,7 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
             col = kk + columns
 
             filas.append(np.mean(sum))
-            datos[f'Fila {ww}'].append(filas[ww])
+            datos[f'Fila {ww+1}'].append(filas[ww])
         z_axis = []
     
     # Realiza el plot
@@ -895,10 +906,10 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
         #f = interpolate.interp1d(y_axis, filas, kind='cubic')
         f = interpolate.interp1d(y_axis, datos[ii], kind='quadratic')
         x = np.arange(min(y_axis), max(y_axis), 0.1)
-        #ax1.plot(x, f(x))
         ax1.plot(x, f(x), styles['LineStyle'], linewidth=styles['LineSize'])
-        ley.append(ii)
 
+        color = ax1.get_lines()[-1].get_color()
+        ley.append((color, ii))
 
     #axis labels
     ax1.set_xlabel(styles['xlabel_content'],
@@ -911,10 +922,14 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
                   fontfamily=styles['Font'],
                   fontstyle=styles['Ystyle'])
     
-    ax1.set_xticks(y_axis, axis = 0)
+    y_axis2 = []
+    for ii in pos:
+        y_axis2.append(y_axis[ii])
+
+    ax1.set_xticks(y_axis2, labels=x_label) # Importante de revisar
 
     ax1.tick_params(axis='both',
-                   labelsize=styles['Label_size']-2)
+                   labelsize=styles['Label_size']-2) # Importante de revisar
     
     #subtitle
     ax1.set_title(styles['Subtitle_content'],
@@ -947,7 +962,9 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
                     fontstyle=styles['Titlestyle'])
     
     # Leyenda
-    ax1.legend(ley, loc='upper right', framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+    ax1.legend([Line2D([0], [0], color=clave[0], lw=2) for clave in ley],
+           [clave[1] for clave in ley], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+    #ax1.legend(ley, loc='upper right', framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
 
     plt.subplots_adjust(top=0.8)
 
@@ -1088,20 +1105,20 @@ def historico(y, z, columns, rows, row_dist, graph_selection, PMType, indx, limi
     figure_canvas_agg.draw()
     figure_canvas_agg.get_tk_widget().pack(side='right', expand=1)
     indx = list(indx.values())
-    #if '.png' in historico['Name']:
-    #    path = os.path.join(historico['Lateral_folder'], historico['Name'])
-    #else:
-    #    path = os.path.join(historico['Lateral_folder'], historico['Name']+'.png')
+    if '.png' in historico['Name']:
+        path = os.path.join(historico['Historico_folder'], historico['Name'])
+    else:
+        path = os.path.join(historico['Historico_folder'], historico['Name']+'.png')
         
-    #if historico['Fondo']:
-        # Sin fondo
-        #historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 0, 0, historico)
+    if historico['Fondo']:
+        #Sin fondo
+        historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 0, 0, historico)
         #animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 0.0, 0, fig3, lateral)
-        #figure_canvas_agg.draw()
-        #fig3.savefig(path, transparent=True)
-    #else:
+        figure_canvas_agg.draw()
+        fig3.savefig(path, transparent=True)
+    else:
         # Con fondo
-    historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 0, 0, historico)
-    #animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 1.0, 0, fig3, lateral)
-    figure_canvas_agg.draw()
-    #fig3.savefig(path, transparent=False)
+        historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 1.0, 0, historico)
+        #animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 1.0, 0, fig3, lateral)
+        figure_canvas_agg.draw()
+        fig3.savefig(path, transparent=False)

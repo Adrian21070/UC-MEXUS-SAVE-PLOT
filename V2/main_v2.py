@@ -4,14 +4,10 @@ import csv_plot2 as Csv
 import plots as Func
 
 """
-Holes verification, tamaño de hueco en segundos, modificable por el usuario? (Pendiente) (Listo)
-
 Sensors_info, debo preguntar de que lado se encuentra la avenida laterial??? (Pendiente)
 
 Incluir un popup al momento de pasar por extracción de datos, tarda mucho ya que son muchos campos.
 Esto relajara al usuario de que si se esta ejecutando algo. (Pendiente)
-
-Datatype Puedo hacerlo frame y poner todo en el centro mas estetico
 
 Como compruebo que los csv que me dan para reparar huecos si son los adecuados??? Funcion fix_save.
 (Sensores sin bateria)
@@ -23,7 +19,10 @@ Prueba con debug si todo esta bien con esto...
 
 """
 
-
+"""
+Te quedaste arreglando X y Y para cuando pidan huecos en la distribución de sensores...
+Surface, LateralAvg y Historico deben arreglarse...
+"""
 
 if __name__ == '__main__':
 
@@ -104,9 +103,9 @@ if __name__ == '__main__':
                 gui.shutdown(window)
     
     elif event == 'Plot':
-        # Saca datos online o por csv y los procesa para graficarlos.
-        window, event = gui.gui_graph_creation(window)
-
+        # Saca datos por csv y los procesa para graficarlos.
+        event = 'CSV'
+        
         if event == 'CSV':
             event = 'Extraction'
             memory = {}
@@ -122,7 +121,7 @@ if __name__ == '__main__':
                     if event != 'Sensor_info':
                         pass
                     else:
-                        PMType = value
+                        PMType_init = value
 
                 if event == 'Return':
                     pass
@@ -177,11 +176,11 @@ if __name__ == '__main__':
 
                 if event == 'Styles':
                     # Se preguntan cosas de las graficas
-                    window, event, surface, lateral_avg, historico, memory = Csv.graph_domain(window, graph_selection, value_anim, PMType, memory)
+                    window, event, surface, lateral_avg, historico, memory = Csv.graph_domain(window, graph_selection, value_anim, PMType_init, memory)
 
                 if event == 'Average':
                     # Se preparan los datos
-                    new_data_anim, limites_anim, new_data_est, limites_est, PMType = Csv.data_average(csv_data, minimum, maximum, value_anim, graph_selection, PMType, start, end)
+                    new_data_anim, limites_anim, new_data_est, limites_est, PMType = Csv.data_average(csv_data, minimum, maximum, value_anim, graph_selection, PMType_init, start, end)
                     #data, limites, PMType2 = Csv.data_average(csv_data, minimum, maximum, value_anim, PMType, start, end)
                     event = 'Visualization'
 
@@ -197,32 +196,35 @@ if __name__ == '__main__':
                             # Realiza la animación y la guarda.
                             if (graph_selection['Surface'] and graph_selection['An_superficie']):
                                 #Animación superficie
-                                Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, surface, 'Surface')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, surface, 'Surface')
 
                             if (graph_selection['LateralAvg'] and graph_selection['An_lateral']):
                                 #Animación promedio lateral
-                                Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, lateral_avg, 'LateralAvg')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, lateral_avg, 'LateralAvg')
                             
                             if (graph_selection['Historico']):
                                 # Promedios historicos
-                                Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, historico, 'Historico')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, historico, 'Historico')
                             #Historico # (Construccion)
 
                         if new_data_est:
                             # Realiza la grafica y la guarda
                             if (graph_selection['Surface'] and graph_selection['Es_superficie']):
                                 #Superficie estatica
-                                Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, surface, 'Surface')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, surface, 'Surface')
 
                             if (graph_selection['LateralAvg'] and graph_selection['Es_lateral']):
                                 #Lateral estatica
-                                Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, lateral_avg, 'LateralAvg')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, lateral_avg, 'LateralAvg')
 
                     except:
                         # Indicar que existio un error, probable por que falto un dato en el formato de la grafica o en los datos.
-                        pass
-
+                        window, event = Csv.error_grafica(window)
+                        
                     del new_data_anim, new_data_est, limites_anim, limites_est
+                
+                if event == 'Finalizar programa':
+                    gui.shutdown(window)
 
         else:
             gui.shutdown(window)

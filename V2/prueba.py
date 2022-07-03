@@ -77,7 +77,12 @@ layout = [[sg.Text('Superficie', font = font3, justification='center', expand_x=
         [sg.Column(frame, expand_y=True, scrollable=True, vertical_scroll_only=True)],
         [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
 
-
+layout = [[sg.Text('¿Donde desea guardar los datos?', font=font3, justification='center', expand_x=True)],
+            [sg.Text('',size=(1,1), font=('Times New Roman',1))],
+            [sg.Text(f'Ubicación de creación de carpeta: ',size=(28,1)), sg.Input(size=(30,1)), sg.FolderBrowse()],
+            [sg.Text('Nombre de la carpeta a crear: ', size=(28,1)), sg.InputText(size=(30,1), key='FolderName')],
+            [sg.Text('',size=(1,1), font=('Times New Roman',1))],
+            [sg.Button('Guardar'), sg.Button('Exit')]]
 window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
 event, LateralAvg = window.read()
 
