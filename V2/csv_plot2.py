@@ -201,21 +201,23 @@ def distribution(window,num_sen,rows,columns):
             [sg.Text('Escribe el número de identificación de los sensores en los recuadros (Ejemplo: 1, 6, 23).')],
             [sg.Text('En el recuadro se despliegan todos los sensores disponibles, si no requiere verificar')],
             [sg.Text('alguno de ellos, deje en blanco su recuadro. Tambien puede cambiarlos de posición,')],
-            [sg.Text('pero no es valido repetir sensores.')],
+            [sg.Text('pero no es valido repetir sensores. Carretera lateral'), sg.Combo(['Derecha','Izquierda','No'],default_value='Izquierda',key='Carretera_Lateral')],
             [sg.Button('Continue',key='Coordenadas'),sg.Button('Return',key='Sensor_info'),sg.Button('Exit')],
             [sg.Text('',size=(1,1),font=('Times New Roman', 1))]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
     event, indx = window.read()
-
+    carretera = []
     if 'Exit' in event:
         shutdown(window)
     if event != 'Coordenadas':
-        return window, event, indx, False
+        return window, event, indx, carretera, False
 
     # Extraigo los valores dados por el usuario y quito los repetidos.
     result = {}
+    carretera = indx['Carretera_Lateral']
+    del indx['Carretera_Lateral']
 
     # Quito los espacios vacios.
     for key,val in indx.items():
@@ -282,9 +284,9 @@ def distribution(window,num_sen,rows,columns):
                 break
 
         if llave:
-            return window, event, num_sen, True
+            return window, event, num_sen, carretera, True
 
-        return window, event, indx, False
+        return window, event, indx, carretera, False
 
     except:
         layout = [[sg.Text('Favor de introducir únicamente números enteros que estén',font=('Times New Roman', 18))],
@@ -297,9 +299,9 @@ def distribution(window,num_sen,rows,columns):
             window.close()
             sys.exit()
 
-        return window, event, num_sen, True
+        return window, event, num_sen, carretera, True
 
-def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx):
+def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx, lateral):
     # Calculo de X y Y
     x3 = np.array(list(range(0,columns)))*col_dist + x0
     y3 = np.array(list(range(0,rows)))*row_dist + y0
@@ -311,7 +313,13 @@ def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx):
     for i in range(rows):
         y1 = i*row_dist + y0
         for j in range(columns):
-            x1 = j*col_dist + x0
+            if lateral == 'Izquierda':
+                x1 = j*col_dist + x0
+            elif lateral == 'Derecha':
+                x1 = (columns-j-1)*col_dist + x0
+            else:
+                x1 = j*col_dist
+
             if f'({i},{j})' in indx:
                 lay.append(sg.Input(f'{x1},{y1}', key=f'({i},{j})',size=(10,1)))
             else:
@@ -327,7 +335,7 @@ def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx):
 
     # Matriz de coordenadas
     layout = [[sg.Text('Carretera', font=('Times New Roman', 24), justification='center', expand_x=True)],
-                [sg.Column(frame,scrollable=True,element_justification='center', expand_y=True, expand_x=True)],
+                [sg.Column(frame,scrollable=True, expand_y=True, element_justification='center')],
                 [sg.Text('Si requiere modificar las coordenadas de algun sensor modifique las casillas, cuide el')],
                 [sg.Text('no introducir elementos que no sean números. Los espacios vacíos son debido')],
                 [sg.Text('a sensores repetidos o espacios que el usuario dejo a propósito')],

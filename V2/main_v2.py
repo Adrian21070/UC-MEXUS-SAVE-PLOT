@@ -151,12 +151,12 @@ if __name__ == '__main__':
                     # Solicitamos la distribución de los sensores.
                     key = True
                     while key:
-                        window, event, indx, key = Csv.distribution(window,indx,rows,columns)
+                        window, event, indx, carretera_lateral, key = Csv.distribution(window,indx,rows,columns)
                     del key
 
                 if event == 'Coordenadas':
                     # Ahora indx es un diccionario con las coordenadas del usuario y el numero del sensor.
-                    window, event, indx, x_axis, y_axis = Csv.coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx)
+                    window, event, indx, x_axis, y_axis = Csv.coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx, carretera_lateral)
                 
                 ### Aquí inicia un bucle de graficado
                 if event == 'Tipo_de_grafico':
