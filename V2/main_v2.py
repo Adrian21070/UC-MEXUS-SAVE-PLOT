@@ -4,24 +4,15 @@ import csv_plot2 as Csv
 import plots as Func
 
 """
-Incluir un popup al momento de pasar por extracción de datos, tarda mucho ya que son muchos campos.
-Esto relajara al usuario de que si se esta ejecutando algo. (Pendiente)
-
 Como compruebo que los csv que me dan para reparar huecos si son los adecuados??? Funcion fix_save.
 (Sensores sin bateria)
-"""
-
-"""
-UTC o Local en visualización (Pendiente)
 
 Falta la opcion de no interpolacion (plot simple y surf simple...)
-"""
-
-"""
-Te quedaste arreglando X y Y para cuando pidan huecos en la distribución de sensores...
-Surface, LateralAvg y Historico deben arreglarse...
 
 Lo anterior esta practicamente terminado, solo falta el caso de prueba que (la matriz sea más grande que el area de sensores)...
+
+A todos los exit, hay que agregarles esto si les falta, if event in ('Exit', None): especificamente el None...
+                                                            shutdown(window)
 """
 
 if __name__ == '__main__':
@@ -74,14 +65,20 @@ if __name__ == '__main__':
                     key = True
                     while key:
                         window, data, key = save.fix_save(window, num_csv_per_sensor, holes, data)
-                    event = 'Save'
+                    event = 'Ajuste'
+                elif event == 'Exit':
+                    gui.shutdown(window)
                 else:
                     # Paso las fechas a UTC
                     for ii in data.keys():
                         val = data[ii]['created_at']
                         val = Func.conversor_datetime_string(val, key=2) #Convierto a utc
                         data[ii]['created_at'] = val
-                    event = 'Save'
+                    event = 'Ajuste'
+            
+            if event == 'Ajuste':
+                window, event, data = save.ajuste(window, data)
+                pass
 
             if event == 'Save':
                 # Guardo los archivos.

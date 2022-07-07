@@ -53,24 +53,24 @@ def holes_warning(window,holes,num_csv):
 
             holes_text.append([sg.Text(f'{k2}  hasta  {v2}, timezone: Local.')])
             holes_text.append([sg.Text(f'{utc_k}  hasta  {utc_v}, timezone: UTC')])
+            holes_text.append([sg.Text('',size=(1,1),font=('Times New Roman',1))])
         layout.append([sg.Frame(f'{ii} presenta un hueco desde',holes_text),sg.Text('')])
         layout.append([sg.Text('',size=(1,1),font=('Times New Roman',1))])
 
-    frame = [[sg.Frame('', layout, element_justification='center', expand_x=True)]]
+    frame = [[sg.Frame('', layout, element_justification='center')]]
 
-    lay = [[sg.Text('Existen sensores con huecos de información',font=font), sg.Text(f'(YYYY-MM-DD HH-MM-SS)')],
+    lay = [[sg.Column([[sg.Frame('',[[sg.Text('Existen sensores con huecos de información',font=font), sg.Text(f'(YYYY-MM-DD HH-MM-SS)')],
             [sg.Text('Los sensores son:', font = font)],
-            [sg.Button('Solucionar errores',key='Fix_errors'), sg.Button('No arreglar'), sg.Button('Exit')],
             [sg.Text('',size=(1,1), font=('Times New Roman',1))],
-            [sg.Column(frame, scrollable=True, vertical_scroll_only=True, expand_x=True, expand_y=False)]]
+            [sg.Column(frame, scrollable=True, vertical_scroll_only=True, expand_y=False)]
+            ])]], element_justification='c', scrollable=True, vertical_scroll_only=True, expand_y=True)],
+            [sg.Button('Solucionar errores',key='Fix_errors'), sg.Button('No arreglar'), sg.Button('Exit')]]
 
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', lay, font = font2, size=(720,480), element_justification='c')
     event, value = window.read()
     if event == None:
         event = 'Fix_errors'
-    elif event == 'Exit':
-        sys.exit()
     return window, event
 
 def csv_online2(window, num_holes_per_sensor, holes):
@@ -113,7 +113,7 @@ def csv_online2(window, num_holes_per_sensor, holes):
 
     for ii in dates.keys():
         lay = []
-        lay.append([sg.Text(f'Carpeta con los archivos del dia {ii} para los sensores:')])
+        lay.append([sg.Text(f'Carpeta con los archivos del dia {ii} (UTC) para los sensores:')])
         num = 5
         n = len(dates[ii])//num
 

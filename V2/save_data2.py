@@ -1,3 +1,4 @@
+from re import M
 import PySimpleGUI as sg
 import plots as Func
 import main_gui as gui
@@ -128,6 +129,14 @@ CSV_dict = {"UTCDateTime":"created_at",
             "p_0_3_um_b":">=0.3_B_um/dl", "p_0_5_um_b":">=0.5_B_um/dl", 
             "p_1_0_um_b":">=1.0_B_um/dl", "p_2_5_um_b":">=2.5_B_um/dl", 
             "p_5_0_um_b":">=5.0_B_um/dl", "p_10_0_um_b":">=10.0_B_um/dl"}
+
+# Diccionario util para el ajuste de datos.
+PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
+        "PM 10.0 ATM": "PM10.0_ATM_ug/m3", "PM 1.0 CF": "PM1.0_CF1_ug/m3",
+        "PM 2.5 CF": "PM2.5_CF1_ug/m3", "PM 10.0 CF": "PM10.0_CF1_ug/m3",
+        "PM 1.0 ATM B": "PM1.0_ATM_B_ug/m3", "PM 2.5 ATM B": "PM2.5_ATM_B_ug/m3",
+        "PM 10.0 ATM B": "PM10.0_ATM_B_ug/m3", "PM 1.0 CF B": "PM1.0_CF1_B_ug/m3",
+        "PM 2.5 CF B": "PM2.5_CF1_B_ug/m3", "PM 10.0 CF B": "PM10.0_CF1_B_ug/m3"}
 
 # Fuentes para la interfaz
 font = ('Times New Roman', 14)
@@ -375,7 +384,7 @@ def sensors_in_field(window):
 def total_extraction(indx, start, end, window):
     # Se extraera la data del canal A y B primario y secundario.
     # Diccionario de df
-
+    sg.popup_no_wait('En proceso de descarga de información...\nFavor de esperar', title='Proyecto UC-MEXUS', auto_close=True, auto_close_duration=10)
     try:
         total_data = {}
         for ii in indx:
@@ -661,50 +670,147 @@ def Fix_data(data_online, csv_data, PMType, holes, key):
     # Como un sensor puede presentar diversos huecos, debemos usar todos los csv designados a dicho sensor
     # este pedazo de codigo solo ordenara los csv acorde a su sensor.
 
-    for ii in data_online.keys():
-        val = data_online[ii]['created_at']
-        val = Func.conversor_datetime_string(val, key=2) #Convierto a utc
-        data_online[ii]['created_at'] = val
-    df_online = data_online
+    try:
+        for ii in data_online.keys():
+            val = data_online[ii]['created_at']
+            val = Func.conversor_datetime_string(val, key=2) #Convierto a utc
+            data_online[ii]['created_at'] = val
+        df_online = data_online
 
-    # Una vez con toda la data de online y csv puesta en dataframes
-    # Se realizara el rellenado de los huecos.
+        # Una vez con toda la data de online y csv puesta en dataframes
+        # Se realizara el rellenado de los huecos.
 
-    # Solo se realizara en los sensores que tengan huecos, no en todos.
-    for ii in csv_data.keys():
-        df = df_online[ii]
+        # Solo se realizara en los sensores que tengan huecos, no en todos.
+        for ii in csv_data.keys():
+            df = df_online[ii]
+
+            df_c = csv_data[ii]
+            sensor_holes = holes[ii]
+
+            for kk in sensor_holes.keys():
+                start = Func.conversor_datetime_string([kk, sensor_holes[kk]], key=2) 
+                init = start[0]
+                end = start[1]
+
+                date = df_c['created_at'] 
+
+                # Encuentra en csv, donde esta init y end.
+                row = df_c.index[(((date-init) < timedelta(seconds=120)) & ((init-date) < timedelta(seconds=120)))].tolist()
+
+                row_end = df_c.index[(((date-end) < timedelta(seconds=120)) & ((end-date) < timedelta(seconds=120)))].tolist()
+
+                # Seleccionar el trozo de información entre row y row_end, no se incluyen
+                chunk = df_c.loc[row[-1]+1:row_end[0]-1]
+
+                # Unimos
+                df = pd.concat([df, chunk])
+
+                # Sort the data
+                df = df.sort_values(by=['created_at'])
+
+                # Reset the index
+                df.reset_index(inplace=True, drop=True)
+
+            # Se actualizan los datos de online ya corregidos.
+            df_online[ii] = df
+
+        return df_online
+
+    except:
+        layout = [[sg.Text('¡Error al intentar arreglar los huecos de información!', font=font3)],
+                [sg.Text('Errores posibles:')],
+                [sg.Text('Algun csv de respaldo estaba vacio.')],
+                [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+                [sg.Text('El nombre de alguna columna del csv de respaldo fue modificada.')],
+                [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+                [sg.Text('La columna "created_at" puede estar dañada.')],
+                [sg.Button('Exit')]]
+        window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480),element_justification='center')
+        event, value = window.read()
+        shutdown(window)
+
+def ajuste(window, data):
+    col1=[[sg.Text('Selecciona los datos a ajustar', font=font3, justification='center',expand_x=True)],
+        [sg.Frame('',[
+        [sg.Checkbox('PM 1.0 ATM', default=False, key="PM 1.0 ATM", size=(12,1)), sg.Checkbox('PM 1.0 CF', default=False, key="PM 1.0 CF")],
+        [sg.Checkbox('PM 2.5 ATM', default=False, key="PM 2.5 ATM", size=(12,1)), sg.Checkbox('PM 2.5 CF', default=False, key="PM 2.5 CF")],
+        [sg.Checkbox('PM 10.0 ATM', default=False, key="PM 10.0 ATM", size=(12,1)), sg.Checkbox('PM 10.0 CF', default=False, key="PM 10.0 CF")]],element_justification='center')]]
+    
+    layout = [col1, [sg.Text('Si deja todos los campos vacios, se pasara directo a guardar sin ajustar datos.')], [sg.Button('Continue', key='Ajustar'), sg.Button('Return',key='Continue'), sg.Button('Exit')]]
+
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480),element_justification='center')
+    event, value = window.read()
+
+    if event in ('Exit', None):
+        shutdown(window)
+    elif event == 'Continue':
+        return window, event, data
+    
+    PMType = {}
+
+    for ii in value.keys():
+        if value[ii]:
+            PMType[ii] = True
+    
+    if not PMType: # Si no se selecciona nada, pasa directo a guardar.
+        event = 'Save'
+        return window, event, data
+
+    layout = []
+    lay = []
+    for ii in PMType.keys():
+        lay.append([sg.Frame('',[[sg.Text(f'{ii}',font=('Times New Roman', 16))], [sg.Text('Favor de introducir los parámetros del ajuste lineal')],
+                                [sg.Text('m ='),sg.Input(1,key=f'm_{ii}',size=(4,1)),sg.Text('b ='),sg.Input(0,key=f'b_{ii}',size=(4,1))]], element_justification='center')])
+    layout = [[sg.Text('Parámetros de ajuste para diversos campos',justification='center',expand_x=True, font=font3)],
+            [sg.Column(lay,scrollable=True,element_justification='center',expand_y=True)],
+            [sg.Button('Continue',key='Save'), sg.Button('Return',key='Ajuste'), sg.Button('Exit')]]
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480),element_justification='c')
+    event, value = window.read()
+
+    if event in ('Exit', None):
+        shutdown(window)
+    elif event == 'Ajuste':
+        return window, event, data
+
+    new_data = {}
+
+    try:
+        for jj in data.keys():
+            df = data[jj]
+            for ii in PMType.keys():
+                pm = PA_Onl[ii]
+                pm_b = PA_Onl[ii+' B']
+                m = float(value[f'm_{ii}'])
+                b = float(value[f'b_{ii}'])
+
+                col_a = df[pm] # Columna de datos a modificar (A)
+                col_b = df[pm_b] # Columna de datos a modificar (B)
+
+                col_a = col_a.apply(lambda x:float(x))
+                col_b = col_b.apply(lambda x:float(x))
+
+                col_a = col_a * m + b
+                col_b = col_b * m + b
+
+                df[pm] = col_a
+                df[pm_b] = col_b
+
+            new_data[jj] = df
+
+    except:
+        layout = [[sg.Text('Favor de introducir únicamente números y no dejar espacios vacios',font=('Times New Roman', 16))],
+                [sg.Button('Return',key='Ajuste'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
+        event, value = window.read()
         
-        df_c = csv_data[ii]
-        sensor_holes = holes[ii]
+        if event in ('Exit', None):
+            shutdown(window)
+        return window, event, data
 
-        for kk in sensor_holes.keys():
-            start = Func.conversor_datetime_string([kk, sensor_holes[kk]], key=2) 
-            init = start[0]
-            end = start[1]
-
-            date = df_c['created_at'] 
-
-            # Encuentra en csv, donde esta init y end.
-            row = df_c.index[(((date-init) < timedelta(seconds=120)) & ((init-date) < timedelta(seconds=120)))].tolist()
-
-            row_end = df_c.index[(((date-end) < timedelta(seconds=120)) & ((end-date) < timedelta(seconds=120)))].tolist()
-
-            # Seleccionar el trozo de información entre row y row_end, no se incluyen
-            chunk = df_c.loc[row[-1]+1:row_end[0]-1]
-
-            # Unimos
-            df = pd.concat([df, chunk])
-
-            # Sort the data
-            df = df.sort_values(by=['created_at'])
-
-            # Reset the index
-            df.reset_index(inplace=True, drop=True)
-
-        # Se actualizan los datos de online ya corregidos.
-        df_online[ii] = df
-
-    return df_online
+    return window, event, new_data
 
 def save(window, data, indx, start, end):
     layout = [[sg.Text('¿Donde desea guardar los datos?', font=font3, justification='center', expand_x=True)],
@@ -730,7 +836,7 @@ def save(window, data, indx, start, end):
     kk = 0
     while True:
         if not os.path.exists(path):
-            os.makedirs(path, exists_ok=True)
+            os.makedirs(path, exist_ok=True)
             break
         else:
             kk += 1
@@ -785,7 +891,7 @@ def save(window, data, indx, start, end):
             [sg.Button('Graficar'), sg.Button('Realizar otro guardado', key='sensor_info'), sg.Button('Finalizar')]]
 
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), element_justification='c')
     event, value = window.read()
 
     return window, event
