@@ -4,8 +4,6 @@ import csv_plot2 as Csv
 import plots as Func
 
 """
-Sensors_info, debo preguntar de que lado se encuentra la avenida laterial??? (Pendiente)
-
 Incluir un popup al momento de pasar por extracción de datos, tarda mucho ya que son muchos campos.
 Esto relajara al usuario de que si se esta ejecutando algo. (Pendiente)
 
@@ -14,14 +12,16 @@ Como compruebo que los csv que me dan para reparar huecos si son los adecuados??
 """
 
 """
-(Guardar en memoria los estilos que dio el usuario.)
-Prueba con debug si todo esta bien con esto...
+UTC o Local en visualización (Pendiente)
 
+Falta la opcion de no interpolacion (plot simple y surf simple...)
 """
 
 """
 Te quedaste arreglando X y Y para cuando pidan huecos en la distribución de sensores...
 Surface, LateralAvg y Historico deben arreglarse...
+
+Lo anterior esta practicamente terminado, solo falta el caso de prueba que (la matriz sea más grande que el area de sensores)...
 """
 
 if __name__ == '__main__':
@@ -112,7 +112,7 @@ if __name__ == '__main__':
             while True:
                 if event == 'Extraction':
                     window, event, value, minimum, maximum = Csv.csv_files(window)
-                    csv_data = value
+                    csv_data_raw = value #csv_data is in UTC
                     del value
 
                 if event == 'TypeData':
@@ -133,7 +133,7 @@ if __name__ == '__main__':
                     # distancia entre ellos, etc.
                     key = True
                     while key:
-                        window, event, value, indx, key = Csv.sensors_info(list(csv_data.keys()),window)
+                        window, event, value, indx, key = Csv.sensors_info(list(csv_data_raw.keys()),window)
                     del key
 
                     if event != 'SensorDistribution':
@@ -151,8 +151,11 @@ if __name__ == '__main__':
                     # Solicitamos la distribución de los sensores.
                     key = True
                     while key:
-                        window, event, indx, carretera_lateral, key = Csv.distribution(window,indx,rows,columns)
+                        window, event, indx, carretera_lateral, key, rows_sen = Csv.distribution(window,indx,rows,columns)
                     del key
+                    # Se debe aplicar un filtro a data a partir de indx
+                    if event == 'Coordenadas':
+                        csv_data = Csv.filtro_data(csv_data_raw, indx)
 
                 if event == 'Coordenadas':
                     # Ahora indx es un diccionario con las coordenadas del usuario y el numero del sensor.
@@ -176,11 +179,11 @@ if __name__ == '__main__':
 
                 if event == 'Styles':
                     # Se preguntan cosas de las graficas
-                    window, event, surface, lateral_avg, historico, memory = Csv.graph_domain(window, graph_selection, value_anim, PMType_init, memory)
+                    window, event, surface, lateral_avg, historico, memory, typedate = Csv.graph_domain(window, graph_selection, value_anim, PMType_init, memory)
 
                 if event == 'Average':
                     # Se preparan los datos
-                    new_data_anim, limites_anim, new_data_est, limites_est, PMType = Csv.data_average(csv_data, minimum, maximum, value_anim, graph_selection, PMType_init, start, end)
+                    new_data_anim, limites_anim, new_data_est, limites_est, PMType = Csv.data_average(csv_data, minimum, maximum, value_anim, graph_selection, PMType_init, start, end, typedate)
                     #data, limites, PMType2 = Csv.data_average(csv_data, minimum, maximum, value_anim, PMType, start, end)
                     event = 'Visualization'
 
@@ -196,26 +199,26 @@ if __name__ == '__main__':
                             # Realiza la animación y la guarda.
                             if (graph_selection['Surface'] and graph_selection['An_superficie']):
                                 #Animación superficie
-                                window, event = Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, surface, 'Surface')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, surface, 'Surface', carretera_lateral, rows_sen)
 
                             if (graph_selection['LateralAvg'] and graph_selection['An_lateral']):
                                 #Animación promedio lateral
-                                window, event = Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, lateral_avg, 'LateralAvg')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, lateral_avg, 'LateralAvg', carretera_lateral, rows_sen)
                             
                             if (graph_selection['Historico']):
                                 # Promedios historicos
-                                window, event = Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, historico, 'Historico')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_anim, columns, rows, row_dist, col_dist, PMType, indx, limites_anim, graph_selection, value_anim, historico, 'Historico', carretera_lateral, rows_sen)
                             #Historico # (Construccion)
 
                         if new_data_est:
                             # Realiza la grafica y la guarda
                             if (graph_selection['Surface'] and graph_selection['Es_superficie']):
                                 #Superficie estatica
-                                window, event = Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, surface, 'Surface')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, surface, 'Surface', carretera_lateral, rows_sen)
 
                             if (graph_selection['LateralAvg'] and graph_selection['Es_lateral']):
                                 #Lateral estatica
-                                window, event = Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, lateral_avg, 'LateralAvg')
+                                window, event = Csv.graph(window, x_axis, y_axis, new_data_est, columns, rows, row_dist, col_dist, PMType, indx, limites_est, graph_selection, value_anim, lateral_avg, 'LateralAvg', carretera_lateral, rows_sen)
 
                     except:
                         # Indicar que existio un error, probable por que falto un dato en el formato de la grafica o en los datos.

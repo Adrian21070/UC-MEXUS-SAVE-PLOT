@@ -561,7 +561,7 @@ def Fix_data(data_online, csv_data, PMType, holes, key):
 
     return df_online
 
-def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx,limites,fig,prom, styles):
+def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_length,PMType,indx,limites,fig,prom, styles, carretera):
     """
     Realiza la superficie.
     """
@@ -569,7 +569,6 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     z_axis = []
 
     # Se obtiene la lista de las fechas de cada medición
-    #time = list(measurements[f'S{indx[0]}']['created_at'].keys())
     for k in range(len(measurements)):
         jj = indx[k] #Numero del sensor actual.
         #Accede al dato del sensor jj, en el tiempo i.
@@ -580,9 +579,6 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     
     minimum = round(min(z_axis),2)
     maximum = round(max(z_axis),2)
-    average = round(np.mean(z_axis),2)
-    #textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3  Promedio: "+str(average)+" ug/m3"
-    #textstr = "Max: "+str(maximum)+" ug/m3  Min: "+str(minimum)+" ug/m3"
     textstr = "Min: "+str(minimum)+" ug/m3   Max: "+str(maximum)+" ug/m3"
 
     ax1.clear()
@@ -591,12 +587,6 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
             xycoords=('axes fraction', 'figure fraction'),
             textcoords='offset points',
             size=styles['Label_size'], ha='center', va='bottom')
-    
-    #ax1.annotate(df['created_at'][i],
-    #        xy=(0.5, 0.8), xytext=(0, 10),
-    #        xycoords=('axes fraction', 'figure fraction'),
-    #        textcoords='offset points',
-    #        size=10, ha='center', va='bottom')
 
     if styles['Marker'] != 'No marker':
         scamap = plt.cm.ScalarMappable(cmap='inferno')
@@ -633,7 +623,10 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
 
     ax1.set_xlim3d(x_min, x_final)
     ax1.set_xticks(np.arange(x_min, x_final+lateral_length, lateral_length))
-    ax1.invert_xaxis()
+    if carretera == 'Derecha':
+        pass
+    else:
+        ax1.invert_xaxis()
 
     ax1.set_ylim3d(y_min, y_final)
     ax1.set_yticks(np.arange(y_min, y_final+depth_length, depth_length))
@@ -708,11 +701,11 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
 
 def Interpol(x,y,z,xfinal,yfinal,xmin,ymin):
     points = np.concatenate((x.T, y.T), axis=1)
-    grid_x, grid_y = np.mgrid[xmin:xfinal:200j, ymin:yfinal:200j]
+    grid_x, grid_y = np.mgrid[xmin:xfinal:300j, ymin:yfinal:300j]
     grid_z0 = griddata(points, z, (grid_x, grid_y), method='cubic')
     return grid_x, grid_y, grid_z0
 
-def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx, limites, alpha, prom, fig, styles):
+def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx, limites, alpha, prom, fig, styles, rows_sen):
     """
     Realiza la grafica del promedio lateral.
     """
@@ -721,24 +714,23 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     y_axis = np.arange(min(min(y_axis)), max(max(y_axis))+depth, depth)
     #y_axis = [value*depth for value in range(rows)]
     # Creando lista con los datos ii
-    for jj in indx:
+    for jj in indx.values():
         df = measurements[f'Sensor {jj}']
         s = df[PMType[0]][i]
         z_axis.append(float(s))
 
     # Promedio por filas.
     filas = []
-    kk = 0
-    col = columns
-    #No = list(prom.values())
-    for ii in range(rows):
-        sum = z_axis[kk:col]
-        kk = col
-        col = kk + columns
-
+    sum = []
+    for ii in rows_sen.keys():
+        for jj in rows_sen[ii]:
+            df = measurements[f'Sensor {jj}']
+            s = df[PMType[0]][i]
+            sum.append(float(s))
         filas.append(np.mean(sum))
-        # Aquí ya se obtuvo el promedio por filas en el tiempo ii, se obtendra una cantidad n de promedio de filas a lo largo
-        # de todo el for principal, se piensa mandar a animar esto para obtener una animación del cambio de promedio de filas.
+        sum = []
+    # Aquí ya se obtuvo el promedio por filas en el tiempo ii, se obtendra una cantidad n de promedio de filas a lo largo
+    # de todo el for principal.
     
     # Realiza el plot
     ax1.clear()
@@ -748,7 +740,7 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     # Interpolación
     #f = interpolate.interp1d(y_axis, filas, kind='cubic')
     f = interpolate.interp1d(y_axis, filas, kind='quadratic')
-    x = np.arange(min(y_axis), max(y_axis), 0.1)
+    x = np.arange(min(y_axis), max(y_axis), 0.05)
     ax1.plot(x, f(x), styles['LineStyle'], linewidth=styles['LineSize'], c=styles['LineColor'])
 
     #axis labels
@@ -849,12 +841,11 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
         ax1.axis([0, max(y_axis)+0.5, 0, limites[1]])
     plt.subplots_adjust(top=0.8)
 
-def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig, indx, limites, alpha, prom, styles):
+def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig, indx, limites, alpha, prom, styles, rows_sen):
     """
     Realiza la grafica de promedio historicos.
     """
     # Solo importa y_axis, profundidad
-    z_axis = []
     y_axis = np.arange(min(min(y_axis)), max(max(y_axis))+depth, depth)
     
     datos = {f'Fila {ii+1}':[] for ii in range(rows)}
@@ -864,10 +855,8 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
     # Bucle que toma todos los promedios.
     for ii in range(len(measurements[f'Sensor {indx[0]}'])):
         # Creando lista con los datos ii
-        for jj in indx:
-            df = measurements[f'Sensor {jj}']
-            s = df[PMType[0]][ii]
-            z_axis.append(float(s))
+        df = measurements[f'Sensor {indx[-1]}']
+
         date = df['created_at'][ii].replace(' (hora de inicio)', '')
         time = datetime.strptime(date, '%Y/%m/%d, %H:%M')
         if ii == 0:
@@ -881,20 +870,23 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
 
         # Promedio por filas.
         # Quiza sea mejor hacer esto con las coordenadas...
+        # Promedio por filas.
         filas = []
-        kk = 0
-        col = columns
-        for ww in range(rows):
-            sum = z_axis[kk:col]
-            kk = col
-            col = kk + columns
-
+        sum = []
+        ww = 0
+        for kk in rows_sen.keys():
+            for jj in rows_sen[kk]:
+                df = measurements[f'Sensor {jj}']
+                s = df[PMType[0]][ii]
+                sum.append(float(s))
             filas.append(np.mean(sum))
             datos[f'Fila {ww+1}'].append(filas[ww])
-        z_axis = []
-    
+            ww += 1
+            sum = []
+
     # Realiza el plot
     ley = []
+    maxy = []
     for ii in datos.keys():
         # Aquí se colocan todos los plots.
         y_axis = np.linspace(0, len(datos[ii]), len(datos[ii]))
@@ -910,6 +902,7 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
 
         color = ax1.get_lines()[-1].get_color()
         ley.append((color, ii))
+        maxy.append(max(datos[ii]))
 
     #axis labels
     ax1.set_xlabel(styles['xlabel_content'],
@@ -964,11 +957,11 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
     # Leyenda
     ax1.legend([Line2D([0], [0], color=clave[0], lw=2) for clave in ley],
            [clave[1] for clave in ley], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
-    #ax1.legend(ley, loc='upper right', framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+    ax1.set_ylim(0, max(maxy)+0.5)
 
     plt.subplots_adjust(top=0.8)
 
-def surface(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, Surface):
+def surface(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, Surface, carretera_lateral):
     # Value_anim viene información sobre periodo, y duración de la animación
     # graph_selection viene información sobre el tipo de grafica deseada.
     # Styles viene toda la información de tipo de letra, markers, nombre del archivo, ruta, etc.
@@ -977,7 +970,7 @@ def surface(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim
 
     if graph_selection['An_superficie']:
         # Esto genera un gif
-        prom = float(value_anim['delta']) #Delta # Posible problema.
+        prom = float(value_anim['delta']) #Delta
         length = float(value_anim['Length']) #Minutes
 
         fig = plt.figure()
@@ -987,7 +980,7 @@ def surface(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim
         frame_rate = length*60000/frames
 
         ani = animation.FuncAnimation(fig,animate,interval=frame_rate,
-                fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites,fig,prom,Surface),
+                fargs=(z,x,y,ax1,columns,rows,col_dist,row_dist,PMType,indx,limites,fig,prom,Surface,carretera_lateral),
                 frames=frames, repeat=True)
         
         # Ubicación principal
@@ -1008,42 +1001,53 @@ def surface(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim
             ax2 = fig2.add_subplot(111, projection='3d')
             for ii in range(frames):
                 path = os.path.join(path2,f'Frame{ii}.png')
-                animate(ii,z,x,y,ax2,columns,rows,col_dist,row_dist, PMType, indx, limites, fig2, prom, Surface)
+                animate(ii,z,x,y,ax2,columns,rows,col_dist,row_dist, PMType, indx, limites, fig2, prom, Surface, carretera_lateral)
                 if Surface['Fondo']:
                     plt.savefig(path, transparent=True)
                 else:
                     plt.savefig(path, transparent=False)
     
     else:
-        # Genera una estatica.
+        # Grafico estatico
+        window = sg.Window(title='Promedios históricos',
+                    layout=[[sg.Canvas(key='canvas', size=(720,480))]],
+                    finalize=True, size=(720,480))
+        # Obtención del canvas
+        canvas = window['canvas'].TKCanvas
+        # Genera una estatica
         fig = plt.figure()
         ax1 = fig.add_subplot(111, projection='3d')
-        animate(0, z, x, y, ax1, columns, rows, col_dist, row_dist, PMType, indx, limites, fig, 0, Surface)
+        figure_canvas_agg = FigureCanvasTkAgg(fig, canvas)
+        figure_canvas_agg.draw()
+        figure_canvas_agg.get_tk_widget().pack(side='right', expand=1)
+
+        animate(0, z, x, y, ax1, columns, rows, col_dist, row_dist, PMType, indx, limites, fig, 0, Surface, carretera_lateral)
+        figure_canvas_agg.draw()
         if '.png' in Surface['Name']:
             path = os.path.join(Surface['Surf_folder'], Surface['Name'])
         else:
             path = os.path.join(Surface['Surf_folder'], Surface['Name']+'.png')
 
         if Surface['Fondo']:
-            plt.savefig(path, transparent=True)
+            fig.savefig(path, transparent=True)
         else:
-            plt.savefig(path, transparent=False)
+            fig.savefig(path, transparent=False)
 
-def lateral_avg(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, lateral):
-    indx = list(indx.values())
+def lateral_avg(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, lateral, rows_sen):
+    indx_2 = list(indx.values())
     
     if graph_selection['An_lateral']:
         prom = float(value_anim['delta']) #Delta
         length = float(value_anim['Length']) #Minutes
 
         fig3, ax3 = plt.subplots(1,1,dpi=100)
-        frames = len(z[f'Sensor {indx[0]}']['created_at'])
+        frames = len(z[f'Sensor {indx_2[0]}']['created_at'])
         frame_rate = length*60000/frames
         #animate_1D(6, z, y, PMType, row_dist, ax3, columns, rows, indx, limites,1.0, prom, fig3, lateral)
         #plt.show()
         
         anim = animation.FuncAnimation(fig3, animate_1D, interval=frame_rate,
-                fargs=(z,y,PMType,row_dist,ax3,columns,rows,indx,limites,1.0, prom, fig3, lateral),
+                fargs=(z,y,PMType,row_dist,ax3,columns,rows,indx,limites,1.0, prom, fig3, lateral, rows_sen),
                 frames=frames, repeat=True)
 
         # Ubicación principal
@@ -1062,7 +1066,7 @@ def lateral_avg(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_
             fig4, ax4 = plt.subplots(1,1,dpi=100)
             for ii in range(frames):
                 path = os.path.join(path2,f'Frame{ii}.png')
-                animate_1D(ii, z, y, PMType, row_dist, ax4, columns, rows, indx, limites,0.0, prom, fig4, lateral)
+                animate_1D(ii, z, y, PMType, row_dist, ax4, columns, rows, indx, limites,0.0, prom, fig4, lateral, rows_sen)
                 if lateral['Fondo']:
                     plt.savefig(path, transparent=True)
                 else:
@@ -1085,15 +1089,15 @@ def lateral_avg(x,y,z,columns, rows, row_dist, col_dist, graph_selection, value_
             path = os.path.join(lateral['Lateral_folder'], lateral['Name']+'.png')
         
         if lateral['Fondo']:
-            animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 0.0, 0, fig3, lateral)
+            animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 0.0, 0, fig3, lateral, rows_sen)
             figure_canvas_agg.draw()
             fig3.savefig(path, transparent=True)
         else:
-            animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 1.0, 0, fig3, lateral)
+            animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 1.0, 0, fig3, lateral, rows_sen)
             figure_canvas_agg.draw()
             fig3.savefig(path, transparent=False)
 
-def historico(y, z, columns, rows, row_dist, graph_selection, PMType, indx, limites, historico):
+def historico(y, z, columns, rows, row_dist, graph_selection, PMType, indx, limites, historico, rows_sen):
     # Grafico estatico
     window = sg.Window(title='Promedios históricos',
                        layout=[[sg.Canvas(key='canvas', size=(720,480))]],
@@ -1112,13 +1116,13 @@ def historico(y, z, columns, rows, row_dist, graph_selection, PMType, indx, limi
         
     if historico['Fondo']:
         #Sin fondo
-        historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 0, 0, historico)
+        historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 0, 0, historico, rows_sen)
         #animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 0.0, 0, fig3, lateral)
         figure_canvas_agg.draw()
         fig3.savefig(path, transparent=True)
     else:
         # Con fondo
-        historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 1.0, 0, historico)
+        historic_means(z, y, PMType, row_dist, columns, rows, ax3, fig3, indx, limites, 1.0, 0, historico, rows_sen)
         #animate_1D(0, z, y, PMType, row_dist, ax3, columns, rows, indx, limites, 1.0, 0, fig3, lateral)
         figure_canvas_agg.draw()
         fig3.savefig(path, transparent=False)

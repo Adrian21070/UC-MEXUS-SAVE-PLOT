@@ -158,7 +158,7 @@ def distribution(window,num_sen,rows,columns):
 
     # Creación de un grid para la interfaz
     chain = num_sen
-    
+    rows_sen = {}
     lay = []
     layout = []
     it = 0
@@ -185,7 +185,7 @@ def distribution(window,num_sen,rows,columns):
             window.close()
             sys.exit()
         event = 'Sensor_info'
-        return window, event, value, indx, False
+        return window, event, value, indx, False, rows_sen
 
     #if it < len(num_sen):
     #    event = 'Sensor_info'
@@ -212,7 +212,7 @@ def distribution(window,num_sen,rows,columns):
     if 'Exit' in event:
         shutdown(window)
     if event != 'Coordenadas':
-        return window, event, indx, carretera, False
+        return window, event, indx, carretera, False, rows_sen
 
     # Extraigo los valores dados por el usuario y quito los repetidos.
     result = {}
@@ -233,34 +233,48 @@ def distribution(window,num_sen,rows,columns):
             continue
         else:
             result.update({key:val})
-    
-    result2 = {}
-    for key, ii in result.items():
-        e = int(ii)
-        if (e > 9) and (e < 100):
-            e = f'0{e}'
-        elif (e < 10):
-            e = f'00{e}'
-        else:
-            e = f'{e}'
-        result2.update({key:e})
-    
-    result = {}
-    
-    for key, val in result2.items():
-        # Quito los repetidos.
-        if val not in list(result.values()):
-            result.update({key:val})
 
-    indx = result
-    del result, result2
-    
     # Hago una prueba para evitar que el usuario rompa el código.
     try:
-        num = []
+        
         # Los paso de string a enteros.
-        for jj in indx.keys():
-            num.append(int(indx[jj]))
+        result2 = {}
+        for key, ii in result.items():
+            e = int(ii)
+            if (e > 9) and (e < 100):
+                e = f'0{e}'
+            elif (e < 10):
+                e = f'00{e}'
+            else:
+                e = f'{e}'
+            result2.update({key:e})
+    
+        result = {}
+    
+        for key, val in result2.items():
+            # Quito los repetidos.
+            if val not in list(result.values()):
+                result.update({key:val})
+
+        indx = result
+        del result, result2
+    
+        kk = 0
+        k2 = 0
+        for ii in indx.keys():
+            e = eval(ii)
+            y = e[0]
+            if k2 == 0:
+                k2 += 1
+                rows_sen[kk] = []
+                y2 = y
+            if y != y2:
+                kk += 1
+                rows_sen[kk] = []
+                rows_sen[kk].append(indx[ii])
+            else:
+                rows_sen[kk].append(indx[ii])
+            y2 = y
 
         # Compruebo que los numeros esten dentro de los numeros dados por el usuario o del 1 a 30.
         llave = False
@@ -284,9 +298,9 @@ def distribution(window,num_sen,rows,columns):
                 break
 
         if llave:
-            return window, event, num_sen, carretera, True
+            return window, event, num_sen, carretera, True, rows_sen
 
-        return window, event, indx, carretera, False
+        return window, event, indx, carretera, False, rows_sen
 
     except:
         layout = [[sg.Text('Favor de introducir únicamente números enteros que estén',font=('Times New Roman', 18))],
@@ -299,7 +313,14 @@ def distribution(window,num_sen,rows,columns):
             window.close()
             sys.exit()
 
-        return window, event, num_sen, carretera, True
+        return window, event, num_sen, carretera, True, rows_sen
+
+def filtro_data(data, indx):
+    data2 = {}
+    for ii in indx.values():
+        data2[f'Sensor {ii}'] = data[f'Sensor {ii}']
+        
+    return data2
 
 def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx, lateral):
     # Calculo de X y Y
@@ -377,6 +398,10 @@ def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx, lateral
     """ X y Y deben ser matrices, no vectores """
 
     new_indx = dict(zip(list(value.values()), indx.values()))
+    new_indx = {}
+    for ii in value.keys():
+        if ii in indx:
+            new_indx[value[ii]] = indx[ii]
 
     """ Esta de mas al parecer
     for jj in new_indx.keys():
@@ -395,9 +420,9 @@ def type_graph(window, memory):
     if memory:
         # Se pregunta que graficas quiere realizar
         layout = [[sg.Text('Favor de seleccionar que graficas desea obtener', font=font3)],
-                [sg.Checkbox('Superficie', default=memory['Superficie'], key='Surface'), sg.Radio('Animación', "Superficie", default=memory['Superficie_Anim'], key='An_superficie'), sg.Radio('Estática', "Superficie", default=memory['Superficie_Est'], key='Es_superficie')],
-                [sg.Checkbox('Lateral average', default=memory['LateralAvg'], key='LateralAvg'), sg.Radio('Animación', "Lateral", default=memory['LateralAvg_Anim'], key='An_lateral'), sg.Radio('Estática', "Lateral", default=memory['LateralAvg_Est'], key='Es_lateral')],
-                [sg.Checkbox('Registro historico de filas', default=memory['Historico'], key='Historico')],
+                [sg.Radio('Superficie', 'Type', default=memory['Superficie'], key='Surface'), sg.Radio('Animación', "Superficie", default=memory['Superficie_Anim'], key='An_superficie'), sg.Radio('Estática', "Superficie", default=memory['Superficie_Est'], key='Es_superficie')],
+                [sg.Radio('Lateral average', 'Type', default=memory['LateralAvg'], key='LateralAvg'), sg.Radio('Animación', "Lateral", default=memory['LateralAvg_Anim'], key='An_lateral'), sg.Radio('Estática', "Lateral", default=memory['LateralAvg_Est'], key='Es_lateral')],
+                [sg.Radio('Registro historico de filas', 'Type', default=memory['Historico'], key='Historico')],
                 [sg.Button('Continue',key='Date_hour'), sg.Button('Return',key='Sensor_info'), sg.Button('Exit')]]
 
     else:
@@ -639,6 +664,13 @@ def graph_domain(window, value, value_anim, PMType, memory):
     animation3d = []
     lateral_avg = []
     historico = []
+
+    if value_anim:
+        d = eval(value_anim['delta'])
+    pm = list(PMType.keys())
+    if 'ATM' in pm[0]:
+        pm = pm[0].replace(' ATM','')
+
     
     if value['Surface']:
 
@@ -647,17 +679,24 @@ def graph_domain(window, value, value_anim, PMType, memory):
             if 'Surface_anim_font' in memory:
                 frame = [[sg.Text('Modifica el formato de la superficie animada.'), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
                         [sg.Text('Tipo de fuente: ', size=(33,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value=memory['Surface_anim_font'],key='Font'), sg.Checkbox('Bold title',default=memory['Surface_anim_Bold'],key='Bold')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+
                         [sg.Text('Contenido del eje X: ',size=(33,1)), sg.InputText(memory['Surface_anim_xlabel_cont'], key='xlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_anim_xlabel_style'],key='Xstyle')],
                         [sg.Text('Contenido del eje Y: ',size=(33,1)), sg.InputText(memory['Surface_anim_ylabel_cont'], key='ylabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_anim_ylabel_style'],key='Ystyle')],
                         [sg.Text('Contenido del eje Z: ',size=(33,1)), sg.InputText(memory['Surface_anim_zlabel_cont'], key='zlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_anim_zlabel_style'],key='Zstyle')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+
                         [sg.Text('Tamaño de letra para el titulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=memory['Surface_anim_title_size'],key='Title_size')],
                         [sg.Text('Tamaño de letra para el subtitulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=memory['Surface_anim_subtitle_size'],key='Subtitle_size')],
                         [sg.Text('Tamaño de letra para los ejes: ',size=(33,1)), sg.Combo([8, 9, 10, 11, 12],default_value=memory['Surface_anim_label_size'],key='Label_size')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+
                         [sg.Text('Tipo de marcador a mostrar: ',size=(33,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Surface_anim_marker'],key='Marker')],
                         [sg.Text('Ángulo polar', size=(33,1)), sg.Text('Ángulo azimutal', size=(30,1))],
                         [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=memory['Surface_anim_polar'], size=(25.7,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=memory['Surface_anim_azimutal'],size=(27,20))],
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        
+                        [sg.Text('Tipo de fecha a visualizar: ',size=(33,1)), sg.Combo(['UTC', 'Local'], default_value=memory['Surface_anim_date'], key='DateType')],
                         [sg.Text('Nombre del gif resultante: ',size=(33,1)), sg.Input(memory['Surface_anim_filename'], key='Name', size=(30,1))],
                         [sg.Text('Selecciona donde guardar',size=(33,1)),sg.Input(memory['Surface_anim_folder'],size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
                         [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
@@ -665,17 +704,24 @@ def graph_domain(window, value, value_anim, PMType, memory):
             else:
                 frame = [[sg.Text('Modifica el formato de la superficie animada.'), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
                         [sg.Text('Tipo de fuente: ', size=(33,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+
                         [sg.Text('Contenido del eje X: ',size=(33,1)), sg.InputText('Carretera (m)', key='xlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
                         [sg.Text('Contenido del eje Y: ',size=(33,1)), sg.InputText('Profundidad (m)', key='ylabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
                         [sg.Text('Contenido del eje Z: ',size=(33,1)), sg.InputText('ug/m3', key='zlabel_content', size=(24,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Zstyle')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
 
                         [sg.Text('Tamaño de letra para el titulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=14,key='Title_size')],
                         [sg.Text('Tamaño de letra para el subtitulo: ',size=(33,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=12,key='Subtitle_size')],
                         [sg.Text('Tamaño de letra para los ejes: ',size=(33,1)), sg.Combo([8, 9, 10, 11, 12],default_value=11,key='Label_size')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+
                         [sg.Text('Tipo de marcador a mostrar: ',size=(33,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
                         [sg.Text('Ángulo polar', size=(33,1)), sg.Text('Ángulo azimutal', size=(30,1))],
                         [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=15, size=(25.7,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=-135,size=(27,20))],
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+
+                        [sg.Text('Tipo de fecha a visualizar: ',size=(33,1)), sg.Combo(['UTC', 'Local'], default_value='UTC', key='DateType')],
                         [sg.Text('Nombre del gif resultante: ',size=(33,1)), sg.Input('Superficie.gif', key='Name', size=(30,1))],
                         [sg.Text('Selecciona donde guardar',size=(33,1)),sg.Input(size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
                         [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
@@ -703,6 +749,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             memory['Surface_anim_label_size'] = animation3d['Label_size'];      memory['Surface_anim_marker'] = animation3d['Marker']
             memory['Surface_anim_polar'] = animation3d['Polar'];                memory['Surface_anim_azimutal'] = animation3d['Azimutal']
             memory['Surface_anim_filename'] = animation3d['Name'];              memory['Surface_anim_folder'] = animation3d['Surf_folder']
+            memory['Surface_anim_date'] = animation3d['DateType'];              typedate = animation3d['DateType']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             animation3d['Marker'] = marker[animation3d['Marker']]
@@ -712,38 +759,52 @@ def graph_domain(window, value, value_anim, PMType, memory):
             if 'Surface_est_font' in memory:
                 frame = [[sg.Text('Modifica el formato de la superficie.',size=(29,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
                         [sg.Text('Tipo de fuente: ', size=(29,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value=memory['Surface_est_font'],key='Font'), sg.Checkbox('Bold title',default=memory['Surface_est_Bold'],key='Bold')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+
                         [sg.Text('Contenido del titulo: ',size=(29,1)), sg.InputText(memory['Surface_est_title_cont'], key='Title_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_title_style'],key='Titlestyle')],
                         [sg.Text('Contenido del subtitulo: ',size=(29,1)), sg.InputText(memory['Surface_est_subtitle_cont'], key='Subtitle_content',size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_subtitle_style'],key='Substyle')],
                         [sg.Text('Contenido del eje X: ',size=(29,1)), sg.InputText(memory['Surface_est_xlabel_cont'], key='xlabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_xlabel_style'],key='Xstyle')],
                         [sg.Text('Contenido del eje Y: ',size=(29,1)), sg.InputText(memory['Surface_est_ylabel_cont'], key='ylabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_ylabel_style'],key='Ystyle')],
                         [sg.Text('Contenido del eje Z: ',size=(29,1)), sg.InputText(memory['Surface_est_zlabel_cont'], key='zlabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Surface_est_zlabel_style'],key='Zstyle')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
 
                         [sg.Text('Tamaño de letra para el titulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=memory['Surface_est_title_size'],key='Title_size')],
                         [sg.Text('Tamaño de letra para el subtitulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=memory['Surface_est_subtitle_size'],key='Subtitle_size')],
                         [sg.Text('Tamaño de letra para los ejes: ',size=(29,1)), sg.Combo([8, 9, 10, 11, 12],default_value=memory['Surface_est_label_size'],key='Label_size')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+
                         [sg.Text('Tipo de marcador a mostrar: ',size=(29,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Surface_est_marker'],key='Marker')],
                         [sg.Text('Ángulo polar (grados)', size=(29,1)), sg.Text('Ángulo azimutal (grados)', size=(30,1))],
                         [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=memory['Surface_est_polar'], size=(22.6,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=memory['Surface_est_azimutal'],size=(22.6,20))],
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+
+                        [sg.Text('Tipo de fecha a visualizar: ',size=(29,1)), sg.Combo(['UTC', 'Local'], default_value=memory['Surface_est_date'], key='DateType')],
                         [sg.Text('Nombre de la imagen resultante: ',size=(29,1)), sg.Input(memory['Surface_est_filename'], key='Name', size=(30,1))],
                         [sg.Text('Selecciona donde guardar',size=(29,1)),sg.Input(memory['Surface_est_folder'], size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
                         [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
             else:
                 frame = [[sg.Text('Modifica el formato de la superficie.',size=(29,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
                         [sg.Text('Tipo de fuente: ', size=(29,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
-                        [sg.Text('Contenido del titulo: ',size=(29,1)), sg.InputText('Concentración PM 2.5', key='Title_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Titlestyle')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
+                        [sg.Text('Contenido del titulo: ',size=(29,1)), sg.InputText(f'Concentración {pm}', key='Title_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Titlestyle')],
                         [sg.Text('Contenido del subtitulo: ',size=(29,1)), sg.InputText('Promedio desde XX hasta YY', key='Subtitle_content',size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Substyle')],
                         [sg.Text('Contenido del eje X: ',size=(29,1)), sg.InputText('Carretera (m)', key='xlabel_content',size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
                         [sg.Text('Contenido del eje Y: ',size=(29,1)), sg.InputText('Profundidad (m)', key='ylabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
                         [sg.Text('Contenido del eje Z: ',size=(29,1)), sg.InputText('ug/m3', key='zlabel_content', size=(28,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Zstyle')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Tamaño de letra para el titulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=14,key='Title_size')],
                         [sg.Text('Tamaño de letra para el subtitulo: ',size=(29,1)), sg.Combo([11, 12, 13, 14, 15, 16],default_value=12,key='Subtitle_size')],
                         [sg.Text('Tamaño de letra para los ejes: ',size=(29,1)), sg.Combo([8, 9, 10, 11, 12],default_value=11,key='Label_size')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Tipo de marcador a mostrar: ',size=(29,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
                         [sg.Text('Ángulo polar (grados)', size=(29,1)), sg.Text('Ángulo azimutal (grados)', size=(30,1))],
                         [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=15, size=(22.6,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=-135,size=(22.6,20))],
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
+                        
+                        [sg.Text('Tipo de fecha a visualizar: ',size=(29,1)), sg.Combo(['UTC', 'Local'], default_value='UTC', key='DateType')],
                         [sg.Text('Nombre de la imagen resultante: ',size=(29,1)), sg.Input('Superficie.png', key='Name', size=(30,1))],
                         [sg.Text('Selecciona donde guardar',size=(29,1)),sg.Input(size=(30,1),key='Surf_folder'),sg.FolderBrowse()],
                         [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
@@ -773,6 +834,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             memory['Surface_est_label_size'] = animation3d['Label_size'];           memory['Surface_est_marker'] = animation3d['Marker']
             memory['Surface_est_polar'] = animation3d['Polar'];                     memory['Surface_est_azimutal'] = animation3d['Azimutal']
             memory['Surface_est_filename'] = animation3d['Name'];                   memory['Surface_est_folder'] = animation3d['Surf_folder']
+            memory['Surface_est_date'] = animation3d['DateType'];                   typedate = animation3d['DateType']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             animation3d['Marker'] = marker[animation3d['Marker']]
@@ -785,13 +847,16 @@ def graph_domain(window, value, value_anim, PMType, memory):
                 frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
                         [sg.Text('Formato de la gráfica lateral animada.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=memory['Lateral_anim_Fondo'], key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=memory['Lateral_anim_recorrer'], key='Recorrer')],
                         [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value=memory['Lateral_anim_font'],key='Font'), sg.Checkbox('Bold title',default=memory['Lateral_anim_Bold'],key='Bold')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText(memory['Lateral_anim_xlabel_cont'], key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_anim_xlabel_style'],key='Xstyle')],
                         [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText(memory['Lateral_anim_ylabel_cont'], key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_anim_ylabel_style'],key='Ystyle')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=memory['Lateral_anim_title_size'],key='Title_size')],
                         [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=memory['Lateral_anim_subtitle_size'],key='Subtitle_size')],
                         [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=memory['Lateral_anim_label_size'],key='Label_size')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
                         [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Lateral_anim_marker'],key='Marker')],
                         [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=memory['Lateral_anim_marker_size'],key='MarkerSize')],
@@ -800,7 +865,9 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=memory['Lateral_anim_line_size'],key='LineSize')],
                         [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value=memory['Lateral_anim_line_color'],key='LineColor')], 
                         [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value=memory['Lateral_anim_legend'],key='Legend')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
+                        [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value=memory['Lateral_anim_date'], key='DateType')],
                         [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input(memory['Lateral_anim_filename'], key='Name')],
                         [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(memory['Lateral_anim_folder'],key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
                         [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
@@ -809,14 +876,17 @@ def graph_domain(window, value, value_anim, PMType, memory):
                 frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
                         [sg.Text('Formato de la gráfica lateral animada.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=False, key='Recorrer')],
                         [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText('profundidad (m)', key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
                         [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText('Valor promedio (ug/m3)', key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
                         [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
                         [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
                         [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=40,key='MarkerSize')],
                         [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Rojo',key='MarkerColor')], 
@@ -824,7 +894,9 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=2,key='LineSize')],
                         [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
                         [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value='upper right',key='Legend')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
+                        [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value='UTC', key='DateType')],
                         [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input('Lateral.gif', key='Name')],
                         [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
                         [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
@@ -856,6 +928,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             memory['Lateral_anim_line_color'] = lateral_avg['LineColor'];       memory['Lateral_anim_legend'] = lateral_avg['Legend']
             
             memory['Lateral_anim_filename'] = lateral_avg['Name'];              memory['Lateral_anim_folder'] = lateral_avg['Lateral_folder']
+            memory['Lateral_anim_date'] = lateral_avg['DateType'];              typedate = lateral_avg['DateType']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             lateral_avg['Marker'] = marker[lateral_avg['Marker']]
@@ -869,24 +942,29 @@ def graph_domain(window, value, value_anim, PMType, memory):
                 frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
                         [sg.Text('Modifica el formato de la gráfica lateral.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=memory['Lateral_est_Fondo'], key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=memory['Lateral_est_recorrer'], key='Recorrer')],
                         [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value=memory['Lateral_est_font'],key='Font'), sg.Checkbox('Bold title',default=memory['Lateral_est_Bold'],key='Bold')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Contenido del titulo: ',size=(30,1)), sg.InputText(memory['Lateral_est_title_cont'], key='Title_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_est_title_style'],key='Titlestyle')],
                         [sg.Text('Contenido del subtitulo: ',size=(30,1)), sg.InputText(memory['Lateral_est_subtitle_cont'], key='Subtitle_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_est_subtitle_style'],key='Substyle')],
                         [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText(memory['Lateral_est_xlabel_cont'], key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_est_xlabel_style'],key='Xstyle')],
                         [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText(memory['Lateral_est_ylabel_cont'], key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Lateral_est_ylabel_style'],key='Ystyle')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=memory['Lateral_est_title_size'],key='Title_size')],
                         [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=memory['Lateral_est_subtitle_size'],key='Subtitle_size')],
                         [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=memory['Lateral_est_label_size'],key='Label_size')],
                         [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Lateral_est_marker'],key='Marker')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=memory['Lateral_est_marker_size'],key='MarkerSize')],
                         [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value=memory['Lateral_est_marker_color'],key='MarkerColor')], 
                         [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value=memory['Lateral_est_line_style'],key='LineStyle')],
                         [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=memory['Lateral_est_line_size'],key='LineSize')],
                         [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value=memory['Lateral_est_line_color'],key='LineColor')],
                         [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value=memory['Lateral_est_legend'],key='Legend')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
+                        [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value=memory['Lateral_est_date'], key='DateType')],
                         [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input(memory['Lateral_est_filename'], key='Name', size=(30,1))],
                         [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(memory['Lateral_est_folder'],key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
                         [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
@@ -895,16 +973,19 @@ def graph_domain(window, value, value_anim, PMType, memory):
                 frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
                         [sg.Text('Modifica el formato de la gráfica lateral.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo'), sg.Checkbox('Recorrer el eje x: ', default=False, key='Recorrer')],
                         [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
-                        
-                        [sg.Text('Contenido del titulo: ',size=(30,1)), sg.InputText('Concentración PM 2.5', key='Title_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Titlestyle')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
+                        [sg.Text('Contenido del titulo: ',size=(30,1)), sg.InputText(f'Concentración {pm}', key='Title_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Titlestyle')],
                         [sg.Text('Contenido del subtitulo: ',size=(30,1)), sg.InputText('Promedio desde XX hasta YY', key='Subtitle_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Substyle')],
                         [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText('profundidad (m)', key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
                         [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText('Valor promedio (ug/m3)', key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
                         [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
                         [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
-                        
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                         [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
                         [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=40,key='MarkerSize')],
                         [sg.Text('Color del marcador: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Rojo',key='MarkerColor')], 
@@ -912,7 +993,9 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=2,key='LineSize')],
                         [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value='Azul',key='LineColor')], 
                         [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value='upper right',key='Legend')],
+                        [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
+                        [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value='UTC', key='DateType')],
                         [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input('Lateral.png', key='Name', size=(30,1))],
                         [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
                         [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
@@ -945,6 +1028,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             memory['Lateral_est_line_style'] = lateral_avg['LineStyle'];            memory['Lateral_est_line_size'] = lateral_avg['LineSize']
             memory['Lateral_est_line_color'] = lateral_avg['LineColor'];            memory['Lateral_est_legend'] = lateral_avg['Legend']
             memory['Lateral_est_filename'] = lateral_avg['Name'];                   memory['Lateral_est_folder'] = lateral_avg['Lateral_folder']
+            memory['Lateral_est_date'] = lateral_avg['DateType'];                   typedate = lateral_avg['DateType']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             lateral_avg['Marker'] = marker[lateral_avg['Marker']]
@@ -958,49 +1042,56 @@ def graph_domain(window, value, value_anim, PMType, memory):
             frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
                     [sg.Text('Modifica el formato del histórico.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=memory['Historico_est_Fondo'], key='Fondo')],
                     [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value=memory['Historico_est_font'],key='Font'), sg.Checkbox('Bold title',default=memory['Historico_est_Bold'],key='Bold')],
-                        
+                    [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                     [sg.Text('Contenido del titulo: ',size=(30,1)), sg.InputText(memory['Historico_est_title_cont'], key='Title_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Historico_est_title_style'],key='Titlestyle')],
-                    [sg.Text('Contenido del subtitulo: ',size=(30,1)), sg.InputText(memory['Historico_est_subtitle_cont'], key='Subtitle_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Historico_est_subtitle_style'],key='Substyle')],
+                    [sg.Text('Contenido del subtitulo: ',size=(30,1)), sg.InputText(f'Promedios de {d*60} minutos', key='Subtitle_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Historico_est_subtitle_style'],key='Substyle')],
                     [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText(memory['Historico_est_xlabel_cont'], key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Historico_est_xlabel_style'],key='Xstyle')],
                     [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText(memory['Historico_est_ylabel_cont'], key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value=memory['Historico_est_ylabel_style'],key='Ystyle')],
-                        
+                    [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                     [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=memory['Historico_est_title_size'],key='Title_size')],
                     [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=memory['Historico_est_subtitle_size'],key='Subtitle_size')],
                     [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=memory['Historico_est_label_size'],key='Label_size')],
+                    [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
                     [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Historico_est_marker'],key='Marker')],
                     [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([30, 35, 40, 45, 50, 55],default_value=memory['Historico_est_marker_size'],key='MarkerSize')], 
                     [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value=memory['Historico_est_line_style'],key='LineStyle')],
                     [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=memory['Historico_est_line_size'],key='LineSize')],
                     [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value=memory['Historico_est_legend'],key='Legend')],
-                    
+                    [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
+                    [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value=memory['Historico_est_date'], key='DateType')],
                     [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input(memory['Historico_est_filename'], key='Name', size=(30,1))],
                     [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(memory['Historico_est_folder'],key='Historico_folder',size=(30,1)),sg.FolderBrowse()],
                     [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
 
         else:
-            d = eval(value_anim['delta'])
-            pm = list(PMType.keys())
-            pm = pm[0].replace(' ATM','')
             frame = [[sg.Text('',size=(1,1),font=('Times New Roman', 1))],
                     [sg.Text('Modifica el formato del histórico.',size=(30,1)), sg.Checkbox('Fondo transparente: ', default=False, key='Fondo')],
                     [sg.Text('Tipo de fuente: ', size=(30,1)), sg.Combo(['Times New Roman', 'Calibri', 'sans-serif', 'serif'],default_value='Times New Roman',key='Font'), sg.Checkbox('Bold title',default=False,key='Bold')],
-                    
+                    [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                     [sg.Text('Contenido del titulo: ',size=(30,1)), sg.InputText(f'Concentración {pm}', key='Title_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Titlestyle')],
                     [sg.Text('Contenido del subtitulo: ',size=(30,1)), sg.InputText(f'Promedios de {d*60} minutos', key='Subtitle_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Substyle')],
                     [sg.Text('Contenido del eje X: ',size=(30,1)), sg.InputText('Tiempo', key='xlabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Xstyle')],
                     [sg.Text('Contenido del eje Y: ',size=(30,1)), sg.InputText('Valor promedio (ug/m3)', key='ylabel_content',size=(27,1)), sg.Combo(['normal', 'italic', 'oblique'], default_value='normal',key='Ystyle')],
-                    
+                    [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                     [sg.Text('Tamaño de letra para el titulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 17, 18],default_value=16,key='Title_size')],
                     [sg.Text('Tamaño de letra para el subtitulo: ',size=(30,1)), sg.Combo([13, 14, 15, 16, 18],default_value=14,key='Subtitle_size')],
                     [sg.Text('Tamaño de letra para los ejes: ',size=(30,1)), sg.Combo([10, 11, 12, 13, 14],default_value=12,key='Label_size')],
-                    
+                    [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
                     [sg.Text('Tipo de marcador a mostrar: ',size=(30,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
                     [sg.Text('Tamaño de marcador: ',size=(30,1)), sg.Combo([40, 45, 50, 55, 60, 65],default_value=50,key='MarkerSize')],
                     [sg.Text('Tipo de linea a mostrar: ',size=(30,1)), sg.Combo(['Solid -','Dashed --','Dashdot -.','Dotted :','No line'],default_value='Dashed --',key='LineStyle')],
                     [sg.Text('Tamaño de linea: ',size=(30,1)), sg.Combo([0.5, 1, 1.5, 2, 2.5, 3],default_value=2,key='LineSize')],
                     [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value='upper right',key='Legend')],
-                    
+                    [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+
+                    [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value='UTC', key='DateType')],
                     [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input('Historic.png', key='Name', size=(30,1))],
                     [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Historico_folder',size=(30,1)),sg.FolderBrowse()],
                     [sg.Button('Continue', key='Average'), sg.Button('Return', key='Date_hour'), sg.Button('Exit')]]
@@ -1032,14 +1123,15 @@ def graph_domain(window, value, value_anim, PMType, memory):
 
         memory['Historico_est_line_style'] = historico['LineStyle'];            memory['Historico_est_line_size'] = historico['LineSize']
         memory['Historico_est_filename'] = historico['Name'];                   memory['Historico_est_folder'] = historico['Historico_folder']
+        memory['Historico_est_date'] = historico['DateType'];                   typedate = historico['DateType']
 
         # Pasamos los datos a simbolos que entienda matplotlib
         historico['Marker'] = marker[historico['Marker']]
         historico['LineStyle'] = lines[historico['LineStyle']]
 
-    return window, event, animation3d, lateral_avg, historico, memory
+    return window, event, animation3d, lateral_avg, historico, memory, typedate
 
-def data_average(data, minimum, maximum, anim, value, PMType, begin, final):
+def data_average(data, minimum, maximum, anim, value, PMType, begin, final, type_date):
     begin = datetime.strptime(begin, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
     final = datetime.strptime(final, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
 
@@ -1061,15 +1153,15 @@ def data_average(data, minimum, maximum, anim, value, PMType, begin, final):
 
     if (value['Surface'] and value['An_superficie']) or (value['LateralAvg'] and value['An_lateral'] or value['Historico']):
         delta = float(anim['delta'])
-        new_data_anim, limites_anim, PMType = average(data, delta, PMType, first_start, final_end, seconds)
+        new_data_anim, limites_anim, PMType = average(data, delta, PMType, first_start, final_end, seconds, type_date)
 
     if (value['Surface'] and value['Es_superficie']) or (value['LateralAvg'] and value['Es_lateral']):
         delta = seconds/3600
-        new_data_est, limites_est, PMType = average(data, delta, PMType, first_start, final_end, seconds)
+        new_data_est, limites_est, PMType = average(data, delta, PMType, first_start, final_end, seconds, type_date)
 
     return new_data_anim, limites_anim, new_data_est, limites_est, PMType
 
-def average(data, delta, PMType, first_start, final_end, seconds):
+def average(data, delta, PMType, first_start, final_end, seconds, type_date):
     new_data = {}
     cycles = math.ceil(seconds/(delta*60*60))
     
@@ -1092,7 +1184,10 @@ def average(data, delta, PMType, first_start, final_end, seconds):
             rows = df.loc[((date >= start) & (date < end))]
 
             # Calculamos promedios
-            prom = [start.astimezone(tz.tzlocal()).strftime("%Y/%m/%d, %H:%M") + ' (hora de inicio)']
+            if type_date == 'Local':
+                prom = [start.astimezone(tz.tzlocal()).strftime("%Y/%m/%d, %H:%M") + ' (hora de inicio)']
+            else:
+                prom = [start.strftime("%Y/%m/%d, %H:%M") + ' (hora de inicio)']
             prom.append(round(np.mean(rows[PMType]),4))
 
             new_data[ii].loc[jj] = prom
@@ -1110,16 +1205,16 @@ def average(data, delta, PMType, first_start, final_end, seconds):
     limites = [min(minimum), max(maximum)]
     return new_data, limites, PMType
 
-def graph(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites, graph_selection, value_anim, styles, selection):
+def graph(window, x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, PMType, indx, limites, graph_selection, value_anim, styles, selection, carretera_lateral, rows_sen):
     PMType = [PMType]
     if selection == 'Surface':
-        Func.surface(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, styles)
+        Func.surface(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, styles, carretera_lateral)
     
     if selection == 'LateralAvg':
-        Func.lateral_avg(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, styles)
+        Func.lateral_avg(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, graph_selection, value_anim, PMType, indx, limites, styles, rows_sen)
 
     if selection == 'Historico':
-        Func.historico(y_axis, z_axis, columns, rows, row_dist, graph_selection, PMType, indx, limites, styles)
+        Func.historico(y_axis, z_axis, columns, rows, row_dist, graph_selection, PMType, indx, limites, styles, rows_sen)
     #Func.graphs(x_axis, y_axis, z_axis, columns, rows, row_dist, col_dist, value, PMType, indx, limites, value['delta'], animation3d, lateral_avg, historico)
     
     window, event = gui_final(window)
