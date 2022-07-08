@@ -1,4 +1,3 @@
-import plots as Func
 import PySimpleGUI as sg
 import sys
 import os
@@ -31,7 +30,6 @@ def save_or_graph():
     return window, event
 
 def holes_warning(window,holes,num_csv):
-    
     # Notificar con una ventana que existen huecos
     layout = []
     for ii in num_csv.keys():
@@ -42,7 +40,6 @@ def holes_warning(window,holes,num_csv):
         v = [m.replace(tzinfo=Local_H) for m in v] #Lo pongo en local, no utc
 
         # Transformo a string los elementos de tiempo.
-        #holes_text = [[sg.Text(f'{ii} presenta un hueco desde')]]
         holes_text = []
 
         for jj in range(len(k)):
@@ -153,8 +150,24 @@ def csv_online2(window, num_holes_per_sensor, holes):
     window = sg.Window('Proyecto UC-MEXUS', lay, font=font2, size=(720,480))
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
+
+    try:
+        for ii in value.keys():
+            if not value[ii]:
+                raise ValueError('Faltan carpetas')
+    except:
+        layout = [[sg.Text('Favor de llenar todos los campos requeridos', font=font3)],
+                    [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', lay, font=font, size=(720,480))
+        event, value = window.read()
+        
+        if event in ('Exit', sg.WIN_CLOSED):
+            shutdown(window)
+        
+        return window, event
 
     # Quito los repetidos.
     val = [value[a] for a in value.keys() if ('Browse' in str(a))]
@@ -186,9 +199,31 @@ def csv_online2(window, num_holes_per_sensor, holes):
                             if not value[ii]:
                                 raise ValueError("No CSV")
                         except:
-                            pass # Avisar que no se encontro el archivo del sensor tal...
+                            # Avisar que no se encontro el archivo del sensor tal...
+                            layout = [[sg.Text(f'No se encontro el archivo del sensor S{ii[-3:]}', font=font3)],
+                                    [sg.Button('Return'), sg.Button('Exit')]]
+                            window.close()
+                            window = sg.Window('Proyecto UC-MEXUS', lay, font=font, size=(720,480))
+                            event, value = window.read()
+                            
+                            if event in ('Exit', sg.WIN_CLOSED):
+                                shutdown(window)
+
+                            return window, event
+                            
                 except:
-                    pass # Problemas al abrir el folder
+                    # Problemas al abrir el folder
+                    a = val[cont]
+                    layout = [[sg.Text(f'No se logro abrir el folder {a}', font=font3)],
+                                    [sg.Button('Return'), sg.Button('Exit')]]
+                    window.close()
+                    window = sg.Window('Proyecto UC-MEXUS', lay, font=font, size=(720,480))
+                    event, value = window.read()
+                    
+                    if event in ('Exit', sg.WIN_CLOSED):
+                        shutdown(window)
+
+                    return window, event
 
             cont += 1
             it = 0

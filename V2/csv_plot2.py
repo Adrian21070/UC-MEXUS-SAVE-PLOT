@@ -22,19 +22,27 @@ PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
         "PM 10.0 ATM B": "PM10.0_ATM_B_ug/m3", "PM 1.0 CF B": "PM1.0_CF1_B_ug/m3",
         "PM 2.5 CF B": "PM2.5_CF1_B_ug/m3", "PM 10.0 CF B": "PM10.0_CF1_B_ug/m3"}
 
-def csv_files(window):
+def csv_files(window, path):
     # Solicita archivos csv
 
-    layout = [[sg.Text('Seleccione la carpeta donde se encuentran los archivos csv', font=font3)],
-            [sg.Text(f'Ubicación de la carpeta: '), sg.Input(), sg.FolderBrowse()],
-            [sg.Button('Extraer',key='TypeData'), sg.Button('Exit')]]
+    if path:
+        layout = [[sg.Text('Seleccione la carpeta donde se encuentran los archivos csv', font=font3)],
+                [sg.Text(f'Ubicación de la carpeta: '), sg.Input(path), sg.FolderBrowse(initial_folder=path)],
+                [sg.Button('Extraer',key='TypeData'), sg.Button('Exit')]]
+    else:
+        layout = [[sg.Text('Seleccione la carpeta donde se encuentran los archivos csv', font=font3)],
+                [sg.Text(f'Ubicación de la carpeta: '), sg.Input(), sg.FolderBrowse()],
+                [sg.Button('Extraer',key='TypeData'), sg.Button('Exit')]]
 
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480))
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', None):
         shutdown(window)
+
+    if path:
+        value['Browse'] = value[0]
     
     data, minimum, maximum, window = Func.open_csv(window, value)
 
@@ -64,7 +72,7 @@ def data_type(window):
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480),element_justification='center')
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', None):
         shutdown(window)
     elif 'Extraction' in event:
         return window, event, 0
@@ -126,7 +134,7 @@ def sensors_info(names, window):
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
     elif 'TypeData' in event:
         return window, event, value, indx, False
@@ -209,7 +217,7 @@ def distribution(window,num_sen,rows,columns):
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
     event, indx = window.read()
     carretera = []
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
     if event != 'Coordenadas':
         return window, event, indx, carretera, False, rows_sen
@@ -366,7 +374,7 @@ def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx, lateral
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
     elif event != 'Tipo_de_grafico':
         return window, event, indx, 0, 0
@@ -403,17 +411,6 @@ def coordenadas(window, rows, row_dist, columns, col_dist, x0, y0, indx, lateral
         if ii in indx:
             new_indx[value[ii]] = indx[ii]
 
-    """ Esta de mas al parecer
-    for jj in new_indx.keys():
-        num = int(new_indx[jj])
-        if num > 99:
-            continue
-        elif num >= 10 and num <= 99:
-            new_indx[jj] = f'0{new_indx[jj]}'
-        else:
-            new_indx[jj] = f'00{new_indx[jj]}'
-    """
-
     return window, event, new_indx, x_axis, y_axis
 
 def type_graph(window, memory):
@@ -437,7 +434,7 @@ def type_graph(window, memory):
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
     elif 'Sensor_info' in event:
         return window, value, event, False, memory
@@ -468,7 +465,7 @@ def type_graph(window, memory):
         window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
         event, value_anim = window.read()
 
-        if 'Exit' in event:
+        if event in ('Exit', sg.WIN_CLOSED):
             shutdown(window)
 
         if (not value_anim['Length']) or (not value_anim['delta']):
@@ -521,7 +518,7 @@ def type_graph(window, memory):
         window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
         event, value_anim = window.read()
 
-        if 'Exit' in event:
+        if event in ('Exit', sg.WIN_CLOSED):
             shutdown(window)
 
         if (not value_anim['delta']):
@@ -587,7 +584,7 @@ def date_hour(window, maximum, minimum, memory, key=0):
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
     elif event != 'Styles':
         return window, event, value, 0, memory, False
@@ -692,6 +689,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
 
                         [sg.Text('Tipo de marcador a mostrar: ',size=(33,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Surface_anim_marker'],key='Marker')],
+                        [sg.Text('Tipo de interpolación:',size=(33,1)), sg.Combo(['Cúbica', 'Lineal'],default_value=memory['Surface_anim_Interp'], key='Interp')],
                         [sg.Text('Ángulo polar', size=(33,1)), sg.Text('Ángulo azimutal', size=(30,1))],
                         [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=memory['Surface_anim_polar'], size=(25.7,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=memory['Surface_anim_azimutal'],size=(27,20))],
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
@@ -717,6 +715,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
 
                         [sg.Text('Tipo de marcador a mostrar: ',size=(33,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
+                        [sg.Text('Tipo de interpolación:',size=(33,1)), sg.Combo(['Cúbica', 'Lineal'],default_value='Cúbica', key='Interp')],
                         [sg.Text('Ángulo polar', size=(33,1)), sg.Text('Ángulo azimutal', size=(30,1))],
                         [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=15, size=(25.7,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=-135,size=(27,20))],
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
@@ -734,7 +733,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
             event, animation3d = window.read()
 
-            if 'Exit' in event:
+            if event in ('Exit', sg.WIN_CLOSED):
                 shutdown(window)
             elif event != 'Average':
                 return window, event, animation3d, lateral_avg, historico, memory
@@ -750,6 +749,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             memory['Surface_anim_polar'] = animation3d['Polar'];                memory['Surface_anim_azimutal'] = animation3d['Azimutal']
             memory['Surface_anim_filename'] = animation3d['Name'];              memory['Surface_anim_folder'] = animation3d['Surf_folder']
             memory['Surface_anim_date'] = animation3d['DateType'];              typedate = animation3d['DateType']
+            memory['Surface_anim_Interp'] = animation3d['Interp']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             animation3d['Marker'] = marker[animation3d['Marker']]
@@ -774,6 +774,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
 
                         [sg.Text('Tipo de marcador a mostrar: ',size=(29,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value=memory['Surface_est_marker'],key='Marker')],
+                        [sg.Text('Tipo de interpolación:',size=(29,1)), sg.Combo(['Cúbica', 'Lineal'],default_value=memory['Surface_est_interp'], key='Interp')],
                         [sg.Text('Ángulo polar (grados)', size=(29,1)), sg.Text('Ángulo azimutal (grados)', size=(30,1))],
                         [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=memory['Surface_est_polar'], size=(22.6,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=memory['Surface_est_azimutal'],size=(22.6,20))],
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
@@ -800,6 +801,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
                         [sg.Text('Tipo de marcador a mostrar: ',size=(29,1)), sg.Combo(['Circle','Diamond','Triangle_up','Triangle_down','Star','X','No marker'],default_value='Circle',key='Marker')],
+                        [sg.Text('Tipo de interpolación:',size=(29,1)), sg.Combo(['Cúbica', 'Lineal'],default_value='Cúbica', key='Interp')],
                         [sg.Text('Ángulo polar (grados)', size=(29,1)), sg.Text('Ángulo azimutal (grados)', size=(30,1))],
                         [sg.Slider(orientation ='horizontal', key='Polar', range=(0,90), default_value=15, size=(22.6,20)),sg.Slider(orientation ='horizontal', key='Azimutal', range=(-180,180), default_value=-135,size=(22.6,20))],
                         [sg.Text('',size=(1,1),font=('Times New Roman', 1))],
@@ -817,7 +819,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
             event, animation3d = window.read()
 
-            if 'Exit' in event:
+            if event in ('Exit', sg.WIN_CLOSED):
                 shutdown(window)
             elif event != 'Average':
                 return window, event, animation3d, lateral_avg, historico, memory
@@ -835,6 +837,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             memory['Surface_est_polar'] = animation3d['Polar'];                     memory['Surface_est_azimutal'] = animation3d['Azimutal']
             memory['Surface_est_filename'] = animation3d['Name'];                   memory['Surface_est_folder'] = animation3d['Surf_folder']
             memory['Surface_est_date'] = animation3d['DateType'];                   typedate = animation3d['DateType']
+            memory['Surface_est_interp'] = animation3d['Interp']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             animation3d['Marker'] = marker[animation3d['Marker']]
@@ -866,7 +869,8 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('Color de linea: ',size=(30,1)), sg.Combo(['Azul','Rojo','Verde','Cyan','Magenta','Amarillo','Negro'],default_value=memory['Lateral_anim_line_color'],key='LineColor')], 
                         [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value=memory['Lateral_anim_legend'],key='Legend')],
                         [sg.Text('',size=(1,1),font=('Times New Roman',1))],
-
+                        
+                        [sg.Text('Tipo de interpolación:',size=(30,1)), sg.Combo(['Cuadrática', 'Lineal'],default_value=memory['Lateral_anim_interp'], key='Interp')],
                         [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value=memory['Lateral_anim_date'], key='DateType')],
                         [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input(memory['Lateral_anim_filename'], key='Name')],
                         [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(memory['Lateral_anim_folder'],key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
@@ -896,6 +900,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value='upper right',key='Legend')],
                         [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
+                        [sg.Text('Tipo de interpolación:',size=(30,1)), sg.Combo(['Cuadrática', 'Lineal'],default_value='Cuadrática', key='Interp')],
                         [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value='UTC', key='DateType')],
                         [sg.Text('Nombre del gif resultante: ',size=(30,1)), sg.Input('Lateral.gif', key='Name')],
                         [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
@@ -908,7 +913,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
             event, lateral_avg = window.read()
 
-            if 'Exit' in event:
+            if event in ('Exit', sg.WIN_CLOSED):
                 shutdown(window)
             elif event != 'Average':
                 return window, event, animation3d, lateral_avg, historico, memory
@@ -929,6 +934,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             
             memory['Lateral_anim_filename'] = lateral_avg['Name'];              memory['Lateral_anim_folder'] = lateral_avg['Lateral_folder']
             memory['Lateral_anim_date'] = lateral_avg['DateType'];              typedate = lateral_avg['DateType']
+            memory['Lateral_anim_interp'] = lateral_avg['Interp']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             lateral_avg['Marker'] = marker[lateral_avg['Marker']]
@@ -964,6 +970,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value=memory['Lateral_est_legend'],key='Legend')],
                         [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
+                        [sg.Text('Tipo de interpolación:',size=(30,1)), sg.Combo(['Cuadrática', 'Lineal'],default_value=memory['Lateral_est_interp'], key='Interp')],
                         [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value=memory['Lateral_est_date'], key='DateType')],
                         [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input(memory['Lateral_est_filename'], key='Name', size=(30,1))],
                         [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(memory['Lateral_est_folder'],key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
@@ -995,6 +1002,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
                         [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value='upper right',key='Legend')],
                         [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
+                        [sg.Text('Tipo de interpolación:',size=(30,1)), sg.Combo(['Cuadrática', 'Lineal'],default_value='Cuadrática', key='Interp')],
                         [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value='UTC', key='DateType')],
                         [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input('Lateral.png', key='Name', size=(30,1))],
                         [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Lateral_folder',size=(30,1)),sg.FolderBrowse()],
@@ -1007,7 +1015,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
             event, lateral_avg = window.read()
 
-            if 'Exit' in event:
+            if event in ('Exit', sg.WIN_CLOSED):
                 shutdown(window)
             elif event != 'Average':
                 window, event, animation3d, lateral_avg, historico, memory
@@ -1029,6 +1037,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
             memory['Lateral_est_line_color'] = lateral_avg['LineColor'];            memory['Lateral_est_legend'] = lateral_avg['Legend']
             memory['Lateral_est_filename'] = lateral_avg['Name'];                   memory['Lateral_est_folder'] = lateral_avg['Lateral_folder']
             memory['Lateral_est_date'] = lateral_avg['DateType'];                   typedate = lateral_avg['DateType']
+            memory['Lateral_est_interp'] = lateral_avg['Interp']
 
             # Pasamos los datos a simbolos que entienda matplotlib
             lateral_avg['Marker'] = marker[lateral_avg['Marker']]
@@ -1062,6 +1071,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
                     [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value=memory['Historico_est_legend'],key='Legend')],
                     [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
+                    [sg.Text('Tipo de interpolación:',size=(30,1)), sg.Combo(['Cuadrática', 'Lineal'],default_value=memory['Historico_est_interp'], key='Interp')],
                     [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value=memory['Historico_est_date'], key='DateType')],
                     [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input(memory['Historico_est_filename'], key='Name', size=(30,1))],
                     [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(memory['Historico_est_folder'],key='Historico_folder',size=(30,1)),sg.FolderBrowse()],
@@ -1091,6 +1101,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
                     [sg.Text('Posición de la leyenda: ',size=(30,1)), sg.Combo(['best','upper right','upper left','lower right','lower left','upper center','lower center','center right','center left'],default_value='upper right',key='Legend')],
                     [sg.Text('',size=(1,1),font=('Times New Roman',1))],
 
+                    [sg.Text('Tipo de interpolación:',size=(30,1)), sg.Combo(['Cuadrática', 'Lineal'],default_value='Cuadrática', key='Interp')],
                     [sg.Text('Tipo de fecha a visualizar: ',size=(30,1)), sg.Combo(['UTC', 'Local'], default_value='UTC', key='DateType')],
                     [sg.Text('Nombre de la imagen resultante: ',size=(30,1)), sg.Input('Historic.png', key='Name', size=(30,1))],
                     [sg.Text('Selecciona donde guardar',size=(30,1)),sg.Input(key='Historico_folder',size=(30,1)),sg.FolderBrowse()],
@@ -1103,7 +1114,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
         window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
         event, historico = window.read()
 
-        if 'Exit' in event:
+        if event in ('Exit', sg.WIN_CLOSED):
             shutdown(window)
         elif event != 'Average':
             window, event, animation3d, lateral_avg, historico, memory
@@ -1124,6 +1135,7 @@ def graph_domain(window, value, value_anim, PMType, memory):
         memory['Historico_est_line_style'] = historico['LineStyle'];            memory['Historico_est_line_size'] = historico['LineSize']
         memory['Historico_est_filename'] = historico['Name'];                   memory['Historico_est_folder'] = historico['Historico_folder']
         memory['Historico_est_date'] = historico['DateType'];                   typedate = historico['DateType']
+        memory['Historico_est_interp'] = historico['Interp']
 
         # Pasamos los datos a simbolos que entienda matplotlib
         historico['Marker'] = marker[historico['Marker']]

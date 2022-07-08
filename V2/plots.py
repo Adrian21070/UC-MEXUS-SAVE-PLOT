@@ -599,7 +599,13 @@ def animate(i,measurements,x_axis,y_axis,ax1,columns,rows,lateral_length,depth_l
     x_min = min(min(x_axis))
     y_min = min(min(y_axis))
 
-    gridx,gridy,gridz0 = Interpol(x_axis,y_axis,z_axis,x_final,y_final,x_min,y_min)
+    if styles['Interp'] == 'Cúbica':
+        gridx,gridy,gridz0 = Interpol(x_axis,y_axis,z_axis,x_final,y_final,x_min,y_min)
+    else:
+        points = np.concatenate((x_axis.T, y_axis.T), axis=1)
+        gridx, gridy = np.mgrid[x_min:x_final, y_min:y_final]
+        gridz0 = griddata(points, z_axis, (gridx, gridy), method='linear')
+
     ax1.plot_surface(gridx, gridy, gridz0,cmap=cm.inferno, linewidth=0, antialiased=False)
 
     # Plot style
@@ -739,9 +745,12 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
 
     # Interpolación
     #f = interpolate.interp1d(y_axis, filas, kind='cubic')
-    f = interpolate.interp1d(y_axis, filas, kind='quadratic')
-    x = np.arange(min(y_axis), max(y_axis), 0.05)
-    ax1.plot(x, f(x), styles['LineStyle'], linewidth=styles['LineSize'], c=styles['LineColor'])
+    if styles['Interp'] == 'Cuadrática':
+        f = interpolate.interp1d(y_axis, filas, kind='quadratic')
+        x = np.arange(min(y_axis), max(y_axis), 0.05)
+        ax1.plot(x, f(x), styles['LineStyle'], linewidth=styles['LineSize'], c=styles['LineColor'])
+    else:
+        ax1.plot(y_axis, filas, styles['LineStyle'], linewidth=styles['LineSize'], c=styles['LineColor'])
 
     #axis labels
     ax1.set_xlabel(styles['xlabel_content'],
@@ -823,15 +832,16 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
 
     #ax1.set_xlabel('Profundidad (m)')
     #ax1.set_ylabel('Valor promedio (ug/m3)')
+    interp = styles['Interp']
     if (styles['Marker'] != 'No marker') and (styles['LineStyle'] != 'No line'):
         # Incluye el promedio y interpolación en la leyenda.
-        ax1.legend(['Promedio', 'Interpolación cuadrática'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+        ax1.legend(['Promedio', f'Interpolación {interp}'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     elif (styles['Marker'] != 'No marker') and (styles['LineStyle'] == 'No line'):
         # Incluye promedio, no interpolación
         ax1.legend(['Promedio'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     elif (styles['Marker'] == 'No marker') and (styles['LineStyle'] != 'No line'):
         # Incluye interpolación, no promedio
-        ax1.legend(['Interpolación cuadrática'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+        ax1.legend([f'Interpolación {interp}'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     
     #Si no entra en ninguna, no habra leyenda.
 
@@ -896,9 +906,12 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
 
         # Interpolación
         #f = interpolate.interp1d(y_axis, filas, kind='cubic')
-        f = interpolate.interp1d(y_axis, datos[ii], kind='quadratic')
-        x = np.arange(min(y_axis), max(y_axis), 0.1)
-        ax1.plot(x, f(x), styles['LineStyle'], linewidth=styles['LineSize'])
+        if styles['Interp'] == 'Cuadrática':
+            f = interpolate.interp1d(y_axis, datos[ii], kind='quadratic')
+            x = np.arange(min(y_axis), max(y_axis), 0.05)
+            ax1.plot(x, f(x), styles['LineStyle'], linewidth=styles['LineSize'])
+        else:
+            ax1.plot(y_axis, datos[ii], styles['LineStyle'], linewidth=styles['LineSize'])
 
         color = ax1.get_lines()[-1].get_color()
         ley.append((color, ii))

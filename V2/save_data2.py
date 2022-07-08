@@ -1,4 +1,3 @@
-from re import M
 import PySimpleGUI as sg
 import plots as Func
 import main_gui as gui
@@ -162,12 +161,12 @@ def sensor_info(window):
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
     event, value = window.read()
-    
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
 
     elif 'Return' in event:
         event = 'init'
+        return window, event, value, False
 
     try:
         float(value['holes_size'])
@@ -313,7 +312,7 @@ def sensors_in_field(window):
     #window = sg.Window('Proyecto UC-MEXUS', [[sg.Column(lay, element_justification='center')]], font=font2, size=(720,480), grab_anywhere=True)
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
     elif 'sensor_info' in event:
         sensors = []
@@ -553,6 +552,8 @@ def holes_verification(window, data, indx, holes_size):
 def fix_save(window, num_csv_per_sensor, holes, data):
     # Solicito archivos csv
     window, value = gui.csv_online2(window, num_csv_per_sensor, holes)
+    if value == 'Return':
+        return window, [], True
 
     # Arreglo los huecos
     csv_data, window, key = csv_extraction(value, window, key=1)
@@ -820,73 +821,89 @@ def save(window, data, indx, start, end):
             [sg.Text('',size=(1,1), font=('Times New Roman',1))],
             [sg.Button('Guardar'), sg.Button('Exit')]]
 
+    path = []
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480))
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
     
     parent_id = value['Browse']
     dir = value['FolderName']
 
     # Ubicación principal
-    path = os.path.join(parent_id, dir)
+    #path = os.path.join(parent_id, dir)
+    path = parent_id + '/' + dir
 
-    kk = 0
-    while True:
-        if not os.path.exists(path):
-            os.makedirs(path, exist_ok=True)
-            break
-        else:
-            kk += 1
-            path = os.path.join(parent_id, dir+f'_v{kk}')
-
-    start = datetime.strptime(start, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
-    end = datetime.strptime(end, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
-
-    for jj in range(end.day-start.day + 1):
-
-        path_new = os.path.join(path, start.strftime("%Y_%m_%d"))
-
-        # Verifico si no existen los directorios.
-        if not os.path.exists(path_new):
-            os.makedirs(path_new, exist_ok=True)
-
-        for ii in indx:
-            # Crea todos los archivos csv con los nombres de ii.
-            df = data[f'Sensor {ii}']
-            date = df['created_at']
-            end_day = datetime(start.year, start.month, start.day+1).replace(tzinfo=tz.tzutc())
-            row = df.index[((date >= start) & (date < end_day))].tolist()
-
-            # Compruebo que si existan datos en ese dia.
-            if row:
-                chunk = df.loc[row[0]:row[-1]]
-
-                # Convierto created_at a string
-                chunk['created_at'] = Func.conversor_datetime_string(chunk['created_at'], key=3)
-
-                fecha = start.strftime("%Y_%m_%d")
-                dir = f'S{ii}_' + fecha
-
-                # Dirección del csv del sensor x
-                csv_path = os.path.join(path_new,dir)
-
-                kk = 0
-                while True:
-                    if not os.path.exists(csv_path):
-                        chunk.to_csv(csv_path+'.csv', index=False)
-                        break
-                    else:
-                        kk += 1
-                        csv_path = os.path.join(path_new,dir+f'_v{kk}')
-
+    try:
+        kk = 0
+        while True:
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+                break
             else:
-                continue
+                kk += 1
+                #path = os.path.join(parent_id, dir+f'_v{kk}')
+                path = parent_id + '/' + dir + f'_v{kk}'
 
-        start = start + timedelta(days=1)
-    
+        start = datetime.strptime(start, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
+        end = datetime.strptime(end, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
+
+        for jj in range(end.day-start.day + 1):
+
+            path_new = os.path.join(path, start.strftime("%Y_%m_%d"))
+
+            # Verifico si no existen los directorios.
+            if not os.path.exists(path_new):
+                os.makedirs(path_new, exist_ok=True)
+
+            for ii in indx:
+                # Crea todos los archivos csv con los nombres de ii.
+                df = data[f'Sensor {ii}']
+                date = df['created_at']
+                end_day = datetime(start.year, start.month, start.day+1).replace(tzinfo=tz.tzutc())
+                row = df.index[((date >= start) & (date < end_day))].tolist()
+
+                # Compruebo que si existan datos en ese dia.
+                if row:
+                    chunk = df.loc[row[0]:row[-1]]
+
+                    # Convierto created_at a string
+                    chunk['created_at'] = Func.conversor_datetime_string(chunk['created_at'], key=3)
+
+                    fecha = start.strftime("%Y_%m_%d")
+                    dir = f'S{ii}_' + fecha
+
+                    # Dirección del csv del sensor x
+                    csv_path = os.path.join(path_new,dir)
+
+                    kk = 0
+                    while True:
+                        if not os.path.exists(csv_path):
+                            chunk.to_csv(csv_path+'.csv', index=False)
+                            break
+                        else:
+                            kk += 1
+                            csv_path = os.path.join(path_new,dir+f'_v{kk}')
+
+                else:
+                    continue
+
+            start = start + timedelta(days=1)
+    except:
+        layout = [[sg.Text('Error al intentar guardar la información.', font=font3)],
+                ['Error posible: La dirección seleccionada para guardar generó algun error.'],
+                [sg.Button('Return',key='Save'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), element_justification='c')
+        event, value = window.read()
+        
+        if event in ('Exit', sg.WIN_CLOSED):
+            shutdown(window)
+        return window, event, path
+
+
     layout = [[sg.Text('Se termino de almacenar la información.', font=font3)],
             [sg.Button('Graficar'), sg.Button('Realizar otro guardado', key='sensor_info'), sg.Button('Finalizar')]]
 
@@ -894,7 +911,7 @@ def save(window, data, indx, start, end):
     window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), element_justification='c')
     event, value = window.read()
 
-    return window, event
+    return window, event, path
 
 def shutdown(window):
     window.close()
