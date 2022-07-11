@@ -500,7 +500,7 @@ def holes_verification(window, data, indx, holes_size):
             for jj in range(len(time)-1):
                 delta = time[jj+1] - time[jj]
                 delta = delta.days*24*60*60 + delta.seconds
-                if delta > float(holes_size)*60: #Modificable por usuario???
+                if delta > float(holes_size)*60:
                     day = (time[jj]).day
                     day2 = (time[jj+1]).day
                     # Existe un hueco
