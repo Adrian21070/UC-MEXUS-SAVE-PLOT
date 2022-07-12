@@ -1,9 +1,10 @@
 import PySimpleGUI as sg
-import functions as Func
-import gui2 as gui
+import plots as Func
+import main_gui as gui
 import pandas as pd
 import sys
 import os
+import csv
 from datetime import datetime, timedelta
 from dateutil import tz
 from purple_air import *
@@ -70,6 +71,16 @@ key_B_secundario = ['S26M6JT22KN1VIDK','O45GOHMJ4Q47JAFR','IBA7X29X9UX5JGCQ','75
                     'DOXG6QXVA1Y9IGUB','BOB1R0Y2SGBTTUOM','0TS9YT52ZNJ0X9P4','I75ZX6FP7MCDSH9O','3QJ0OUMJZ6TFSKFY',
                     'FAKAE3TIIP7EVWJD','GP8N5TST5N9XXTPR','PUN6KC9U1MAOQUPT','MVEKFJNPQ69915ZH','A7SM2BENAMNB8IHI']
 
+IDS_KEY = {}
+for ii in range(len(id_A_primaria)):
+    IDS_KEY[ii+1] = (id_A_primaria[ii], key_A_primaria[ii], id_A_secundario[ii], key_A_secundario[ii],
+                     id_B_primaria[ii], key_B_primaria[ii], id_B_secundario[ii], key_B_secundario[ii])
+
+del id_A_primaria, key_A_primaria
+del id_A_secundario, key_A_secundario
+del id_B_primaria, key_B_primaria
+del id_B_secundario, key_B_secundario
+
 # Diccionario para pasar las columnas de online a un csv estandar.
 # Canal A
 
@@ -118,267 +129,789 @@ CSV_dict = {"UTCDateTime":"created_at",
             "p_1_0_um_b":">=1.0_B_um/dl", "p_2_5_um_b":">=2.5_B_um/dl", 
             "p_5_0_um_b":">=5.0_B_um/dl", "p_10_0_um_b":">=10.0_B_um/dl"}
 
+# Diccionario util para el ajuste de datos.
+PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
+        "PM 10.0 ATM": "PM10.0_ATM_ug/m3", "PM 1.0 CF": "PM1.0_CF1_ug/m3",
+        "PM 2.5 CF": "PM2.5_CF1_ug/m3", "PM 10.0 CF": "PM10.0_CF1_ug/m3",
+        "PM 1.0 ATM B": "PM1.0_ATM_B_ug/m3", "PM 2.5 ATM B": "PM2.5_ATM_B_ug/m3",
+        "PM 10.0 ATM B": "PM10.0_ATM_B_ug/m3", "PM 1.0 CF B": "PM1.0_CF1_B_ug/m3",
+        "PM 2.5 CF B": "PM2.5_CF1_B_ug/m3", "PM 10.0 CF B": "PM10.0_CF1_B_ug/m3"}
+
 # Fuentes para la interfaz
-font = ('Times New Roman', 16)
+font = ('Times New Roman', 14)
 font2 = ('Times New Roman', 12)
-font3 = ('Times New Roman', 14)
+font3 = ('Times New Roman', 18)
 
 def sensor_info(window):
     # Primero solicita el número de sensores a guardar e intervalo de tiempo
     # de la medición.
-    layout = [[sg.Text('Datos acerca del número de sensores y el intervalo de medición', font=font)],
-                [sg.Text('Favor de introducir el dia y hora en formato UTC.', font=font3)],
-                [sg.Text('Numero de sensores:', size=(25,1)), sg.Input(key='NumSen')],
+    layout = [[sg.Text('Datos acerca del número de sensores y el intervalo de medición\n', font=font3)],
+                [sg.Text('Favor de introducir el dia y hora en formato UTC.', font=font)],
                 [sg.CalendarButton('Dia de inicio de la medición',target='Start', size=(25,1), format='20%y-%m-%d',font=font2), sg.Input(key='Start')],
-                [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText(key='Start_hour')],
+                [sg.Text('Hora de inicio (hh:mm)', size=(25,1)), sg.InputText('00:00',key='Start_hour')],
                 [sg.CalendarButton('Dia del fin de la medición',target='End', size=(25,1), format='20%y-%m-%d',font=font2), sg.Input(key='End')],
-                [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText(key='End_hour')],
+                [sg.Text('Hora de finalización (hh:mm)', size=(25,1)), sg.InputText('23:59',key='End_hour')],
                 [sg.Text('')],
+                [sg.Text('Introduce la tolerancia en minutos de datos perdidos (>2).'), sg.Input(5, key='holes_size', size=(10,1))],
+                [sg.Text('')],
+                [sg.Text('Nota: El programa tiene registrado las llaves y ids de 30 sensores,\nsi desea trabajar con más sensores, favor de seleccionar el recuadro:')],
+                [sg.Checkbox('Cargar llaves y Ids', default=False, key='Cargar')],
                 [sg.Button('Continue'), sg.Button('Return'), sg.Button('Exit')]]
     
     window.close()
     window = sg.Window('Proyecto UC-MEXUS', layout, font = font2, size=(720,480))
     event, value = window.read()
-    
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
 
     elif 'Return' in event:
         event = 'init'
+        return window, event, value, False
 
-    return window, event, value
+    try:
+        float(value['holes_size'])
+    except:
+        layout = [[sg.Text('Favor de introducir un número en la tolerancia', justification='center', font=('Times New Roman', 20))],
+                [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
 
-def sensors_in_field(window, numsen):
+        return window, event, value, True
+    
+    if (not value['Start']) or (not value['End']) or (not value['Start_hour']) or (not value['End_hour']):
+        layout = [[sg.Text('Favor de no dejar los espacios en blanco', justification='center', font=('Times New Roman', 20))],
+            [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        return window, event, value, True
+    
+    start = value['Start'] + ' ' + value['Start_hour']
+    end = value['End'] + ' ' + value['End_hour']
+
+    try:
+        start = datetime.strptime(start, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
+        end = datetime.strptime(end, '%Y-%m-%d %H:%M').replace(tzinfo=tz.tzutc())
+    except:
+        layout = [[sg.Text('Favor de introducir de manera correcta las horas (hh:mm)', justification='center', font=('Times New Roman', 20))],
+            [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        return window, event, value, True
+
+    delta = end - start
+    delta = delta.days*24*60*60 + delta.seconds
+
+    if delta < 120:
+        layout = [[sg.Text('La fecha de inicio debe ser por lo menos dos minutos menor a la final', justification='center', font=font3)],
+            [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        return window, event, value, True
+
+    return window, event, value, False
+        
+def Cargar(window):
+    """
+        @name: Cargar
+        @brief: Se ejecuta si el usuario desea comprobar sensores nuevos que no estan añadidos en este código.
+        @params: window
+        @return: Actualiza la variable global de IDs y Keys.
+    """
+
+    layout = [[sg.Text('Carga de archivo csv\n', justification='center', font=('Times New Roman', 20), expand_x=True)],
+                [sg.Text('Selecciona el archivo con los Ids y llaves de los sensores a trabajar')],
+                [sg.Input(), sg.FileBrowse()],
+                [sg.Button('Continue', key='Continue'), sg.Button('Return', key='sensor_info'), sg.Button('Exit')]]
+        
+    window.close()
+    window = sg.Window('Monitoreo de los sensores', layout, font=font, size=(720,480), grab_anywhere=True)
+    event, value = window.read()
+    if event in ('Exit', sg.WIN_CLOSED):
+        window.close()
+        sys.exit()
+    elif event == 'sensor_info':
+        return False, window, event
+
+    try:
+        with open(value['Browse'], mode='rt', encoding="utf8") as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            global IDS_KEY
+            IDS_KEY = {}
+            linea = 0
+            for row in csv_reader:
+                if linea == 0:
+                    linea = 1
+                    continue
+                IDS_KEY[int(row[0])] = (row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8])
+        
+        return False, window, event
+
+    except:
+        layout = [[sg.Text('Favor de cargar un archivo tipo CSV que contenga:', justification='center', font=('Times New Roman', 20))],
+                [sg.Text('No, Ids_A, Keys_A, Ids_A_sec, keys_A_sec, Ids_B,..., keys_B_sec como columnas.', font=font2)],
+                [sg.Button('Return'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+
+        return True, window, event
+
+def sensors_in_field(window):
     # Ahora, solicito los numeros de los sensores en campo.
     
-    chain = list(range(1,numsen+1))
+    chain = list(IDS_KEY.keys())
     lay = []
     layout = []
     
     r = 0
     c = 0
+    jj = 0
     for ii in chain:
-        if ii%9 == 0:
+        if jj%10 == 0:
             r += 1
             c = 0
             layout.append(lay)
             lay = []
         lay.append(sg.Input(ii,key=f'{r},{c}', size=(5,1)))
         c += 1
+        jj += 1
     if lay:
         layout.append(lay)
         lay = []
-    lay = [[sg.Text('Introduce el número de identificación de los sensores que se encuentran en el campo.', font=font, justification='center', expand_x=True, expand_y=True)],
-            [sg.Frame('Disposición de los sensores', layout, element_justification='center', expand_x=True)],
-            [sg.Button('Continue',key='Next'),sg.Button('Return',key='sensor_info'),sg.Button('Exit')]]
+
+    frame = [[sg.Frame('Sensores a descargar', layout, element_justification='center', expand_x=True)]]
+
+    lay = [[sg.Text('Favor de indicar los sensores a descargar\n', justification='center', font=('Times New Roman', 20), expand_x=True)],
+            [sg.Text('Escribe el número de identificación de los sensores en los recuadros (Ejemplo: 1, 6, 23).')],
+            [sg.Text('En el recuadro se despliegan todos los sensores, si no requiere')],
+            [sg.Text('alguno de ellos, deje en blanco su recuadro.')],
+            [sg.Column(frame, scrollable=True, expand_y=True, justification='center')],
+            [sg.Button('Continue',key='Next'), sg.Button('Return', key='sensor_info'), sg.Button('Exit')]]
     
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', [[sg.Column(lay, element_justification='center')]], font=font2, size=(720,480), grab_anywhere=True)
-    event, indx = window.read()
+    window = sg.Window('Proyecto UC-MEXUS', lay, font=font, size=(720,480), grab_anywhere=True)
+    #window = sg.Window('Proyecto UC-MEXUS', [[sg.Column(lay, element_justification='center')]], font=font2, size=(720,480), grab_anywhere=True)
+    event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
+    elif 'sensor_info' in event:
+        sensors = []
+        return sensors, window, event
 
-    for jj in indx.keys():
-        num = int(indx[jj])
-        if num > 99:
-            continue
-        elif num >= 10 and num <= 99:
-            indx[jj] = f'0{indx[jj]}'
+    # Extraigo los valores dados por el usuario y quito los repetidos.
+    value = list(set(list(value.values())))
+
+    # Quito los espacios vacios.
+    if '' in value:
+        value.remove('')
+    
+    # Hago una prueba para evitar que el usuario rompa el código.
+    try:
+        # Los paso de string a enteros y ordeno.
+        sensors = value
+        for jj in range(len(sensors)):
+            num = int(sensors[jj])
+            if num > 99:
+                continue
+            elif num >= 10 and num <= 99:
+                sensors[jj] = f'0{sensors[jj]}'
+            else:
+                sensors[jj] = f'00{sensors[jj]}'
+
+        sensors.sort()
+
+        # Compruebo que los numeros esten dentro de los numeros dados por el usuario o del 1 a 30.
+        num = list(IDS_KEY.keys())
+        llave = False
+
+        for ii in sensors:
+            if int(ii) in num:
+                pass
+
+            else:
+                llave = True
+                # Si no se encuentra en el rango, se levanta un error y se pide ingresar de nuevo los datos.
+                layout = [[sg.Text('Favor de introducir únicamente números enteros que estén')],
+                [sg.Text('entre el 1 y 30, o entre los números del archivo csv cargado.')],
+                [sg.Button('Try again'), sg.Button('Exit')]]
+                window.close()
+                window = sg.Window('Proyecto UC-MEXUS', layout, font=('Times New Roman', 18), size=(720,480), grab_anywhere=True)
+                event, value = window.read()
+                if event in ('Exit', sg.WIN_CLOSED):
+                    window.close()
+                    sys.exit()
+                break
+
+        if llave:
+            return True, window, event
         else:
-            indx[jj] = f'00{indx[jj]}'
+            return sensors, window, event
 
-    return window, event, indx
+    except:
+        layout = [[sg.Text('Favor de introducir únicamente números enteros que estén')],
+                [sg.Text('entre 1 y 30, o entre los números del archivo csv cargado.')],
+                [sg.Button('Try again'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=('Times New Roman', 18), size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        if event in ('Exit', sg.WIN_CLOSED):
+            window.close()
+            sys.exit()
+        
+        return True, window, event
 
-def total_extraction(indx, start, end):
+def total_extraction(indx, start, end, window):
     # Se extraera la data del canal A y B primario y secundario.
     # Diccionario de df
-    total_data = {}
-    for ii in indx.values():
-        df = pd.DataFrame()
+    sg.popup_no_wait('En proceso de descarga de información...\nFavor de esperar', title='Proyecto UC-MEXUS', auto_close=True, auto_close_duration=10)
+    try:
+        total_data = {}
+        for ii in indx:
+            df = pd.DataFrame()
 
-        ii = int(ii)
-        ids = []
-        keys = []
-        # A primario
-        ids.append(id_A_primaria[ii-1])
-        keys.append(key_A_primaria[ii-1])
+            # No de sensor
+            ii = int(ii)
 
-        # A secundario
-        ids.append(id_A_secundario[ii-1])
-        keys.append(key_A_secundario[ii-1])
+            ids = []
+            keys = []
 
-        # B primario
-        ids.append(id_B_primaria[ii-1])
-        keys.append(key_B_primaria[ii-1])
+            # A primario
+            ids.append(IDS_KEY[ii][0])
+            keys.append(IDS_KEY[ii][1])
 
-        # B secundario
-        ids.append(id_B_secundario[ii-1])
-        keys.append(key_B_secundario[ii-1])
+            # A secundario
+            ids.append(IDS_KEY[ii][2])
+            keys.append(IDS_KEY[ii][3])
 
-        for jj in range(4):
-            TSobject = Thingspeak(read_api_key=keys[jj], channel_id=ids[jj])
-            data,c = TSobject.read_one_sensor(start=start, end=end)
-            df_aux = pd.DataFrame(data)
-            df_aux = df_aux.drop(['entry_id'], axis=1)
-            if jj > 0:
-                df_aux = df_aux.drop(['created_at'], axis=1)
+            # B primario
+            ids.append(IDS_KEY[ii][4])
+            keys.append(IDS_KEY[ii][5])
 
-            rename = {}
-            if jj < 2:
-                for kk in range(8):
-                    name = 'field'+str(kk+1)
-                    rename.update({name:PA_Onl_A[c[name]]})
-                df_aux.rename(columns=rename, inplace=True)
-            else:
-                for kk in range(8):
-                    name = 'field'+str(kk+1)
-                    rename.update({name:PA_Onl_B[c[name]]})
-                df_aux.rename(columns=rename, inplace=True)
+            # B secundario
+            ids.append(IDS_KEY[ii][6])
+            keys.append(IDS_KEY[ii][7])
 
-                if jj == 2:
-                    df_aux = df_aux.drop(['Unused'], axis=1)
+            for jj in range(4):
+                # Creo la conexión
+                TSobject = Thingspeak(read_api_key=keys[jj], channel_id=ids[jj])
+                # Extraigo los datos
+                data,c = TSobject.read_one_sensor(start=start, end=end)
+                # Lo conviero a dataframe
+                df_aux = pd.DataFrame(data)
+                # Quito la columna entry_id
+                df_aux = df_aux.drop(['entry_id'], axis=1)
 
-            df = pd.concat([df, df_aux], axis=1)
+                # Elimino la fila created_at de los otros canales (es redundante)
+                if jj > 0:
+                    df_aux = df_aux.drop(['created_at'], axis=1)
 
-        df = df[df['created_at'].notna()]
+                # Renombro las columnas.
+                rename = {}
+                if jj < 2:
+                    for kk in range(8):
+                        name = 'field'+str(kk+1)
+                        rename.update({name:PA_Onl_A[c[name]]})
+                    df_aux.rename(columns=rename, inplace=True)
 
-        date = df['created_at']
-        time = []
-        for jj in range(len(date)):
-            temp = date[jj].strip('Z').replace('T', ' ')
-            # Transformo de string a datetime local
-            # Posteriormente en el proceso final se hara UTC
-            time_utc = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz.tzutc())
-            time_utc = time_utc.astimezone(tz.tzlocal())
-            time.append(time_utc)
-        df['created_at'] = time
-        
-        if ii >= 100:
-            num = ii
-        elif ii >= 10 and ii < 100:
-            num = f'0{ii}'
-        else:
-            num = f'00{ii}'
-
-        total_data[f'Sensor {num}'] = df
-    
-    return total_data
-
-def holes_verification(window, data, indx):
-    sizes = {}
-    num_holes_per_sensor = {}
-    for ii in indx.values():
-        sensor = data[f'Sensor {ii}']
-        time = sensor['created_at']
-
-        sizes[f'Sensor {ii}'] = {}
-        temp = 0
-
-        for jj in range(len(time)-1):
-            delta = time[jj+1] - time[jj]
-
-            if delta.seconds > 300:
-                day = (time[jj]).day
-                day2 = (time[jj+1]).day
-                # Existe un hueco
-                # sizes tiene como llave el inicio del hueco y como value el final.
-                sizes[f'Sensor {ii}'].update({time[jj]:time[jj+1]})
-
-                if temp == 0:
-                    temp += 1
-                    num_holes_per_sensor[f'Sensor {ii}'] = temp
-                    day3 = day
-                    day4 = day2
                 else:
-                    if day != day3 or day2 != day4:
+                    for kk in range(8):
+                        name = 'field'+str(kk+1)
+                        rename.update({name:PA_Onl_B[c[name]]})
+                    df_aux.rename(columns=rename, inplace=True)
+
+                    if jj == 2:
+                        df_aux = df_aux.drop(['Unused'], axis=1)
+
+                # Uno los dataframes
+                df = pd.concat([df, df_aux], axis=1)
+
+            # Elimino los nan
+            df = df[df['created_at'].notna()]
+
+            # Cambio el formato en que aparece la fecha.
+            date = df['created_at']
+            time = []
+            for jj in range(len(date)):
+                temp = date[jj].strip('Z').replace('T', ' ')
+                # Transformo de string a datetime local
+                # Posteriormente en el proceso final se hara UTC
+                time_utc = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=tz.tzutc())
+                time_utc = time_utc.astimezone(tz.tzlocal())
+                time.append(time_utc)
+            df['created_at'] = time
+
+            if ii >= 100:
+                num = ii
+            elif ii >= 10 and ii < 100:
+                num = f'0{ii}'
+            else:
+                num = f'00{ii}'
+
+            total_data[f'Sensor {num}'] = df
+
+        return total_data, window
+    
+    except:
+        layout = [[sg.Text('¡Error fatal al intentar leer los datos de un sensor!', font=('Times New Roman',18))],
+                [sg.Text(f'El error ocurrió al extraer datos del sensor {ii}.')],
+                [sg.Text('Errores posibles:')],
+                [sg.Text('1.- Se introdujo mal alguna Id o llave en el archivo csv.')],
+                [sg.Text('2.- Mala conexión de internet.')],
+                [sg.Text('3.- Problemas con el servidor de PurpleAir.')],
+                [sg.Text(f'El programa finalizará después de esta ventana...')],
+                [sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        sg.popup_auto_close('Cerrando programa...', font=('Times New Roman',16))
+        shutdown(window)
+
+def holes_verification(window, data, indx, holes_size):
+    try:
+        sizes = {}
+        num_holes_per_sensor = {}
+        for ii in indx:
+            sensor = data[f'Sensor {ii}']
+            time = sensor['created_at']
+
+            sizes[f'Sensor {ii}'] = {}
+            temp = 0
+
+            for jj in range(len(time)-1):
+                delta = time[jj+1] - time[jj]
+                delta = delta.days*24*60*60 + delta.seconds
+                if delta > float(holes_size)*60:
+                    day = (time[jj]).day
+                    day2 = (time[jj+1]).day
+                    # Existe un hueco
+                    # sizes tiene como llave el inicio del hueco y como value el final.
+                    sizes[f'Sensor {ii}'].update({time[jj]:time[jj+1]})
+
+
+                    if temp == 0:
                         temp += 1
                         num_holes_per_sensor[f'Sensor {ii}'] = temp
                         day3 = day
                         day4 = day2
+                    else:
+                        if day != day3 or day2 != day4:
+                            temp += 1
+                            num_holes_per_sensor[f'Sensor {ii}'] = temp
+                            day3 = day
+                            day4 = day2
+        
+    except:
+        layout = [[sg.Text('¡Error fatal al intentar comprobar los huecos de un sensor!', font=('Times New Roman',18))],
+                [sg.Text(f'El error ocurrió al verificar los huecos de inforamción del sensor {ii}.')],
+                [sg.Text(f'El programa finalizará después de esta ventana...')],
+                [sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        sg.popup_auto_close('Cerrando programa...', font=('Times New Roman',16))
+        shutdown(window)
+
+    try:
+        # Si existen huecos, se notifica.
+        if num_holes_per_sensor:
+            window, event = gui.holes_warning(window,sizes,num_holes_per_sensor)
+            return window, event, sizes, num_holes_per_sensor
+
+        event = ''
+        return window, event, sizes, num_holes_per_sensor
+    except:
+        layout = [[sg.Text('¡Error fatal al intentar notificar los huecos de un sensor!', font=('Times New Roman',18))],
+                [sg.Text(f'El programa finalizará después de esta ventana...')],
+                [sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+        event, value = window.read()
+        sg.popup_auto_close('Cerrando programa...', font=('Times New Roman',16))
+        shutdown(window)
     
-    window, event = gui.holes_warning(window,sizes,num_holes_per_sensor)
-
-    return window, event, sizes, num_holes_per_sensor
-
 def fix_save(window, num_csv_per_sensor, holes, data):
     # Solicito archivos csv
-    window, value = gui.csv_online(window, num_csv_per_sensor, holes)
+    window, value = gui.csv_online2(window, num_csv_per_sensor, holes)
+    if value == 'Return':
+        return window, [], True
+
     # Arreglo los huecos
-    csv_data = Func.csv_extraction(value, key=1)
-    data = Func.Fix_data(data, csv_data, 0, holes, key='CSV')
+    csv_data, window, key = csv_extraction(value, window, key=1)
+    if key:
+        return window, csv_data, True
+
+    data = Fix_data(data, csv_data, 0, holes, key='CSV')
     for ii in data.keys():
         df = data[ii]
         df = df.reindex(columns=list(CSV_dict.values()))
         data[ii] = df
     
-    return window, data
+    return window, data, False
 
-def save(window, data, indx, start, end):
-    layout = [[sg.Text('¿Donde desea guardar los datos?', font=font)],
-            [sg.Text(f'Ubicación de creación de carpeta: '), sg.Input(), sg.FolderBrowse()],
-            [sg.Button('Guardar'), sg.Button('Exit')]]
+def csv_extraction(dir, window, key=0):
+    """
+        Si key = 1, dara un dataframe con la fecha en formato datetime,
+        si no se da el parametros key, otorgara la fecha en string.
+
+        Regresa un diccionario de dataframes, 1 por cada archivo que se le de.
+    """
+    from_zone = tz.tzutc()
+
+    col_name = list(CSV_dict.keys())
+    new_col_name = list(CSV_dict.values())
+    data_frames = {}
+
+    for ii in dir:
+        df = pd.DataFrame()
+        for jj in dir[ii]: # Lee todos los archivos del sensor XX, ya que puede tener mas de 1
+            # Ahora, solo nos quedaremos con los mismos datos que otorga el online
+            try:
+                df2 = pd.read_csv(jj)
+                df2 = df2[col_name]
+                # Cambiamos los nombres de las columnas.
+                df2.columns = new_col_name
+
+                # Arreglamos las fechas para hacerlas más sencillas de tratar.
+                date = list(df2['created_at'])
+
+                # Comprobamos que no este vacio el csv
+                if date:
+                    pass
+                else:
+                    raise ValueError("CSV vacio")
+
+                date_new = []
+                
+            except:
+                layout = [[sg.Text('¡Error fatal al intentar leer el archivo csv de un sensor!', font=('Times New Roman',18))],
+                        [sg.Text(f'El error ocurrió al leer el archivo del sensor {ii},')],
+                        [sg.Text(f'con dirección: {jj}')]
+                        [sg.Text('Asegurate de introducir el archivo correcto.')]
+                        [sg.Button('Try again'), sg.Button('Exit')]]
+                window.close()
+                window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+                event, value = window.read()
+                if event in ('Exit', sg.WIN_CLOSED):
+                    window.close()
+                    sys.exit()
+                return 0, window, True
+
+            try:
+                if key == 1:
+                    for temp in date:
+                        temp = temp.replace('/','-')
+                        temp = temp.replace('T',' ')
+                        temp = temp.strip('z')
+                        early = datetime.strptime(temp, '%Y-%m-%d %H:%M:%S').replace(tzinfo=from_zone)
+                        if early.second >= 30:
+                            early = early + timedelta(seconds=60-early.second)
+                        else:
+                            early = datetime(early.year, early.month, early.day, early.hour, early.minute, 0, tzinfo=from_zone)
+
+                        date_new.append(early)
+                else: #Quiza esto en otra funcion separada, no le veo utilidad aqui.
+                    for temp in date:
+                        temp = temp.replace('/','-')
+                        temp = temp.replace('T',' ')
+                        temp = temp.replace('z',' UTC')
+                        date_new.append(temp)
+            except:
+                layout = [[sg.Text('¡Error fatal al tratar con las fechas del archivo csv de un sensor!', font=('Times New Roman',18))],
+                        [sg.Text(f'El error ocurrió al leer el archivo del sensor {ii},')],
+                        [sg.Text(f'con dirección: {jj}')]
+                        [sg.Text('Asegurate de introducir el archivo correcto.')]
+                        [sg.Button('Try again'), sg.Button('Exit')]]
+                window.close()
+                window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), grab_anywhere=True)
+                event, value = window.read()
+                if event in ('Exit', sg.WIN_CLOSED):
+                    window.close()
+                    sys.exit()
+                return 0, window, True
+        
+            date = [] #Limpio la variable
+
+            df2['created_at'] = date_new #Asigno mi fecha corregida
+
+            # Unimos
+            df = pd.concat([df, df2])
+
+        # Sort the data
+        df = df.sort_values(by=['created_at'])
+
+        # Reset the index
+        df.reset_index(inplace=True, drop=True)
+
+        # Ahora solo queda almacenar el dataframe en el diccionario
+        data_frames[ii] = df
+        
+    return data_frames, window, False
+
+def Fix_data(data_online, csv_data, PMType, holes, key):
+    # Como un sensor puede presentar diversos huecos, debemos usar todos los csv designados a dicho sensor
+    # este pedazo de codigo solo ordenara los csv acorde a su sensor.
+
+    try:
+        for ii in data_online.keys():
+            val = data_online[ii]['created_at']
+            val = Func.conversor_datetime_string(val, key=2) #Convierto a utc
+            data_online[ii]['created_at'] = val
+        df_online = data_online
+
+        # Una vez con toda la data de online y csv puesta en dataframes
+        # Se realizara el rellenado de los huecos.
+
+        # Solo se realizara en los sensores que tengan huecos, no en todos.
+        for ii in csv_data.keys():
+            df = df_online[ii]
+
+            df_c = csv_data[ii]
+            sensor_holes = holes[ii]
+
+            for kk in sensor_holes.keys():
+                start = Func.conversor_datetime_string([kk, sensor_holes[kk]], key=2) 
+                init = start[0]
+                end = start[1]
+
+                date = df_c['created_at'] 
+
+                # Encuentra en csv, donde esta init y end.
+                row = df_c.index[(((date-init) < timedelta(seconds=120)) & ((init-date) < timedelta(seconds=120)))].tolist()
+
+                row_end = df_c.index[(((date-end) < timedelta(seconds=120)) & ((end-date) < timedelta(seconds=120)))].tolist()
+
+                # Seleccionar el trozo de información entre row y row_end, no se incluyen
+                chunk = df_c.loc[row[-1]+1:row_end[0]-1]
+
+                # Unimos
+                df = pd.concat([df, chunk])
+
+                # Sort the data
+                df = df.sort_values(by=['created_at'])
+
+                # Reset the index
+                df.reset_index(inplace=True, drop=True)
+
+            # Se actualizan los datos de online ya corregidos.
+            df_online[ii] = df
+
+        return df_online
+
+    except:
+        layout = [[sg.Text('¡Error al intentar arreglar los huecos de información!', font=font3)],
+                [sg.Text('Errores posibles:')],
+                [sg.Text('Algun csv de respaldo estaba vacio.')],
+                [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+                [sg.Text('El nombre de alguna columna del csv de respaldo fue modificada.')],
+                [sg.Text('',size=(1,1),font=('Times New Roman',1))],
+                [sg.Text('La columna "created_at" puede estar dañada.')],
+                [sg.Button('Exit')]]
+        window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480),element_justification='center')
+        event, value = window.read()
+        shutdown(window)
+
+def ajuste(window, data):
+    col1=[[sg.Text('Selecciona los datos a ajustar', font=font3, justification='center',expand_x=True)],
+        [sg.Frame('',[
+        [sg.Checkbox('PM 1.0 ATM', default=False, key="PM 1.0 ATM", size=(12,1)), sg.Checkbox('PM 1.0 CF', default=False, key="PM 1.0 CF")],
+        [sg.Checkbox('PM 2.5 ATM', default=False, key="PM 2.5 ATM", size=(12,1)), sg.Checkbox('PM 2.5 CF', default=False, key="PM 2.5 CF")],
+        [sg.Checkbox('PM 10.0 ATM', default=False, key="PM 10.0 ATM", size=(12,1)), sg.Checkbox('PM 10.0 CF', default=False, key="PM 10.0 CF")]],element_justification='center')]]
+    
+    layout = [col1, [sg.Text('Si deja todos los campos vacios, se pasara directo a guardar sin ajustar datos.')], [sg.Button('Continue', key='Ajustar'), sg.Button('Return',key='Continue'), sg.Button('Exit')]]
 
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', layout, font=font2, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480),element_justification='center')
     event, value = window.read()
 
-    if 'Exit' in event:
+    if event in ('Exit', None):
+        shutdown(window)
+    elif event == 'Continue':
+        return window, event, data
+    
+    PMType = {}
+
+    for ii in value.keys():
+        if value[ii]:
+            PMType[ii] = True
+    
+    if not PMType: # Si no se selecciona nada, pasa directo a guardar.
+        event = 'Save'
+        return window, event, data
+
+    layout = []
+    lay = []
+    for ii in PMType.keys():
+        lay.append([sg.Frame('',[[sg.Text(f'{ii}',font=('Times New Roman', 16))], [sg.Text('Favor de introducir los parámetros del ajuste lineal')],
+                                [sg.Text('m ='),sg.Input(1,key=f'm_{ii}',size=(4,1)),sg.Text('b ='),sg.Input(0,key=f'b_{ii}',size=(4,1))]], element_justification='center')])
+    layout = [[sg.Text('Parámetros de ajuste para diversos campos',justification='center',expand_x=True, font=font3)],
+            [sg.Column(lay,scrollable=True,element_justification='center',expand_y=True)],
+            [sg.Button('Continue',key='Save'), sg.Button('Return',key='Ajuste'), sg.Button('Exit')]]
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480),element_justification='c')
+    event, value = window.read()
+
+    if event in ('Exit', None):
+        shutdown(window)
+    elif event == 'Ajuste':
+        return window, event, data
+
+    new_data = {}
+
+    try:
+        for jj in data.keys():
+            df = data[jj]
+            for ii in PMType.keys():
+                pm = PA_Onl[ii]
+                pm_b = PA_Onl[ii+' B']
+                m = float(value[f'm_{ii}'])
+                b = float(value[f'b_{ii}'])
+
+                col_a = df[pm] # Columna de datos a modificar (A)
+                col_b = df[pm_b] # Columna de datos a modificar (B)
+
+                col_a = col_a.apply(lambda x:float(x))
+                col_b = col_b.apply(lambda x:float(x))
+
+                col_a = col_a * m + b
+                col_b = col_b * m + b
+
+                df[pm] = col_a
+                df[pm_b] = col_b
+
+            new_data[jj] = df
+
+    except:
+        layout = [[sg.Text('Favor de introducir únicamente números y no dejar espacios vacios',font=('Times New Roman', 16))],
+                [sg.Button('Return',key='Ajuste'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font = font, size=(720,480))
+        event, value = window.read()
+        
+        if event in ('Exit', None):
+            shutdown(window)
+        return window, event, data
+
+    return window, event, new_data
+
+def save(window, data, indx, start, end):
+    layout = [[sg.Text('¿Donde desea guardar los datos?', font=font3, justification='center', expand_x=True)],
+            [sg.Text('',size=(1,1), font=('Times New Roman',1))],
+            [sg.Text(f'Ubicación de creación de carpeta: ',size=(28,1)), sg.Input(size=(30,1)), sg.FolderBrowse()],
+            [sg.Text('Nombre de la carpeta a crear: ', size=(28,1)), sg.InputText('Data',size=(30,1), key='FolderName')],
+            [sg.Text('',size=(1,1), font=('Times New Roman',1))],
+            [sg.Button('Guardar'), sg.Button('Exit')]]
+
+    path = []
+    window.close()
+    window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480))
+    event, value = window.read()
+
+    if event in ('Exit', sg.WIN_CLOSED):
         shutdown(window)
     
     parent_id = value['Browse']
-    dir = "Sensors_data"
+    dir = value['FolderName']
 
     # Ubicación principal
-    path = os.path.join(parent_id, dir)
+    #path = os.path.join(parent_id, dir)
+    path = parent_id + '/' + dir
 
-    start = datetime.strptime(start, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
-    end = datetime.strptime(end, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
-
-    for jj in range(end.day-start.day +1):
-
-        path_new = os.path.join(path, start.strftime("%Y_%m_%d"))
-
-        # Verifico si no existen los directorios.
-        if not os.path.exists(path_new):
-            os.makedirs(path_new, exist_ok=True)
-
-        for ii in indx.values():
-            # Crea todos los archivos csv con los nombres de ii.
-            df = data[f'Sensor {ii}']
-            date = df['created_at']
-
-            row = df.index[((date >= start) & (date < start+timedelta(days=1)))].tolist()
-
-            # Compruebo que si existan datos en ese dia.
-            if row:
-                chunk = df.loc[row[0]:row[-1]]
-
-                # Convierto created_at a string
-                chunk['created_at'] = Func.conversor_datetime_string(chunk['created_at'], key=3)
-
-                fecha = start.strftime("%Y_%m_%d")
-                dir = f'S{ii}_' + fecha
-
-                # Dirección del csv del sensor x
-                csv_path = os.path.join(path_new,dir)
-
-                if not os.path.exists(csv_path):
-                    chunk.to_csv(csv_path+'.csv', index=False)
-
+    try:
+        kk = 0
+        while True:
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+                break
             else:
-                continue
+                kk += 1
+                #path = os.path.join(parent_id, dir+f'_v{kk}')
+                path = parent_id + '/' + dir + f'_v{kk}'
 
-        start = start + timedelta(days=1)
-    
-    layout = [[sg.Text('Se termino de almacenar la información.', font=font)],
-            [sg.Button('Finalizar'), sg.Button('Realizar otro guardado', key='sensor_info')]]
+        start = datetime.strptime(start, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
+        end = datetime.strptime(end, '%Y-%m-%d').replace(tzinfo=tz.tzutc())
+
+        for jj in range(end.day-start.day + 1):
+
+            path_new = os.path.join(path, start.strftime("%Y_%m_%d"))
+
+            # Verifico si no existen los directorios.
+            if not os.path.exists(path_new):
+                os.makedirs(path_new, exist_ok=True)
+
+            for ii in indx:
+                # Crea todos los archivos csv con los nombres de ii.
+                df = data[f'Sensor {ii}']
+                date = df['created_at']
+                end_day = datetime(start.year, start.month, start.day+1).replace(tzinfo=tz.tzutc())
+                row = df.index[((date >= start) & (date < end_day))].tolist()
+
+                # Compruebo que si existan datos en ese dia.
+                if row:
+                    chunk = df.loc[row[0]:row[-1]]
+
+                    # Convierto created_at a string
+                    chunk['created_at'] = Func.conversor_datetime_string(chunk['created_at'], key=3)
+
+                    fecha = start.strftime("%Y_%m_%d")
+                    dir = f'S{ii}_' + fecha
+
+                    # Dirección del csv del sensor x
+                    csv_path = os.path.join(path_new,dir)
+
+                    kk = 0
+                    while True:
+                        if not os.path.exists(csv_path):
+                            chunk.to_csv(csv_path+'.csv', index=False)
+                            break
+                        else:
+                            kk += 1
+                            csv_path = os.path.join(path_new,dir+f'_v{kk}')
+
+                else:
+                    continue
+
+            start = start + timedelta(days=1)
+    except:
+        layout = [[sg.Text('Error al intentar guardar la información.', font=font3)],
+                ['Error posible: La dirección seleccionada para guardar generó algun error.'],
+                [sg.Button('Return',key='Save'), sg.Button('Exit')]]
+        window.close()
+        window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), element_justification='c')
+        event, value = window.read()
+        
+        if event in ('Exit', sg.WIN_CLOSED):
+            shutdown(window)
+        return window, event, path
+
+
+    layout = [[sg.Text('Se termino de almacenar la información.', font=font3)],
+            [sg.Button('Graficar'), sg.Button('Realizar otro guardado', key='sensor_info'), sg.Button('Finalizar')]]
 
     window.close()
-    window = sg.Window('Proyecto UC-MEXUS', layout, font=font2, size=(720,480))
+    window = sg.Window('Proyecto UC-MEXUS', layout, font=font, size=(720,480), element_justification='c')
     event, value = window.read()
 
-    return window, event
+    return window, event, path
 
 def shutdown(window):
     window.close()

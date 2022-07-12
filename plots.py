@@ -72,11 +72,15 @@ PA_Onl = {"PM 1.0 ATM": "PM1.0_ATM_ug/m3", "PM 2.5 ATM": "PM2.5_ATM_ug/m3",
         "PM 10.0 ATM B": "PM10.0_ATM_B_ug/m3", "PM 1.0 CF B": "PM1.0_CF1_B_ug/m3",
         "PM 2.5 CF B": "PM2.5_CF1_B_ug/m3", "PM 10.0 CF B": "PM10.0_CF1_B_ug/m3"}
 
+font = ('Times New Roman', 14)
+
 Utc = tz.tzutc()
 Local_H = tz.tzlocal()
 
 def open_csv(window, value):
-    # Leo los archivos dentro de la carpeta.
+    """
+    Función que lee los archivos csv dados
+    """
     data = {}
     it = 1
     minimum = {}
@@ -504,15 +508,24 @@ def animate_1D(i, measurements, y_axis, PMType, depth, ax1, columns, rows, indx,
     interp = styles['Interp']
     if (styles['Marker'] != 'No marker') and (styles['LineStyle'] != 'No line'):
         # Incluye el promedio y interpolación en la leyenda.
-        ax1.legend(['Promedio', f'Interpolación {interp}'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+        if styles['Font'] == 'sans-serif':
+            ax1.legend(['Promedio', f'Interpolación {interp}'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': 'sans serif'})
+        else:
+            ax1.legend(['Promedio', f'Interpolación {interp}'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     
     elif (styles['Marker'] != 'No marker') and (styles['LineStyle'] == 'No line'):
         # Incluye promedio, no interpolación
-        ax1.legend(['Promedio'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+        if styles['Font'] == 'sans-serif':
+            ax1.legend(['Promedio'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': 'sans serif'})
+        else:
+            ax1.legend(['Promedio'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     
     elif (styles['Marker'] == 'No marker') and (styles['LineStyle'] != 'No line'):
         # Incluye interpolación, no promedio
-        ax1.legend([f'Interpolación {interp}'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+        if styles['Font'] == 'sans-serif':
+            ax1.legend([f'Interpolación {interp}'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': 'sans serif'})
+        else:
+            ax1.legend([f'Interpolación {interp}'], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     
     #Si no entra en ninguna, no habra leyenda.
 
@@ -636,8 +649,12 @@ def historic_means(measurements, y_axis, PMType, depth, columns, rows, ax1, fig,
                     fontstyle=styles['Titlestyle'])
     
     # Leyenda
-    ax1.legend([Line2D([0], [0], color=clave[0], lw=2) for clave in ley],
-           [clave[1] for clave in ley], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
+    if styles['Font'] == 'sans-serif':
+        ax1.legend([Line2D([0], [0], color=clave[0], lw=2) for clave in ley],
+            [clave[1] for clave in ley], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': 'sans serif'})
+    else:
+        ax1.legend([Line2D([0], [0], color=clave[0], lw=2) for clave in ley],
+            [clave[1] for clave in ley], loc=styles['Legend'], framealpha=alpha, fontsize=styles['Label_size']-2, prop={'family': styles['Font']})
     
     ax1.set_ylim(0, max(maxy)+0.5)
 
